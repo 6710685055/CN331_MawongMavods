@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}ค้นหารายวิชา{% endblock %}
+{% block content %}
+<div class="card wide">
+  <h1>ค้นหารายวิชา</h1>
+  <form method="get" class="row" role="search">
+    <input type="search" name="q" value="{{ q }}" placeholder="รหัสวิชาหรือชื่อวิชา เช่น CN331" aria-label="ค้นหารายวิชา">
+    <button type="submit">ค้นหา</button>
+  </form>
+  {% if courses %}
+  <table>
+    <tbody>
+    {% for c in courses %}
+      <tr>
+        <td><strong>{{ c.code }}</strong></td>
+        <td>{{ c.name }}</td>
+        <td style="text-align:right">
+          {% if c.id in enrolled_ids %}
+            <span class="tag">ลงทะเบียนแล้ว</span>
+          {% else %}
+            <form method="post" action="{% url 'courses:enroll' c.id %}">
+              {% csrf_token %}
+              <input type="hidden" name="next" value="{{ request.get_full_path }}">
+              <button type="submit">ลงทะเบียนเรียน</button>
+            </form>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p>{% if q %}ไม่พบรายวิชาที่ตรงกับ “{{ q }}” ลองค้นด้วยรหัสวิชาหรือคำอื่น{% else %}ยังไม่มีรายวิชาในระบบ{% endif %}</p>
+  {% endif %}
+</div>
+{% endblock %}

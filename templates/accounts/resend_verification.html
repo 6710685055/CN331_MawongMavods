@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}ส่งอีเมลยืนยันอีกครั้ง{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>ส่งอีเมลยืนยันอีกครั้ง</h1>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "partials/form.html" %}
+    <div class="actions"><button type="submit">ส่งลิงก์ยืนยัน</button></div>
+  </form>
+</div>
+{% endblock %}

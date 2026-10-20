@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{% block title %}มาวงมาวอดส์อะไร{% endblock %}</title>
+  <style>
+    :root { --ink:#1d2433; --muted:#5c667a; --line:#d9dee8; --bg:#f6f7fb; --card:#fff; --brand:#2f5bea; --ok:#127a48; --err:#b3261e; --info:#1f5fa8; }
+    * { box-sizing: border-box; }
+    body { margin:0; font-family: system-ui, "Noto Sans Thai", "Sarabun", sans-serif; color:var(--ink); background:var(--bg); line-height:1.6; }
+    header { background:var(--card); border-bottom:1px solid var(--line); }
+    .bar { max-width:880px; margin:0 auto; padding:.75rem 1rem; display:flex; align-items:center; gap:1rem; flex-wrap:wrap; }
+    .bar .brand { font-weight:700; margin-right:auto; color:var(--ink); text-decoration:none; }
+    .bar form { margin:0; }
+    main { max-width:880px; margin:1.5rem auto; padding:0 1rem; }
+    .card { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:1.5rem; max-width:480px; }
+    .card.wide { max-width:none; }
+    h1 { font-size:1.4rem; margin:0 0 1rem; }
+    a { color:var(--brand); }
+    label { display:block; font-weight:600; margin:.9rem 0 .25rem; }
+    input, select { width:100%; padding:.55rem .65rem; border:1px solid var(--line); border-radius:6px; font:inherit; background:#fff; }
+    input:focus-visible, select:focus-visible, button:focus-visible, a:focus-visible { outline:3px solid #9db4ff; outline-offset:1px; }
+    button, .btn { display:inline-block; padding:.55rem 1rem; border:0; border-radius:6px; background:var(--brand); color:#fff; font:inherit; cursor:pointer; text-decoration:none; }
+    button.link { background:none; color:var(--brand); padding:0; text-decoration:underline; }
+    .field-error { color:var(--err); font-size:.9rem; margin:.25rem 0 0; }
+    .help { color:var(--muted); font-size:.85rem; margin:.25rem 0 0; }
+    .messages { list-style:none; padding:0; margin:0 0 1rem; max-width:480px; }
+    .messages li { padding:.65rem .9rem; border-radius:6px; margin-bottom:.5rem; border:1px solid; }
+    .messages .success { color:var(--ok); border-color:var(--ok); background:#eaf7f0; }
+    .messages .error { color:var(--err); border-color:var(--err); background:#fdeceb; }
+    .messages .info { color:var(--info); border-color:var(--info); background:#eaf2fb; }
+    .row { display:flex; gap:.5rem; }
+    .row input { flex:1; }
+    table { width:100%; border-collapse:collapse; }
+    th, td { text-align:left; padding:.6rem .5rem; border-bottom:1px solid var(--line); vertical-align:middle; }
+    .tag { font-size:.8rem; padding:.1rem .5rem; border-radius:99px; background:#eef1f8; color:var(--muted); }
+    .actions { margin-top:1rem; display:flex; gap:1rem; align-items:center; flex-wrap:wrap; }
+  </style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <a class="brand" href="/">มาวงมาวอดส์อะไร</a>
+    {% if user.is_authenticated %}
+      <a href="{% url 'courses:my' %}">วิชาของฉัน</a>
+      <a href="{% url 'courses:list' %}">ค้นหารายวิชา</a>
+      <span class="tag">{{ user.full_name }} · {{ user.get_role_display }}</span>
+      <form method="post" action="{% url 'accounts:logout' %}">{% csrf_token %}<button class="link" type="submit">ออกจากระบบ</button></form>
+    {% else %}
+      <a href="{% url 'accounts:login' %}">เข้าสู่ระบบ</a>
+      <a href="{% url 'accounts:register' %}">สมัครสมาชิก</a>
+    {% endif %}
+  </div>
+</header>
+<main>
+  {% if messages %}
+    <ul class="messages" role="status">
+      {% for m in messages %}<li class="{{ m.tags }}">{{ m }}</li>{% endfor %}
+    </ul>
+  {% endif %}
+  {% block content %}{% endblock %}
+</main>
+</body>
+</html>

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}วิชาของฉัน{% endblock %}
+{% block content %}
+<div class="card wide">
+  <h1>วิชาของฉัน</h1>
+  {% if enrollments %}
+  <table>
+    <tbody>
+    {% for e in enrollments %}
+      <tr>
+        <td><strong>{{ e.course.code }}</strong></td>
+        <td>{{ e.course.name }}</td>
+        <td><span class="tag">{{ e.get_role_display }}</span></td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p>คุณยังไม่ได้ลงทะเบียนวิชาไหน</p>
+  {% endif %}
+  <div class="actions"><a class="btn" href="{% url 'courses:list' %}">ค้นหาและลงทะเบียนรายวิชา</a></div>
+</div>
+{% endblock %}

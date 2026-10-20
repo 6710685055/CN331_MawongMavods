@@ -1,0 +1,20 @@
+# Local database and Python environment
+db.sqlite3
+.venv/
+venv/
+
+# Python-generated files
+__pycache__/
+*.py[cod]
+
+# Local environment variables
+.env
+.env.*
+!.env.example
+
+# Local database backups
+db_backup.sqlite3
+db_old.sqlite3
+
+# Secrets and local configuration
+.env
