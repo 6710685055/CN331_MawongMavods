@@ -16,6 +16,8 @@ INSTALLED_APPS = [
     "django.contrib.staticfiles",
     "accounts",
     "courses",
+    "documents",
+    "notifications",
 ]
 
 MIDDLEWARE = [
@@ -40,6 +42,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
+                "notifications.context_processors.unread_notifications",
             ],
         },
     },
@@ -69,7 +72,14 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = "static/"
+MEDIA_URL = "media/"
+MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
+
+# Document Upload Configuration (UC3)
+DOCUMENT_MAX_FILE_SIZE_MB = 50
+DOCUMENT_MAX_FILE_SIZE_BYTES = DOCUMENT_MAX_FILE_SIZE_MB * 1024 * 1024
+DOCUMENT_ALLOWED_EXTENSIONS = (".pdf", ".docx", ".pptx", ".png", ".jpg")
 
 LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "courses:my"

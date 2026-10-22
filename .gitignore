@@ -2,6 +2,7 @@
 db.sqlite3
 .venv/
 venv/
+media/
 
 # Python-generated files
 __pycache__/
@@ -18,3 +19,4 @@ db_old.sqlite3
 
 # Secrets and local configuration
 .env
+CLAUDE.md
