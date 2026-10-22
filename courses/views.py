@@ -6,6 +6,7 @@ from django.utils.http import url_has_allowed_host_and_scheme
 from django.views.decorators.http import require_POST
 
 from .models import Course, Enrollment
+from .permissions import is_course_staff
 from .services import EnrollmentError, enroll
 
 
@@ -49,5 +50,9 @@ def enroll_course(request, course_id):
 
 @login_required
 def my_courses(request):
-    enrollments = Enrollment.objects.filter(user=request.user).select_related("course")
+    enrollments = list(
+        Enrollment.objects.filter(user=request.user).select_related("course")
+    )
+    for e in enrollments:
+        e.is_staff_role = is_course_staff(request.user, e.course)
     return render(request, "courses/my_courses.html", {"enrollments": enrollments})

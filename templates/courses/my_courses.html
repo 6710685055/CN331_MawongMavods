@@ -5,12 +5,26 @@
   <h1>วิชาของฉัน</h1>
   {% if enrollments %}
   <table>
+    <thead>
+      <tr>
+        <th>รหัสวิชา</th>
+        <th>ชื่อวิชา</th>
+        <th>บทบาทในวิชา</th>
+        <th>เมนูเอกสาร</th>
+      </tr>
+    </thead>
     <tbody>
     {% for e in enrollments %}
       <tr>
         <td><strong>{{ e.course.code }}</strong></td>
         <td>{{ e.course.name }}</td>
         <td><span class="tag">{{ e.get_role_display }}</span></td>
+        <td>
+          <a class="btn secondary" href="{% url 'documents:library' e.course.id %}">คลังเอกสาร</a>
+          {% if e.is_staff_role %}
+            <a class="btn secondary" href="{% url 'documents:review_queue' e.course.id %}">เอกสารรอตรวจ</a>
+          {% endif %}
+        </td>
       </tr>
     {% endfor %}
     </tbody>

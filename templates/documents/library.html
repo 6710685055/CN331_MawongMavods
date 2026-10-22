@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}คลังเอกสาร {{ course.code }}{% endblock %}
+{% block content %}
+<div class="card wide">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.75rem; margin-bottom:1rem;">
+    <div>
+      <h1 style="margin:0;">คลังเอกสาร: {{ course.code }} {{ course.name }}</h1>
+      <p class="help" style="margin:.2rem 0 0;">แบ่งปันชีทสรุป แนวข้อสอบ และการบ้านสำหรับผู้ที่ลงทะเบียนในรายวิชานี้</p>
+    </div>
+    <div class="actions" style="margin:0;">
+      {% if can_review %}
+        <a class="btn secondary" href="{% url 'documents:review_queue' course.id %}">
+          เอกสารรอตรวจ ({{ pending_queue_count }})
+        </a>
+      {% endif %}
+      <a class="btn" href="{% url 'documents:upload' course.id %}">+ อัปโหลดเอกสาร</a>
+    </div>
+  </div>
+
+  <form method="get" class="panel" style="margin-bottom:1.25rem;">
+    <div class="row">
+      <input type="search" name="q" value="{{ filter_q }}" placeholder="ค้นหาชื่อเอกสาร คำอธิบาย หรือบทเรียน...">
+      <select name="doc_type">
+        <option value="">ทุกประเภทเอกสาร</option>
+        {% for val, label in doc_types %}
+          <option value="{{ val }}" {% if filter_doc_type == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <select name="semester">
+        <option value="">ทุกภาคการศึกษา</option>
+        {% for val, label in semesters %}
+          <option value="{{ val }}" {% if filter_semester == val %}selected{% endif %}>{{ label }}</option>
+        {% endfor %}
+      </select>
+      <input type="number" name="academic_year" value="{{ filter_academic_year }}" placeholder="ปีการศึกษา (พ.ศ.)" style="max-width:160px;">
+    </div>
+    <div class="actions" style="margin-top:.75rem;">
+      <label style="margin:0; font-weight:normal; display:inline-flex; align-items:center;">
+        <input type="checkbox" name="verified" value="1" {% if filter_verified_only %}checked{% endif %}>
+        แสดงเฉพาะเอกสารที่ได้รับการ Verify แล้ว
+      </label>
+      <button type="submit" class="btn secondary">กรองข้อมูล</button>
+      <a href="{% url 'documents:library' course.id %}" class="help">ล้างตัวกรอง</a>
+    </div>
+  </form>
+
+  {% if documents %}
+    <table>
+      <thead>
+        <tr>
+          <th>เอกสาร</th>
+          <th>ประเภท / ปีการศึกษา</th>
+          <th>การยืนยันความถูกต้อง</th>
+          <th>ผู้อัปโหลด</th>
+          <th>โหวต</th>
+          <th style="text-align:right;">การจัดการ</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for doc in documents %}
+          <tr {% if doc.is_pinned %}style="background:#f8faff;"{% endif %}>
+            <td>
+              {% if doc.is_pinned %}
+                <span class="tag badge-pin" title="ปักหมุดไว้บนสุด">📌 ปักหมุด</span>
+              {% endif %}
+              <a href="{% url 'documents:detail' course.id doc.id %}"><strong>{{ doc.title }}</strong></a>
+              <span class="help">(v{{ doc.version }})</span>
+              {% if doc.related_chapter %}
+                <div class="help">บทที่เกี่ยวข้อง: {{ doc.related_chapter }}</div>
+              {% endif %}
+            </td>
+            <td>
+              <span class="tag">{{ doc.get_doc_type_display }}</span>
+              <div class="help">{{ doc.get_semester_display }} / {{ doc.academic_year }}</div>
+            </td>
+            <td>
+              {% if doc.has_active_verified_badge %}
+                <span class="tag badge-verified">
+                  ✓ {{ doc.verified_badge_label }}
+                </span>
+                <div class="help">โดย {{ doc.verified_by_name }} ({{ doc.verified_at|date:"d/m/Y" }})</div>
+              {% elif doc.show_review_details and doc.is_verifiable %}
+                {% if doc.verify_status == "pending" %}
+                  <span class="tag badge-pending">รอตรวจ</span>
+                {% elif doc.verify_status == "needs_revision" %}
+                  <span class="tag badge-revision">ต้องแก้ไข</span>
+                {% endif %}
+              {% endif %}
+            </td>
+            <td>
+              <div>{{ doc.uploader.full_name }}</div>
+              <div class="help">{{ doc.created_at|date:"d/m/Y H:i" }}</div>
+            </td>
+            <td><strong>{{ doc.vote_score }}</strong></td>
+            <td style="text-align:right; white-space:nowrap;">
+              <a class="btn secondary" href="{% url 'documents:download' course.id doc.id %}">ดาวน์โหลด</a>
+              {% if can_pin %}
+                <form method="post" action="{% url 'documents:toggle_pin' course.id doc.id %}" style="display:inline;">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{{ request.get_full_path }}">
+                  <button type="submit" class="btn secondary">
+                    {% if doc.is_pinned %}เลิกปักหมุด{% else %}ปักหมุด{% endif %}
+                  </button>
+                </form>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>ยังไม่มีเอกสารในคลังเอกสารของรายวิชานี้</p>
+  {% endif %}
+</div>
+{% endblock %}

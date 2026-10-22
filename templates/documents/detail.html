@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+{% block title %}{{ document.title }} — {{ course.code }}{% endblock %}
+{% block content %}
+<div class="card wide">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:.75rem;">
+    <div>
+      {% if document.is_pinned %}
+        <span class="tag badge-pin">📌 ปักหมุดไว้บนสุด</span>
+      {% endif %}
+      <h1 style="margin:.25rem 0;">{{ document.title }}</h1>
+      <p class="help" style="margin:0;">
+        วิชา <a href="{% url 'documents:library' course.id %}">{{ course.code }} {{ course.name }}</a>
+        · ประเภท: <strong>{{ document.get_doc_type_display }}</strong>
+        · ปีการศึกษา {{ document.academic_year }} ({{ document.get_semester_display }})
+        · เวอร์ชันไฟล์: <strong>v{{ document.version }}</strong>
+      </p>
+    </div>
+    <div class="actions" style="margin:0;">
+      <a class="btn" href="{% url 'documents:download' course.id document.id %}">ดาวน์โหลดไฟล์</a>
+      {% if can_pin %}
+        <form method="post" action="{% url 'documents:toggle_pin' course.id document.id %}" style="display:inline;">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.path }}">
+          <button type="submit" class="btn secondary">
+            {% if document.is_pinned %}เลิกปักหมุด{% else %}ปักหมุดเอกสาร{% endif %}
+          </button>
+        </form>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if document.has_active_verified_badge %}
+    <div class="panel" style="background:#eaf7f0; border-color:#b7e4c7;">
+      <strong style="color:var(--ok);">✓ {{ document.verified_badge_label }}</strong>
+      <div class="help" style="color:var(--ink);">
+        ตรวจสอบโดย: <strong>{{ document.verified_by_name }}</strong>
+        · วันที่: {{ document.verified_at|date:"d/m/Y H:i" }}
+        · ผูกกับไฟล์เวอร์ชัน: v{{ document.verified_version }}
+      </div>
+    </div>
+  {% elif show_review_details and document.is_verifiable %}
+    {% if document.verify_status == "pending" %}
+      <div class="panel" style="background:#fff8e6; border-color:#f5d38c;">
+        <span class="tag badge-pending">สถานะ: รอตรวจ</span>
+        <span class="help" style="margin-left:.5rem;">(เห็นเฉพาะเจ้าของเอกสาร, TA และอาจารย์ผู้สอนของวิชา)</span>
+      </div>
+    {% elif document.verify_status == "needs_revision" %}
+      <div class="panel" style="background:#fdeceb; border-color:#f5b5b0;">
+        <div>
+          <span class="tag badge-revision">สถานะ: ต้องแก้ไข</span>
+          <span class="help" style="margin-left:.5rem;">(เห็นเฉพาะเจ้าของเอกสาร, TA และอาจารย์ผู้สอนของวิชา)</span>
+        </div>
+        {% if document.latest_review_comment %}
+          <p style="margin:.5rem 0 0;"><strong>ความคิดเห็นจากผู้ตรวจ:</strong> {{ document.latest_review_comment }}</p>
+        {% endif %}
+      </div>
+    {% endif %}
+  {% endif %}
+
+  <table style="margin-top:1rem;">
+    <tbody>
+      <tr>
+        <th style="width:180px;">ผู้อัปโหลด</th>
+        <td>{{ document.uploader.full_name }}</td>
+      </tr>
+      <tr>
+        <th>วันเวลาที่อัปโหลด</th>
+        <td>{{ document.created_at|date:"d/m/Y H:i" }}</td>
+      </tr>
+      <tr>
+        <th>บทที่เกี่ยวข้อง</th>
+        <td>{{ document.related_chapter|default:"-" }}</td>
+      </tr>
+      <tr>
+        <th>คำอธิบาย</th>
+        <td>{{ document.description|linebreaksbr|default:"-" }}</td>
+      </tr>
+      <tr>
+        <th>ชื่อไฟล์</th>
+        <td>{{ document.original_filename }} ({{ document.file_size|filesizeformat }})</td>
+      </tr>
+      <tr>
+        <th>คะแนนโหวต</th>
+        <td><strong>{{ document.vote_score }}</strong></td>
+      </tr>
+    </tbody>
+  </table>
+
+  {% if can_verify %}
+    <div class="panel" style="margin-top:1.5rem;">
+      <h2 style="margin-top:0;">ส่วนสำหรับผู้ตรวจ (TA / อาจารย์ผู้สอน)</h2>
+
+      {% if not document.has_active_verified_badge %}
+        <form method="post" action="{% url 'documents:verify' course.id document.id %}" style="margin-bottom:1.25rem;">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.path }}">
+          <button type="submit" class="btn success">✓ Verify (ยืนยันความถูกต้องของเอกสาร v{{ document.version }})</button>
+        </form>
+
+        <form method="post" action="{% url 'documents:request_revision' course.id document.id %}">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.path }}">
+          <label for="{{ revision_form.comment.id_for_label }}">{{ revision_form.comment.label }} *</label>
+          {{ revision_form.comment }}
+          <div class="actions" style="margin-top:.5rem;">
+            <button type="submit" class="btn danger">ส่งกลับให้แก้ไข</button>
+          </div>
+        </form>
+      {% endif %}
+
+      {% if can_revoke %}
+        <form method="post" action="{% url 'documents:revoke_verify' course.id document.id %}" style="margin-top:1rem;">
+          {% csrf_token %}
+          <input type="hidden" name="next" value="{{ request.path }}">
+          <label for="{{ revoke_form.reason.id_for_label }}">{{ revoke_form.reason.label }} *</label>
+          {{ revoke_form.reason }}
+          <div class="actions" style="margin-top:.5rem;">
+            <button type="submit" class="btn danger">ยกเลิก Verify</button>
+          </div>
+        </form>
+      {% endif %}
+    </div>
+  {% endif %}
+
+  {% if is_owner and replace_file_form %}
+    <div class="panel" style="margin-top:1.5rem;">
+      <h2 style="margin-top:0;">อัปเดตไฟล์เอกสารฉบับแก้ไข (สำหรับเจ้าของเอกสาร)</h2>
+      <form method="post" enctype="multipart/form-data" action="{% url 'documents:replace_file' course.id document.id %}">
+        {% csrf_token %}
+        <label for="{{ replace_file_form.file.id_for_label }}">{{ replace_file_form.file.label }}</label>
+        {{ replace_file_form.file }}
+        <p class="help">{{ replace_file_form.file.help_text }}</p>
+        <div class="actions" style="margin-top:.5rem;">
+          <button type="submit" class="btn secondary">อัปโหลดไฟล์เวอร์ชันใหม่</button>
+        </div>
+      </form>
+    </div>
+  {% endif %}
+
+  {% if show_review_details and review_logs %}
+    <div style="margin-top:1.5rem;">
+      <h2>ประวัติการตรวจสอบเอกสาร (เฉพาะเจ้าของเอกสาร, TA และอาจารย์ผู้สอน)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>วันเวลา</th>
+            <th>การดำเนินการ</th>
+            <th>ผู้ตรวจ</th>
+            <th>เวอร์ชัน</th>
+            <th>ความคิดเห็น / เหตุผล</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in review_logs %}
+            <tr>
+              <td class="help">{{ log.created_at|date:"d/m/Y H:i" }}</td>
+              <td><strong>{{ log.get_action_display }}</strong></td>
+              <td>{{ log.reviewer_name_snapshot }} ({{ log.reviewer_role_snapshot }})</td>
+              <td>v{{ log.document_version }}</td>
+              <td>{{ log.comment|default:"-" }}</td>
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  {% endif %}
+
+  <div class="actions" style="margin-top:1.5rem;">
+    <a class="btn secondary" href="{% url 'documents:library' course.id %}">← กลับไปคลังเอกสาร</a>
+  </div>
+</div>
+{% endblock %}

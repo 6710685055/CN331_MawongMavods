@@ -6,5 +6,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("accounts/", include("accounts.urls")),
     path("courses/", include("courses.urls")),
+    path("", include("documents.urls")),
+    path("notifications/", include("notifications.urls")),
     path("", RedirectView.as_view(pattern_name="courses:my", permanent=False)),
 ]

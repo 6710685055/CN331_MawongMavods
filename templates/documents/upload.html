@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+{% block title %}อัปโหลดเอกสาร — {{ course.code }}{% endblock %}
+{% block content %}
+<div class="card wide">
+  <h1>อัปโหลดเอกสาร: {{ course.code }} {{ course.name }}</h1>
+  <p class="help">กรอกข้อมูลเอกสารและแนบไฟล์เพื่อแบ่งปันให้ผู้ที่ลงทะเบียนในรายวิชาเดียวกัน</p>
+
+  <form method="post" enctype="multipart/form-data" id="upload-doc-form" novalidate>
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      {% for e in form.non_field_errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+    {% endif %}
+
+    <div>
+      <label for="{{ form.title.id_for_label }}">{{ form.title.label }} *</label>
+      {{ form.title }}
+      {% for e in form.title.errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+    </div>
+
+    <div class="row">
+      <div style="flex:1;">
+        <label for="{{ form.doc_type.id_for_label }}">{{ form.doc_type.label }} *</label>
+        {{ form.doc_type }}
+        {% for e in form.doc_type.errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+      </div>
+      <div style="flex:1;">
+        <label for="{{ form.academic_year.id_for_label }}">{{ form.academic_year.label }} *</label>
+        {{ form.academic_year }}
+        {% for e in form.academic_year.errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+      </div>
+      <div style="flex:1;">
+        <label for="{{ form.semester.id_for_label }}">{{ form.semester.label }} *</label>
+        {{ form.semester }}
+        {% for e in form.semester.errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+      </div>
+    </div>
+
+    <div id="homework-confirm-box" class="panel" style="background:#fff8e6; border-color:#f5d38c;">
+      <label style="margin:0; display:flex; align-items:center;">
+        {{ form.confirm_past_deadline }}
+        <span>{{ form.confirm_past_deadline.label }} *</span>
+      </label>
+      <p class="help" style="margin:.25rem 0 0;">{{ form.confirm_past_deadline.help_text }}</p>
+      {% for e in form.confirm_past_deadline.errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+    </div>
+
+    <div>
+      <label for="{{ form.related_chapter.id_for_label }}">{{ form.related_chapter.label }}</label>
+      {{ form.related_chapter }}
+      {% if form.related_chapter.help_text %}<p class="help">{{ form.related_chapter.help_text }}</p>{% endif %}
+      {% for e in form.related_chapter.errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+    </div>
+
+    <div>
+      <label for="{{ form.description.id_for_label }}">{{ form.description.label }}</label>
+      {{ form.description }}
+      {% if form.description.help_text %}<p class="help">{{ form.description.help_text }}</p>{% endif %}
+      {% for e in form.description.errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+    </div>
+
+    <div>
+      <label for="{{ form.file.id_for_label }}">{{ form.file.label }} *</label>
+      {{ form.file }}
+      {% if form.file.help_text %}<p class="help">{{ form.file.help_text }}</p>{% endif %}
+      {% for e in form.file.errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+    </div>
+
+    {% if form.is_pinned %}
+      <div class="panel">
+        <label style="margin:0; display:flex; align-items:center;">
+          {{ form.is_pinned }}
+          <span>{{ form.is_pinned.label }}</span>
+        </label>
+        {% if form.is_pinned.help_text %}<p class="help">{{ form.is_pinned.help_text }}</p>{% endif %}
+        {% for e in form.is_pinned.errors %}<p class="field-error">{{ e }}</p>{% endfor %}
+      </div>
+    {% endif %}
+
+    <p id="missing-fields-hint" class="field-error" style="display:none; margin-top:.75rem;"></p>
+
+    <div class="actions">
+      <button type="submit" id="submit-upload-btn" class="btn">ยืนยันการอัปโหลด</button>
+      <a class="btn secondary" href="{% url 'documents:library' course.id %}">ยกเลิก</a>
+    </div>
+  </form>
+</div>
+
+<script>
+(function () {
+  const form = document.getElementById("upload-doc-form");
+  if (!form) return;
+  const titleInput = document.getElementById("{{ form.title.id_for_label }}");
+  const docTypeSelect = document.getElementById("{{ form.doc_type.id_for_label }}");
+  const yearInput = document.getElementById("{{ form.academic_year.id_for_label }}");
+  const semesterSelect = document.getElementById("{{ form.semester.id_for_label }}");
+  const fileInput = document.getElementById("{{ form.file.id_for_label }}");
+  const hwConfirm = document.getElementById("{{ form.confirm_past_deadline.id_for_label }}");
+  const hwBox = document.getElementById("homework-confirm-box");
+  const submitBtn = document.getElementById("submit-upload-btn");
+  const hint = document.getElementById("missing-fields-hint");
+
+  function syncFormState() {
+    const isHomework = docTypeSelect && docTypeSelect.value === "homework";
+    if (hwBox) {
+      hwBox.style.display = isHomework ? "block" : "none";
+    }
+
+    const missing = [];
+    if (!titleInput || !titleInput.value.trim()) missing.push("ชื่อเอกสาร");
+    if (!docTypeSelect || !docTypeSelect.value) missing.push("ประเภทเอกสาร");
+    if (!yearInput || !yearInput.value.trim()) missing.push("ปีการศึกษา");
+    if (!semesterSelect || !semesterSelect.value) missing.push("ภาคการศึกษา");
+    if (!fileInput || !fileInput.files || fileInput.files.length === 0) missing.push("ไฟล์เอกสาร");
+    if (isHomework && (!hwConfirm || !hwConfirm.checked)) {
+      missing.push("การยืนยันว่าการบ้านหมดกำหนดส่งแล้ว");
+    }
+
+    if (missing.length > 0) {
+      submitBtn.disabled = true;
+      hint.style.display = "block";
+      hint.textContent = "กรุณาระบุข้อมูลให้ครบก่อนยืนยัน: " + missing.join(", ");
+    } else {
+      submitBtn.disabled = false;
+      hint.style.display = "none";
+      hint.textContent = "";
+    }
+  }
+
+  ["input", "change"].forEach(function (evt) {
+    form.addEventListener(evt, syncFormState);
+  });
+  syncFormState();
+})();
+</script>
+{% endblock %}

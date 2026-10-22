@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% block title %}เอกสารรอตรวจ — {{ course.code }}{% endblock %}
+{% block content %}
+<div class="card wide">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.75rem; margin-bottom:1rem;">
+    <div>
+      <h1 style="margin:0;">เอกสารรอตรวจ: {{ course.code }} {{ course.name }}</h1>
+      <p class="help" style="margin:.2rem 0 0;">
+        แสดงเฉพาะชีทสรุปและแนวข้อสอบสถานะ "รอตรวจ" เรียงจากเก่าสุดไปใหม่สุด (ไม่แสดงเอกสารที่คุณอัปโหลดเอง)
+      </p>
+    </div>
+    <a class="btn secondary" href="{% url 'documents:library' course.id %}">← กลับไปคลังเอกสาร</a>
+  </div>
+
+  {% if queue_documents %}
+    <table>
+      <thead>
+        <tr>
+          <th>วันเวลาที่อัปโหลด</th>
+          <th>ชื่อเอกสาร</th>
+          <th>ประเภท</th>
+          <th>ผู้อัปโหลด</th>
+          <th>เวอร์ชัน</th>
+          <th style="text-align:right;">การจัดการ</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for doc in queue_documents %}
+          <tr>
+            <td class="help">{{ doc.created_at|date:"d/m/Y H:i" }}</td>
+            <td>
+              <a href="{% url 'documents:detail' course.id doc.id %}"><strong>{{ doc.title }}</strong></a>
+              {% if doc.related_chapter %}
+                <div class="help">บทที่เกี่ยวข้อง: {{ doc.related_chapter }}</div>
+              {% endif %}
+            </td>
+            <td><span class="tag">{{ doc.get_doc_type_display }}</span></td>
+            <td>{{ doc.uploader.full_name }}</td>
+            <td>v{{ doc.version }}</td>
+            <td style="text-align:right; white-space:nowrap;">
+              <a class="btn secondary" href="{% url 'documents:download' course.id doc.id %}">ดาวน์โหลด</a>
+              <a class="btn" href="{% url 'documents:detail' course.id doc.id %}">เปิดดูและตรวจ</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>ไม่มีเอกสารค้างอยู่ในคิวรอตรวจของรายวิชานี้</p>
+  {% endif %}
+</div>
+{% endblock %}
