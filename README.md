@@ -4,6 +4,7 @@
 
 ## ฟีเจอร์หลัก
 
+- **US-02 — Group Meeting & Notification:** สร้างและจัดการนัดหมายประชุมกลุ่ม พร้อมการแจ้งเตือนสมาชิก
 - **UC3 — Document Management:** อัปโหลด แชร์ ปักหมุด และจัดการเอกสารในรายวิชา
 - **UC4 — Document Verification:** ตรวจสอบ ยืนยัน และส่งเอกสารกลับเพื่อแก้ไข พร้อมระบบแจ้งเตือน
 - **UC7 — Registration & Login:** สมัครสมาชิก ยืนยันอีเมล เข้าสู่ระบบ รีเซ็ตรหัสผ่าน และลงทะเบียนรายวิชา
@@ -30,6 +31,7 @@ CN331/
 ├── accounts/        # สมัครสมาชิก เข้าสู่ระบบ และยืนยันอีเมล
 ├── courses/         # รายวิชาและการลงทะเบียนเรียน
 ├── documents/       # อัปโหลดและจัดการเอกสาร
+├── meetings/       # นัดหมายประชุมและการแจ้งเตือน
 ├── notifications/   # ระบบแจ้งเตือน
 ├── config/          # Django settings และ URL configuration
 ├── templates/       # HTML templates
@@ -81,7 +83,7 @@ pip install -r requirements.txt
 
 ```dotenv
 DJANGO_SECRET_KEY=replace-with-your-secret-key
-DJANGO_DEBUG=True
+DJANGO_DEBUG=1
 
 EMAIL_HOST_USER=your-email@gmail.com
 EMAIL_HOST_PASSWORD=your-gmail-app-password
@@ -425,6 +427,57 @@ git commit -m "Resolve merge conflicts"
 
 ## 12. Development Notes
 
-README นี้สรุปแนวทางติดตั้ง การตั้งค่า การทดสอบ และความสามารถหลักของ UC3, UC4 และ UC7
+README นี้สรุปแนวทางติดตั้ง การตั้งค่า การทดสอบ และความสามารถหลักของ US-02, UC3, UC4 และ UC7
 
 รายละเอียดการทำงานจริง เช่น URL, ชื่อฟังก์ชัน, สถานะเอกสาร, สิทธิ์ผู้ใช้ และ Acceptance Criteria ควรตรวจสอบเทียบกับ Source Code และข้อกำหนดของโปรเจกต์ก่อนส่งงานทุกครั้ง
+
+---
+
+## US-02 — การนัดหมายประชุมกลุ่มและการแจ้งเตือน
+
+branch `issue-2-group-meeting-notification` เพิ่มความสามารถนัดหมายประชุมให้กับสมาชิกกลุ่มที่เข้าสู่ระบบ ผู้ใช้สามารถสร้างนัดหมาย ระบุหัวข้อ ลิงก์ วันและเวลา ดูนัดหมายที่กำลังจะมาถึงในพื้นที่กลุ่ม และแก้ไขหรือเลื่อนนัดหมายได้ เมื่อมีการเปลี่ยนนัดหมาย ระบบจะส่งการแจ้งเตือนภายในแอปให้สมาชิกกลุ่ม และสามารถส่งการแจ้งเตือนเตือนก่อนถึงเวลาประชุมได้
+
+**User Story:** ในฐานะสมาชิกกลุ่ม ฉันต้องการสร้างและจัดการนัดหมายประชุมของกลุ่ม เพื่อให้สมาชิกทุกคนทราบวัน เวลา และลิงก์ประชุม
+
+### การเตรียมข้อมูลกลุ่มสำหรับทดลอง
+
+ขณะนี้ US-01 ยังอยู่ระหว่างพัฒนา จึงใช้ Django `Group` เป็น adapter ชั่วคราวสำหรับสมาชิกกลุ่ม ให้เข้าสู่ระบบ Django Admin ที่ `/admin/` สร้าง Group และเพิ่มบัญชีผู้ใช้ทดสอบเป็นสมาชิก จากนั้นผู้ใช้เหล่านั้นจึงจะเห็นพื้นที่กลุ่มและนัดหมายได้ เมื่อนำโมเดลกลุ่มของ US-01 มารวม อาจต้องปรับ adapter ใน `meetings/group_access.py`
+
+### หน้าของ US-02
+
+| หน้า | URL |
+|---|---|
+| รวมนัดหมายของผู้ใช้ | `/meetings/` |
+| พื้นที่นัดหมายของกลุ่ม | `/meetings/groups/<group_id>/` |
+| สร้างนัดหมาย | `/meetings/groups/<group_id>/create/` |
+| แก้ไขหรือเลื่อนนัดหมาย | `/meetings/<meeting_id>/edit/` |
+
+### เกณฑ์การยอมรับ (Acceptance Criteria) และตำแหน่งที่พัฒนา
+
+| เกณฑ์การยอมรับ | ตำแหน่งในโค้ด |
+|---|---|
+| สมาชิกกลุ่มสร้างนัดหมายได้ โดยตรวจสอบสิทธิ์ | `meetings/views.py`, `meetings/permissions.py`, `meetings/group_access.py` |
+| กำหนดหัวข้อ ลิงก์ วันและเวลาได้ พร้อมตรวจ URL และเวลาที่ต้องเป็นอนาคต | `meetings/forms.py`, `meetings/models.py` |
+| แสดงนัดหมายที่กำลังจะมาถึง และปักนัดหมายถัดไปไว้ด้านบน | `meetings/selectors.py`, `templates/meetings/group_meetings.html` |
+| สมาชิกแก้ไขหรือเลื่อนนัดหมายได้ | `meetings/views.py`, `meetings/services.py`, `templates/meetings/meeting_form.html` |
+| แจ้งสมาชิกเมื่อมีการเปลี่ยนนัดหมาย | `meetings/services.py`, `notifications/services.py`, `notifications/models.py` |
+| แจ้งเตือนก่อนเวลาประชุม | `meetings/services.py`, `meetings/management/commands/send_meeting_reminders.py` |
+
+### คำสั่งเฉพาะสำหรับ US-02
+
+ตรวจสอบการตั้งค่าและรันชุดทดสอบ:
+
+```bash
+python manage.py check
+python manage.py test meetings
+```
+
+ส่งการแจ้งเตือนให้การประชุมที่อยู่ในช่วงเวลาเตือน (ค่าเริ่มต้น 15 นาที):
+
+```bash
+python manage.py send_meeting_reminders
+```
+
+คำสั่งเตือนต้องถูกเรียกตามกำหนดเวลา เช่น ตั้ง Windows Task Scheduler ให้รันทุกหนึ่งนาที Django ไม่ได้รันคำสั่งนี้ให้อัตโนมัติ
+
+ดูรายละเอียดการออกแบบเพิ่มเติมได้ที่ `docs/meeting_uc2.md`.

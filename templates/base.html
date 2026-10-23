@@ -47,6 +47,16 @@
     .tag.badge-warn { background:#fdeceb; color:var(--err); font-weight:600; }
     .actions { margin-top:1rem; display:flex; gap:.75rem; align-items:center; flex-wrap:wrap; }
     .panel { border:1px solid var(--line); border-radius:8px; padding:1rem; margin-top:1rem; background:#fafbfe; }
+    .meeting-heading { display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap; margin-bottom:1rem; }
+    .meeting-heading h1, .meeting-heading p { margin-bottom:.2rem; }
+    .meeting-list { display:grid; gap:1rem; }
+    .meeting-card { border:1px solid var(--line); border-radius:10px; padding:1.1rem 1.25rem; background:#fff; }
+    .meeting-card-pinned { border-color:#9bb1ff; box-shadow:0 0 0 2px #eef1ff inset; }
+    .meeting-card h2 { margin:.7rem 0 .3rem; }
+    .meeting-card-top { display:flex; justify-content:space-between; gap:.75rem; align-items:center; flex-wrap:wrap; }
+    .meeting-card time { color:var(--muted); font-weight:600; }
+    .eyebrow { letter-spacing:.12em; font-size:.75rem; color:var(--muted); margin:0 0 .25rem; font-weight:700; }
+    .empty-state { text-align:center; padding:2rem 1rem; border:1px dashed var(--line); border-radius:8px; margin-top:1rem; }
   </style>
 </head>
 <body>
@@ -56,6 +66,7 @@
     {% if user.is_authenticated %}
       <a href="{% url 'courses:my' %}">วิชาของฉัน</a>
       <a href="{% url 'courses:list' %}">ค้นหารายวิชา</a>
+      <a href="{% url 'meetings:index' %}">นัดหมายประชุม</a>
       <a href="{% url 'notifications:list' %}">
         การแจ้งเตือน{% if unread_notifications_count %} <span class="tag badge-warn">{{ unread_notifications_count }}</span>{% endif %}
       </a>

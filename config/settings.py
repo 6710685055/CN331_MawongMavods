@@ -28,7 +28,13 @@ INSTALLED_APPS = [
     "courses",
     "documents",
     "notifications",
+    "meetings",
 ]
+
+# US-01 is still in progress. UC2 currently adapts Django auth groups and can
+# switch to the project-team model by changing this dotted path later.
+MEETINGS_GROUP_ACCESS_ADAPTER = "meetings.group_access.AuthGroupAccess"
+MEETING_REMINDER_MINUTES = 15
 
 # Middleware
 MIDDLEWARE = [
