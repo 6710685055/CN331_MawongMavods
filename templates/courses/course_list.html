@@ -2,13 +2,20 @@
 {% block title %}ค้นหารายวิชา{% endblock %}
 {% block content %}
 <div class="card wide">
-  <h1>ค้นหารายวิชา</h1>
+  <h1>🔍 ค้นหารายวิชา</h1>
   <form method="get" class="row" role="search">
     <input type="search" name="q" value="{{ q }}" placeholder="รหัสวิชาหรือชื่อวิชา เช่น CN331" aria-label="ค้นหารายวิชา">
     <button type="submit">ค้นหา</button>
   </form>
   {% if courses %}
   <table>
+    <thead>
+      <tr>
+        <th>รหัสวิชา</th>
+        <th>ชื่อวิชา</th>
+        <th style="text-align:right">ดำเนินการ</th>
+      </tr>
+    </thead>
     <tbody>
     {% for c in courses %}
       <tr>
@@ -30,7 +37,10 @@
     </tbody>
   </table>
   {% else %}
-    <p>{% if q %}ไม่พบรายวิชาที่ตรงกับ “{{ q }}” ลองค้นด้วยรหัสวิชาหรือคำอื่น{% else %}ยังไม่มีรายวิชาในระบบ{% endif %}</p>
+    <p>{% if q %}ไม่พบรายวิชาที่ตรงกับ "{{ q }}" ลองค้นด้วยรหัสวิชาหรือคำอื่น{% else %}ยังไม่มีรายวิชาในระบบ{% endif %}</p>
   {% endif %}
+  <div class="actions" style="margin-top:1rem;">
+    <a class="btn secondary" href="{% url 'courses:my' %}">← กลับหน้าวิชาของฉัน</a>
+  </div>
 </div>
 {% endblock %}

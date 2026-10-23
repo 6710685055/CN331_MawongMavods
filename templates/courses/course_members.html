@@ -1,0 +1,69 @@
+{% extends "base.html" %}
+{% block title %}จัดการสมาชิก — {{ course.code }}{% endblock %}
+{% block content %}
+<div class="card wide">
+  <h1>จัดการสมาชิก — {{ course.code }} {{ course.name }}</h1>
+
+  {# ── Add member form ── #}
+  <div class="panel">
+    <h2>เพิ่มสมาชิก</h2>
+    <form method="post" class="row">
+      {% csrf_token %}
+      <input type="email" name="email" placeholder="อีเมลผู้ใช้" required>
+      <select name="role" style="max-width:160px">
+        <option value="student">นักศึกษา</option>
+        <option value="ta">TA</option>
+      </select>
+      <button type="submit">เพิ่ม</button>
+    </form>
+  </div>
+
+  {# ── Current members list ── #}
+  <h2 style="margin-top:1.5rem;">สมาชิกปัจจุบัน</h2>
+  {% if members %}
+  <table>
+    <thead>
+      <tr>
+        <th>ชื่อ</th>
+        <th>อีเมล</th>
+        <th>บทบาท</th>
+        <th>ดำเนินการ</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for m in members %}
+      <tr>
+        <td>{{ m.user.full_name }}</td>
+        <td>{{ m.user.email }}</td>
+        <td>
+          {% if m.role == "ta_pending" or m.role == "stu_pending" %}
+            <span class="tag badge-pending">{{ m.get_role_display }}</span>
+          {% elif m.role == "teacher" %}
+            <span class="tag badge-pin">{{ m.get_role_display }}</span>
+          {% else %}
+            <span class="tag badge-verified">{{ m.get_role_display }}</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if m.user != user %}
+            <form method="post" action="{% url 'courses:remove_member' course.id m.id %}" style="display:inline" onsubmit="return confirm('ลบ {{ m.user.full_name }} ออกจากรายวิชา?')">
+              {% csrf_token %}
+              <button type="submit" class="btn danger">ลบออก</button>
+            </form>
+          {% else %}
+            <span class="help">ตัวคุณเอง</span>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p>ยังไม่มีสมาชิกในรายวิชานี้</p>
+  {% endif %}
+
+  <div class="actions" style="margin-top:1.5rem;">
+    <a class="btn secondary" href="{% url 'courses:my' %}">← กลับหน้าวิชาของฉัน</a>
+  </div>
+</div>
+{% endblock %}

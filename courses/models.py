@@ -5,6 +5,14 @@ from django.db import models
 class Course(models.Model):
     code = models.CharField("รหัสวิชา", max_length=20, unique=True)
     name = models.CharField("ชื่อวิชา", max_length=200)
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="owned_courses",
+        verbose_name="เจ้าของวิชา",
+        null=True,
+        blank=True,
+    )
 
     class Meta:
         ordering = ["code"]
@@ -15,6 +23,7 @@ class Course(models.Model):
 
 class Enrollment(models.Model):
     class Role(models.TextChoices):
+        STUDENT_PENDING = "stu_pending", "นักศึกษา (รออนุมัติ)"
         STUDENT = "student", "นักศึกษา"
         TA_PENDING = "ta_pending", "TA (รออาจารย์อนุมัติ)"  # promoted to TA by UC16
         TA = "ta", "TA"

@@ -1,0 +1,11 @@
+{% extends "base.html" %}
+{% block title %}{{ course.code }} {{ course.name }}{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>{{ course.code }} — {{ course.name }}</h1>
+  <p class="help">หน้ารายละเอียดรายวิชา (อยู่ระหว่างพัฒนา)</p>
+  <div class="actions">
+    <a class="btn secondary" href="{% url 'courses:my' %}">← กลับหน้าวิชาของฉัน</a>
+  </div>
+</div>
+{% endblock %}

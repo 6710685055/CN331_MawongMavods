@@ -19,7 +19,7 @@ class EnrollServiceTests(TestCase):
 
     def test_student_enrolls_as_student(self):
         e = enroll(make_user("s@x.com"), self.course)
-        self.assertEqual(e.role, Enrollment.Role.STUDENT)
+        self.assertEqual(e.role, Enrollment.Role.STUDENT_PENDING)
 
     def test_ta_enrolls_without_ta_rights(self):
         e = enroll(make_user("t@x.com", "ta"), self.course)

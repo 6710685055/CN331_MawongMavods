@@ -21,7 +21,7 @@ def enroll(user, course):
         # Enrolled, but no TA powers until the course's teacher approves (UC16).
         role = Enrollment.Role.TA_PENDING
     else:
-        role = Enrollment.Role.STUDENT
+        role = Enrollment.Role.STUDENT_PENDING
 
     try:
         with transaction.atomic():

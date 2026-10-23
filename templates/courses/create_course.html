@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}สร้างรายวิชาใหม่{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>สร้างรายวิชาใหม่</h1>
+  <form method="post">
+    {% csrf_token %}
+    <label for="id_code">รหัสวิชา</label>
+    <input type="text" id="id_code" name="code" value="{{ code|default:'' }}" placeholder="เช่น CN331" required>
+
+    <label for="id_name">ชื่อวิชา</label>
+    <input type="text" id="id_name" name="name" value="{{ name|default:'' }}" placeholder="เช่น Software Engineering" required>
+
+    <div class="actions">
+      <button type="submit" class="btn success">สร้างรายวิชา</button>
+      <a class="btn secondary" href="{% url 'courses:my' %}">ยกเลิก</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

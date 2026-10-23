@@ -85,18 +85,18 @@ LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "courses:my"
 LOGOUT_REDIRECT_URL = "accounts:login"
 
-# Email Configuration (Gmail SMTP)
-EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# Email Configuration
+# [Dev Mode] แสดงอีเมลและลิงก์ยืนยันใน Terminal แทนการส่งจริง
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+
+# --- วิธีสลับกลับไปใช้ Gmail SMTP (ส่งอีเมลจริง) ---
+# 1. สลับคอมเมนต์ EMAIL_BACKEND ด้านล่างนี้แทน:
+# EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+# 2. ใส่รหัส App Password 16 หลักตัวใหม่จาก Google Account ใน EMAIL_HOST_PASSWORD
 EMAIL_HOST = 'smtp.gmail.com'
 EMAIL_PORT = 587
 EMAIL_USE_TLS = True
 EMAIL_VERIFY_MAX_AGE = 60 * 60 * 24
-
-# อีเมล Google บัญชีที่ใช้สร้าง App Password
 EMAIL_HOST_USER = 'mmavods@gmail.com'
-
-# รหัส App Password 16 หลัก
-EMAIL_HOST_PASSWORD = 'kdas zqqa hymg zrsm'
-
-# ชื่อและอีเมลผู้ส่งที่แสดงในกล่องข้อความของผู้รับ
+EMAIL_HOST_PASSWORD = 'kdas zqqa hymg zrsm'  # แก้เป็น App Password ใหม่ 16 หลัก
 DEFAULT_FROM_EMAIL = 'Student Community <mmavods@gmail.com>'
