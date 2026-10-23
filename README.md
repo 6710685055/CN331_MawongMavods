@@ -1,254 +1,430 @@
-# CN331_MawongMavods — UC3, UC4 & UC7
+# CN331 MawongMavods
 
-Django 5 implementation of:
-- **UC7 (US-07)**: Registration, Email Verification, Login, Password Reset & Course Enrollment
-- **UC3**: Upload & Share Document (การอัปโหลดและแชร์เอกสาร + การปักหมุดโดย TA/Teacher)
-- **UC4**: Verify Document (การตรวจสอบและยืนยันเอกสาร + คิวรอตรวจ + ส่งกลับให้แก้ไข + ยกเลิก Verify + แจ้งเตือน)
+เว็บแอปสำหรับค้นหารายวิชา ลงทะเบียนเรียน และจัดการเอกสาร พัฒนาด้วย Django 5.2
 
-## Getting Started (การตั้งค่าโปรเจคเริ่มต้น)
+## ฟีเจอร์หลัก
 
-### Quick Start
+- **UC3 — Document Management:** อัปโหลด แชร์ ปักหมุด และจัดการเอกสารในรายวิชา
+- **UC4 — Document Verification:** ตรวจสอบ ยืนยัน และส่งเอกสารกลับเพื่อแก้ไข พร้อมระบบแจ้งเตือน
+- **UC7 — Registration & Login:** สมัครสมาชิก ยืนยันอีเมล เข้าสู่ระบบ รีเซ็ตรหัสผ่าน และลงทะเบียนรายวิชา
 
-ถ้ามี Python 3.10 ขึ้นไปและ Git อยู่แล้ว คัดลอกชุดคำสั่งของระบบปฏิบัติการตัวเองไปรันได้เลย รายละเอียดแต่ละขั้นอยู่ในหัวข้อถัดไป
+---
 
-**Windows (PowerShell)**
-
-```powershell
-git clone https://github.com/6710685055/CN331_MawongMavods.git
-cd CN331_MawongMavods
-python -m venv venv
-venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py seed_courses
-python manage.py createsuperuser
-python manage.py runserver
-```
-
-> ถ้า `Activate.ps1` ขึ้น error เรื่อง execution policy ให้รัน `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` หนึ่งครั้ง แล้ว activate ใหม่
-
-**macOS / Linux (bash / zsh)**
-
-```bash
-git clone https://github.com/6710685055/CN331_MawongMavods.git
-cd CN331_MawongMavods
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py seed_courses
-python manage.py createsuperuser
-python manage.py runserver
-```
-
-เสร็จแล้วเปิดใช้งานได้ที่:
-- เว็บ: <http://127.0.0.1:8000/>
-- หน้า Admin: <http://127.0.0.1:8000/admin/>
-
-### 1. เทคโนโลยีหลัก
+## 1. เทคโนโลยีหลัก
 
 | ส่วน | เทคโนโลยี |
 |---|---|
-| ภาษา | Python 3.12 (รองรับ 3.10 ขึ้นไป) |
-| Web framework | Django 5.2 (`Django>=5.0,<6.0`) |
-| ฐานข้อมูล | SQLite (`db.sqlite3` ที่ root ของโปรเจค) |
-| หน้าเว็บ | Django Templates (`templates/`) |
-| อีเมล | Gmail SMTP (ตั้งค่าใน `config/settings.py`) |
+| ภาษา | Python 3.10+ |
+| Framework | Django 5.2 |
+| Database | SQLite สำหรับการพัฒนา |
+| Email | Gmail SMTP |
+| Environment Variables | python-dotenv |
+| Frontend | HTML, CSS และ Django Templates |
 
-โปรเจคนี้ **ไม่มี frontend แยก** (ไม่ต้องใช้ Node.js หรือ `npm`) และ **ยังไม่มี Docker**
+---
 
-### 2. สิ่งที่ต้องมีก่อนติดตั้ง (Prerequisites)
+## 2. โครงสร้างโปรเจกต์
 
-- Python 3.10 ขึ้นไป (แนะนำ 3.12)
-- Git
-
-```bash
-python --version   # macOS / Linux อาจต้องใช้ python3 --version
-git --version
+```text
+CN331/
+├── accounts/        # สมัครสมาชิก เข้าสู่ระบบ และยืนยันอีเมล
+├── courses/         # รายวิชาและการลงทะเบียนเรียน
+├── documents/       # อัปโหลดและจัดการเอกสาร
+├── notifications/   # ระบบแจ้งเตือน
+├── config/          # Django settings และ URL configuration
+├── templates/       # HTML templates
+├── media/           # ไฟล์ที่ผู้ใช้อัปโหลด
+├── manage.py
+├── requirements.txt
+├── .env.example
+└── .gitignore
 ```
 
-### 3. ขั้นตอนการติดตั้ง (Installation)
+---
+
+## 3. การติดตั้งและเริ่มต้นใช้งาน
+
+### 3.1 Clone Repository
 
 ```bash
 git clone https://github.com/6710685055/CN331_MawongMavods.git
 cd CN331_MawongMavods
 ```
 
-สร้างและเปิดใช้ Virtual Environment:
+### 3.2 สร้าง Virtual Environment
 
-```powershell
-# Windows (PowerShell)
-python -m venv venv
-venv\Scripts\Activate.ps1
-```
+**macOS / Linux**
 
 ```bash
-# macOS / Linux
-python3 -m venv venv
-source venv/bin/activate
+python3 -m venv .venv
+source .venv/bin/activate
 ```
 
-ติดตั้ง dependency:
+**Windows**
+
+```powershell
+python -m venv .venv
+.venv\Scripts\activate
+```
+
+### 3.3 ติดตั้ง Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-เมื่อ activate แล้วจะมี `(venv)` นำหน้า prompt คำสั่ง `python manage.py ...` ทุกคำสั่งหลังจากนี้ต้องรันใน venv ที่ root ของโปรเจค
+### 3.4 ตั้งค่า Environment Variables
 
-### 4. การตั้งค่า Environment Variables
+สร้างไฟล์ `.env` ไว้ในโฟลเดอร์เดียวกับ `manage.py`
 
-ตอนพัฒนาในเครื่อง **ไม่ต้องตั้งค่าอะไร** เพราะทุกตัวมีค่าเริ่มต้นสำหรับ dev อยู่แล้ว
+ตัวอย่างเนื้อหาไฟล์ `.env`:
 
-| ตัวแปร | ค่าเริ่มต้น | ความหมาย |
-|---|---|---|
-| `DJANGO_SECRET_KEY` | `dev-only-change-me` | Secret key ของ Django (ต้องเปลี่ยนเมื่อ deploy จริง) |
-| `DJANGO_DEBUG` | `1` | `1` = เปิด debug, ค่าอื่น = ปิด |
-| `DJANGO_ALLOWED_HOSTS` | `localhost,127.0.0.1` | Host ที่อนุญาต คั่นด้วย `,` |
+```dotenv
+DJANGO_SECRET_KEY=replace-with-your-secret-key
+DJANGO_DEBUG=True
 
-โปรเจค **ยังไม่อ่านไฟล์ `.env` อัตโนมัติ** ถ้าต้องการเปลี่ยนค่า ให้ตั้งใน shell ก่อนรันคำสั่ง:
-
-```powershell
-# Windows (PowerShell)
-$env:DJANGO_SECRET_KEY = "your-secret-key"
-$env:DJANGO_DEBUG = "0"
-$env:DJANGO_ALLOWED_HOSTS = "localhost,127.0.0.1"
+EMAIL_HOST_USER=your-email@gmail.com
+EMAIL_HOST_PASSWORD=your-gmail-app-password
 ```
+
+โปรเจกต์โหลดค่าจาก `.env` ผ่าน `python-dotenv` ใน Django settings
+
+**ข้อควรระวัง**
+
+- ห้าม commit ไฟล์ `.env` ขึ้น Git
+- ห้ามเผยแพร่ `DJANGO_SECRET_KEY` หรือรหัสผ่านอีเมล
+- สำหรับ Gmail ให้ใช้ App Password แทนรหัสผ่านบัญชี Google
+- ใช้ไฟล์ `.env.example` เพื่อแสดงชื่อตัวแปรที่จำเป็น โดยไม่ใส่ข้อมูลลับจริง
+- หากมีการเปิดเผย App Password หรือ Secret Key ไปแล้ว ควรเปลี่ยนค่าใหม่
+
+### 3.5 ตั้งค่า Database
+
+สร้าง Migration และอัปเดตฐานข้อมูล:
 
 ```bash
-# macOS / Linux
-export DJANGO_SECRET_KEY="your-secret-key"
-export DJANGO_DEBUG="0"
-export DJANGO_ALLOWED_HOSTS="localhost,127.0.0.1"
-```
-
-**อีเมล (ยืนยันอีเมลและรีเซ็ตรหัสผ่าน):** ใช้ Gmail SMTP ตามค่าใน `config/settings.py` ดังนั้นตอนสมัครสมาชิก ระบบจะส่งอีเมลจริง
-- ถ้าไม่อยากส่งอีเมลจริงตอน dev ให้เปลี่ยน `EMAIL_BACKEND` ในเครื่องตัวเองเป็น `"django.core.mail.backends.console.EmailBackend"` ชั่วคราว อีเมลจะพิมพ์ออกมาใน terminal ที่รัน `runserver` แทน (**อย่า commit การแก้นี้**)
-- หรือข้ามการยืนยันอีเมลไปเลย โดยเข้าหน้า Admin แล้วติ๊ก `email_verified` ให้ผู้ใช้คนนั้น
-
-### 5. การจัดการฐานข้อมูล (Database Setup)
-
-ไฟล์ migration ถูก commit ไว้แล้ว ไม่ต้องรัน `makemigrations`
-
-```bash
-python manage.py migrate            # สร้างตารางทั้งหมดใน db.sqlite3
-python manage.py seed_courses       # เพิ่มรายวิชาตัวอย่าง (CN331, CN240, CN201, CN202, CN310) รันซ้ำได้ไม่เกิดข้อมูลซ้ำ
-python manage.py createsuperuser    # สร้างบัญชี Admin: ถามอีเมล, Name, Surname และรหัสผ่าน
-```
-
-#### รีเซ็ต Database (เริ่มใหม่จากศูนย์)
-
-> ⚠️ ข้อมูลทั้งหมดจะหาย ทั้งผู้ใช้ การลงทะเบียน เอกสาร และการแจ้งเตือน
-
-1. หยุด `runserver` ก่อน (กด `Ctrl+C`)
-2. ลบไฟล์ `db.sqlite3`
-3. **ต้องรัน `migrate` และ `seed_courses` อีกรอบ** ระบบจึงจะกลับมามีตารางและรายวิชาให้ใช้งาน
-4. สร้าง superuser ใหม่ เพราะบัญชี Admin เดิมหายไปพร้อมฐานข้อมูล
-
-```powershell
-# Windows (PowerShell)
-Remove-Item db.sqlite3
+python manage.py makemigrations
 python manage.py migrate
-python manage.py seed_courses
+```
+
+หากต้องการสร้างบัญชีผู้ดูแลระบบ:
+
+```bash
 python manage.py createsuperuser
 ```
 
-```bash
-# macOS / Linux
-rm db.sqlite3
-python manage.py migrate
-python manage.py seed_courses
-python manage.py createsuperuser
-```
-
-ไฟล์เอกสารที่เคยอัปโหลดในโฟลเดอร์ `media/` จะไม่ถูกลบตามไปด้วย ถ้าต้องการล้างด้วย ให้ลบเองด้วย `Remove-Item -Recurse media` (Windows) หรือ `rm -rf media` (macOS / Linux)
-
-### 6. คำสั่งรันโปรเจค (Running the Project)
+### 3.6 เริ่ม Django Development Server
 
 ```bash
 python manage.py runserver
 ```
 
-| หน้า | URL |
+เปิดเบราว์เซอร์ที่:
+
+- หน้าหลัก: http://127.0.0.1:8000/
+- สมัครสมาชิก: http://127.0.0.1:8000/accounts/register/
+- เข้าสู่ระบบ: http://127.0.0.1:8000/accounts/login/
+- Django Admin: http://127.0.0.1:8000/admin/
+
+> URL ของแต่ละหน้าอาจแตกต่างกันตาม URL configuration ที่อยู่ในโปรเจกต์
+
+---
+
+## 4. การตั้งค่าอีเมล
+
+ระบบใช้งาน Gmail SMTP โดยอ่านค่าจาก Environment Variables
+
+| ตัวแปร | รายละเอียด |
 |---|---|
-| หน้าแรก (redirect ไป "วิชาของฉัน") | <http://127.0.0.1:8000/> |
-| สมัครสมาชิก | <http://127.0.0.1:8000/accounts/register/> |
-| เข้าสู่ระบบ | <http://127.0.0.1:8000/accounts/login/> |
-| การแจ้งเตือน | <http://127.0.0.1:8000/notifications/> |
-| **หน้า Admin** | **<http://127.0.0.1:8000/admin/>** |
+| `EMAIL_HOST_USER` | ที่อยู่อีเมล Gmail สำหรับส่งอีเมล |
+| `EMAIL_HOST_PASSWORD` | Gmail App Password |
+| `EMAIL_HOST` | `smtp.gmail.com` |
+| `EMAIL_PORT` | `587` |
+| `EMAIL_USE_TLS` | `True` |
+| `EMAIL_USE_SSL` | `False` |
 
-**หน้า Admin** (<http://127.0.0.1:8000/admin/>) ล็อกอินด้วยอีเมลและรหัสผ่านของ superuser ที่สร้างในขั้นตอนที่ 5 ใช้สำหรับ:
-- **อนุมัติบัญชีอาจารย์:** Users → เลือกผู้ใช้ → action "อนุมัติบัญชีอาจารย์ที่เลือก" (อาจารย์ต้องได้รับอนุมัติก่อนจึงจะลงทะเบียนรายวิชาได้)
-- **เลื่อน TA ให้มีสิทธิ์ตรวจเอกสาร:** Enrollments → เปลี่ยน role จาก "TA (รออาจารย์อนุมัติ)" เป็น "TA" (หน้าจอให้อาจารย์อนุมัติ TA เป็นงานของ UC16)
-- ติ๊ก `email_verified` ให้ผู้ใช้ เมื่อไม่ได้ตั้งค่าอีเมล
-- จัดการรายวิชา เอกสาร ประวัติการตรวจ และการแจ้งเตือน
+หากไม่ได้ตั้งค่าอีเมล ระบบอาจไม่สามารถส่งอีเมลยืนยันบัญชีหรืออีเมลรีเซ็ตรหัสผ่านได้ตามปกติ
 
-ฝั่ง frontend **ไม่ต้องรันแยก** หน้าเว็บ render ผ่าน Django Templates ใน `runserver` ตัวเดียว
+ตรวจสอบให้แน่ใจว่า Django settings อ่านค่าจาก Environment Variables และไม่ได้กำหนดรหัสผ่านอีเมลไว้โดยตรงใน source code
 
-### 7. คำสั่งเพิ่มเติม
+---
 
-**รัน Test**
+## 5. UC7 — Registration, Login & Course Enrollment
+
+### 5.1 ความสามารถหลัก
+
+- สมัครสมาชิกด้วยข้อมูลที่จำเป็น
+- ตรวจสอบความถูกต้องของข้อมูลสมัครสมาชิก
+- ตรวจสอบข้อมูลที่ซ้ำกันตามข้อกำหนดของระบบ
+- ส่งอีเมลยืนยันบัญชี
+- ยืนยันอีเมลผ่านลิงก์
+- เข้าสู่ระบบและออกจากระบบ
+- ขอรีเซ็ตรหัสผ่านผ่านอีเมล
+- ตั้งรหัสผ่านใหม่
+- ป้องกันการเข้าถึงหน้าที่ต้องเข้าสู่ระบบโดยไม่ได้รับอนุญาต
+- ลงทะเบียนรายวิชาและเข้าถึงรายวิชาที่เกี่ยวข้อง
+- ควบคุมการเข้าถึงฟังก์ชันต่าง ๆ ตามสิทธิ์ของผู้ใช้
+
+### 5.2 เส้นทางที่เกี่ยวข้อง
+
+| เส้นทาง | รายละเอียด |
+|---|---|
+| `/accounts/register/` | สมัครสมาชิก |
+| `/accounts/login/` | เข้าสู่ระบบ |
+| `/accounts/logout/` | ออกจากระบบ |
+| `/accounts/verify/<token>/` | ยืนยันอีเมล |
+| `/accounts/password-reset/` | ขอรีเซ็ตรหัสผ่าน |
+| `/accounts/password-reset/<uidb64>/<token>/` | ตั้งรหัสผ่านใหม่ |
+
+> เส้นทางจริงอาจแตกต่างกันตาม URL configuration ของโปรเจกต์ ให้ตรวจสอบ `accounts/urls.py` ก่อนใช้งาน
+
+### 5.3 ขั้นตอนการสมัครสมาชิก
+
+1. ผู้ใช้เปิดหน้าสมัครสมาชิก
+2. กรอกข้อมูลตามที่ระบบกำหนด
+3. ระบบตรวจสอบความถูกต้องของข้อมูล
+4. ระบบสร้างบัญชีผู้ใช้ตามเงื่อนไขที่กำหนด
+5. ระบบส่งอีเมลยืนยันบัญชี หากเปิดใช้งานการยืนยันอีเมล
+6. ผู้ใช้เปิดลิงก์ยืนยันอีเมล
+7. ผู้ใช้สามารถเข้าสู่ระบบได้ตามเงื่อนไขของระบบ
+
+### 5.4 ขั้นตอนการเข้าสู่ระบบ
+
+1. ผู้ใช้เปิดหน้าเข้าสู่ระบบ
+2. กรอกข้อมูลประจำตัว
+3. ระบบตรวจสอบข้อมูล
+4. หากข้อมูลถูกต้อง ระบบจะอนุญาตให้เข้าสู่ระบบ
+5. ระบบนำผู้ใช้ไปยังหน้าที่กำหนด
+6. หากข้อมูลไม่ถูกต้อง ระบบจะแสดงข้อความแจ้งเตือน
+
+### 5.5 ขั้นตอนการรีเซ็ตรหัสผ่าน
+
+1. ผู้ใช้เลือกเมนูลืมรหัสผ่าน
+2. กรอกอีเมลที่ใช้กับบัญชี
+3. ระบบส่งลิงก์สำหรับตั้งรหัสผ่านใหม่ หากเป็นไปตามเงื่อนไข
+4. ผู้ใช้เปิดลิงก์จากอีเมล
+5. กำหนดรหัสผ่านใหม่
+6. เข้าสู่ระบบด้วยรหัสผ่านใหม่
+
+---
+
+## 6. UC3 — Document Management
+
+### 6.1 ความสามารถหลัก
+
+- อัปโหลดเอกสารเข้าสู่รายวิชา
+- จัดเก็บไฟล์ที่ผู้ใช้อัปโหลด
+- แชร์เอกสารให้ผู้ใช้ที่เกี่ยวข้อง
+- ปักหมุดเอกสารเพื่อให้ค้นหาได้ง่าย
+- แสดงรายการเอกสารในรายวิชา
+- ตรวจสอบสิทธิ์การเข้าถึงเอกสาร
+- จำกัดชนิดไฟล์ที่สามารถอัปโหลดได้
+- จำกัดขนาดไฟล์ตามที่ระบบกำหนด
+
+### 6.2 ชนิดไฟล์ที่รองรับ
+
+ชนิดไฟล์ที่อนุญาตตามการตั้งค่าปัจจุบัน ได้แก่
+
+- PDF (`.pdf`)
+- Microsoft Word (`.docx`)
+- Microsoft PowerPoint (`.pptx`)
+- PNG (`.png`)
+- JPEG (`.jpg`)
+
+ขนาดไฟล์สูงสุดตามการตั้งค่าปัจจุบันคือ 50 MB
+
+> ชนิดไฟล์และขนาดไฟล์ที่อนุญาตขึ้นอยู่กับการตั้งค่าใน `config/settings.py` และการตรวจสอบไฟล์ของแอปพลิเคชัน
+
+### 6.3 ขั้นตอนการอัปโหลดเอกสาร
+
+1. ผู้ใช้เข้าสู่ระบบ
+2. เปิดหน้ารายวิชาที่ต้องการ
+3. เลือกเมนูอัปโหลดเอกสาร
+4. เลือกไฟล์และกรอกข้อมูลที่จำเป็น
+5. ระบบตรวจสอบข้อมูลและไฟล์
+6. หากผ่านการตรวจสอบ ระบบจะบันทึกข้อมูลเอกสาร
+7. ระบบจัดเก็บไฟล์และแสดงเอกสารตามสิทธิ์การเข้าถึง
+
+### 6.4 การแชร์และปักหมุดเอกสาร
+
+- ผู้ใช้สามารถแชร์เอกสารตามสิทธิ์ที่ระบบกำหนด
+- ผู้ใช้สามารถปักหมุดเอกสารเพื่อให้เข้าถึงได้สะดวก
+- ระบบควรตรวจสอบสิทธิ์ก่อนอนุญาตให้แก้ไขข้อมูลเอกสาร
+- ระบบควรป้องกันไม่ให้ผู้ใช้ที่ไม่มีสิทธิ์เข้าถึงเอกสารส่วนตัวหรือเอกสารที่ถูกจำกัดสิทธิ์
+
+### 6.5 Acceptance Criteria — UC3
+
+| ID | เงื่อนไขการทดสอบ | ผลลัพธ์ที่คาดหวัง |
+|---|---|---|
+| UC3-01 | อัปโหลดไฟล์ชนิดที่รองรับ | ระบบรับไฟล์และบันทึกข้อมูลได้ |
+| UC3-02 | อัปโหลดไฟล์ชนิดที่ไม่รองรับ | ระบบปฏิเสธไฟล์และแจ้งข้อผิดพลาด |
+| UC3-03 | อัปโหลดไฟล์เกินขนาดที่กำหนด | ระบบปฏิเสธไฟล์ |
+| UC3-04 | ผู้ใช้ที่มีสิทธิ์เปิดดูเอกสาร | ระบบแสดงข้อมูลเอกสาร |
+| UC3-05 | ผู้ใช้ที่ไม่มีสิทธิ์พยายามเข้าถึงเอกสาร | ระบบปฏิเสธการเข้าถึง |
+| UC3-06 | ผู้ใช้ปักหมุดเอกสาร | ระบบบันทึกสถานะตามฟังก์ชันที่กำหนด |
+| UC3-07 | ผู้ใช้แชร์เอกสาร | ระบบดำเนินการตามสิทธิ์และเงื่อนไขการแชร์ |
+
+---
+
+## 7. UC4 — Document Verification & Notifications
+
+### 7.1 ความสามารถหลัก
+
+- ตรวจสอบเอกสารที่ส่งเข้ามา
+- ยืนยันเอกสารที่ผ่านการตรวจสอบ
+- ส่งเอกสารกลับเพื่อให้ผู้ใช้แก้ไข
+- ยกเลิกสถานะการยืนยันตามสิทธิ์ที่กำหนด
+- แจ้งเตือนผู้ใช้เมื่อสถานะเอกสารเปลี่ยนแปลง
+- แสดงสถานะปัจจุบันของเอกสาร
+
+### 7.2 ขั้นตอนการตรวจสอบเอกสาร
+
+1. ผู้ตรวจสอบเปิดรายการเอกสารที่รอตรวจสอบ
+2. เลือกเอกสารที่ต้องการตรวจสอบ
+3. ตรวจสอบข้อมูลและเนื้อหาของเอกสาร
+4. เลือกดำเนินการตามเงื่อนไขของระบบ เช่น ยืนยันหรือส่งกลับเพื่อแก้ไข
+5. ระบบบันทึกสถานะใหม่
+6. ระบบแจ้งเตือนผู้ใช้ที่เกี่ยวข้อง หากกำหนดให้มีการแจ้งเตือน
+7. ผู้ใช้สามารถตรวจสอบสถานะเอกสารได้
+
+### 7.3 สถานะเอกสาร
+
+สถานะที่แสดงขึ้นอยู่กับการออกแบบและการตั้งค่าในแอปพลิเคชัน โดยอาจประกอบด้วย
+
+- รอตรวจสอบ
+- ยืนยันแล้ว
+- ส่งกลับเพื่อแก้ไข
+
+การเปลี่ยนสถานะต้องเป็นไปตามสิทธิ์และเงื่อนไขที่กำหนดในระบบ
+
+### 7.4 Acceptance Criteria — UC4
+
+| ID | เงื่อนไขการทดสอบ | ผลลัพธ์ที่คาดหวัง |
+|---|---|---|
+| UC4-01 | ผู้ตรวจสอบเปิดเอกสารที่รอตรวจสอบ | ระบบแสดงข้อมูลเอกสาร |
+| UC4-02 | ผู้มีสิทธิ์ยืนยันเอกสาร | ระบบอัปเดตสถานะเป็นยืนยันแล้ว |
+| UC4-03 | ผู้มีสิทธิ์ส่งเอกสารกลับเพื่อแก้ไข | ระบบอัปเดตสถานะตามที่กำหนด |
+| UC4-04 | ผู้ไม่มีสิทธิ์พยายามยืนยันเอกสาร | ระบบปฏิเสธการดำเนินการ |
+| UC4-05 | สถานะเอกสารเปลี่ยนแปลง | ระบบบันทึกสถานะใหม่ |
+| UC4-06 | มีเหตุการณ์ที่ต้องแจ้งเตือน | ระบบแจ้งเตือนผู้ใช้ที่เกี่ยวข้อง |
+| UC4-07 | ผู้ใช้เปิดดูสถานะเอกสาร | ระบบแสดงสถานะล่าสุด |
+
+---
+
+## 8. การทดสอบระบบ
+
+### 8.1 ตรวจสอบ Django Configuration
 
 ```bash
-python manage.py test                                     # ทั้งโปรเจค
-python manage.py test accounts                            # รายแอป: accounts / courses / documents
-python manage.py test documents.tests.test_uc3_upload     # เฉพาะ UC3
-python manage.py test documents.tests.test_uc4_verify     # เฉพาะ UC4
+python manage.py check
 ```
 
-ตอนรัน test ระบบไม่ส่งอีเมลจริงและไม่เขียนไฟล์ลง `media/`
-
-**ตรวจความเรียบร้อยก่อนเปิด PR**
+### 8.2 ตรวจสอบ Migration
 
 ```bash
-python manage.py check                              # ต้องไม่มี issue
-python manage.py makemigrations --check --dry-run   # ต้องได้ "No changes detected" ถ้าไม่ได้ตั้งใจแก้ model
+python manage.py makemigrations --check --dry-run
 ```
 
-**เอกสารเทคนิค:** การทำงานของ UC3/UC4 อธิบายไว้ใน [`docs/documents_uc3_uc4.md`](docs/documents_uc3_uc4.md)
+### 8.3 รัน Automated Tests
 
-**Docker:** ยังไม่มีในโปรเจคนี้
+```bash
+python manage.py test
+```
 
-## Acceptance Criteria → where it is done
+หากต้องการทดสอบเฉพาะแอป สามารถระบุชื่อแอปได้ เช่น
 
-### UC7: Registration, Login & Course Enrollment
-| AC | Where |
-|---|---|
-| Register with any email, choose Student/TA/Teacher | `accounts/forms.py: RegisterForm` |
-| Duplicate email not allowed | `RegisterForm.clean_email` (case-insensitive) |
-| Verification email; login only after verifying | `accounts/views.py`, `tokens.py`, `EmailLoginForm.confirm_login_allowed` |
-| Student usable right after verifying | `User.email_verified` |
-| TA has no TA rights until the teacher approves | `Enrollment.Role.TA_PENDING` (promotion = UC16) |
-| Teacher is "pending" until Admin approves | `User.teacher_status`, `accounts/admin.py` |
-| Search and enroll in courses | `courses/views.py`, `courses/services.py` |
-| Reset password by email | `accounts/urls.py` (Django built-in views) |
+```bash
+python manage.py test accounts
+python manage.py test courses
+python manage.py test documents
+python manage.py test notifications
+```
 
-### UC3: Upload & Share Document
-| AC | Where |
-|---|---|
-| เฉพาะผู้ที่ลงทะเบียนในรายวิชาอัปโหลดได้ และตรวจสิทธิ์ฝั่ง Server | `courses/permissions.py: is_course_member`, `documents/permissions.py: can_access_course_documents`, `documents/services/library.py: upload_document` |
-| ผู้ใช้ต้องระบุชื่อ ประเภท ปีการศึกษา/เทอม และแนบไฟล์ก่อนยืนยัน | `documents/forms.py: DocumentUploadForm`, `templates/documents/upload.html` |
-| ระบบรับเฉพาะ PDF, DOCX, PPTX, PNG, JPG ขนาดไม่เกิน 50MB พร้อมบอกเหตุผล | `config/settings.py`, `documents/validators.py: validate_document_file` |
-| เอกสารที่อัปโหลดสำเร็จแสดงในคลังเอกสาร และผู้ที่ลงทะเบียนในวิชานั้นดาวน์โหลดได้ | `documents/views/library.py: document_library, download_document` |
-| ผู้ที่ไม่ได้ลงทะเบียนในวิชาเข้าถึงเอกสารไม่ได้ | `documents/views/library.py` (`403 Forbidden`), `documents/services/library.py` |
-| บันทึกผู้อัปโหลด วันเวลา และตั้งคะแนนโหวตเริ่มต้นเป็น 0 | `documents/models.py: Document`, `documents/services/library.py: upload_document` |
-| ชีทสรุปและแนวข้อสอบเริ่มต้นด้วยสถานะ "รอตรวจ" ส่วนการบ้านไม่มีสถานะ Verify | `Document.initial_verify_status_for_type`, `Document.VERIFIABLE_DOC_TYPES` |
-| การอัปโหลดการบ้านต้องยืนยันก่อนว่าเป็นงานที่หมดกำหนดส่งแล้ว | `DocumentUploadForm.clean`, `documents/services/library.py: upload_document` |
-| การอัปโหลดที่ล้มเหลวต้องไม่ทิ้งรายการค้างในคลังเอกสาร | `documents/services/library.py: upload_document` (`transaction.atomic` + file cleanup) |
-| TA หรือ Teacher ของรายวิชาปักหมุดและเลิกปักหมุดเอกสารได้ และแสดงบนสุด | `documents/permissions.py: can_pin_document`, `documents/services/library.py: toggle_document_pin, list_course_documents` |
-| ผู้ที่ไม่ใช่ TA หรือ Teacher ของวิชานั้นปักหมุดไม่ได้ | `documents/permissions.py: can_pin_document`, `documents/services/library.py: toggle_document_pin` |
+> คำสั่งทดสอบแต่ละแอปจะทำงานได้เมื่อมีชุดทดสอบของแอปนั้นและตั้งค่า Django test environment ไว้ถูกต้อง
 
-### UC4: Verify Document
-| AC | Where |
-|---|---|
-| เฉพาะ TA ที่ได้รับอนุมัติและ Teacher ผู้สอนของวิชานั้นเข้าถึงคิว "เอกสารรอตรวจ" และปุ่ม Verify ได้ (ตรวจฝั่ง Server) | `documents/permissions.py: can_access_review_queue, can_verify_document`, `documents/services/review.py` |
-| คิวแสดงเฉพาะชีทสรุปและแนวข้อสอบสถานะ "รอตรวจ" เรียงจากเก่าสุด | `documents/services/review.py: get_verification_queue` |
-| เมื่อกด Verify เอกสารแสดงป้าย "Verified by TA" หรือ "Verified by Teacher" พร้อมชื่อผู้ตรวจและวันที่ | `documents/models.py: Document.verified_badge_label`, `documents/services/review.py: verify_document` |
-| การ Verify ผูกกับเวอร์ชันไฟล์ เมื่อเจ้าของแก้ไฟล์ ป้ายถูกยกเลิกและกลับเข้าคิว | `documents/models.py: Document.has_active_verified_badge`, `documents/services/versioning.py: replace_document_file` |
-| การส่งกลับให้แก้ไขต้องมีความคิดเห็น และสถานะเปลี่ยนเป็น "ต้องแก้ไข" | `documents/forms.py: RequestRevisionForm`, `documents/services/review.py: request_document_revision` |
-| ความคิดเห็นของผู้ตรวจ และสถานะ "รอตรวจ" / "ต้องแก้ไข" เห็นเฉพาะเจ้าของเอกสาร TA และ Teacher ของวิชา ผู้ใช้อื่นเห็นเฉพาะป้าย Verified | `documents/permissions.py: can_view_review_details`, `templates/documents/library.html`, `templates/documents/detail.html` |
-| เจ้าของได้รับแจ้งเตือนทุกครั้งที่เอกสารถูก Verify ส่งกลับให้แก้ไข หรือยกเลิก Verify | `notifications/services.py: send_notification`, `documents/services/review.py` |
-| ผู้ตรวจยกเลิก Verify ได้ โดยต้องระบุเหตุผล | `documents/forms.py: RevokeVerifyForm`, `documents/services/review.py: revoke_document_verification` |
-| ผู้ตรวจต้อง Verify เอกสารที่ตนเองอัปโหลดไม่ได้ | `documents/permissions.py: can_verify_document`, `documents/services/review.py: get_verification_queue, verify_document` |
-| ป้ายที่ให้ไว้คงอยู่แม้ผู้ตรวจถูกถอนสิทธิ์ TA ภายหลัง | `Document.verified_by_name`, `Document.verified_by_role` (Snapshot fields) |
-| เอกสารประเภทการบ้านต้อง Verify ไม่ได้ | `Document.is_verifiable`, `documents/services/review.py` |
+### 8.4 ตรวจสอบการเปลี่ยนแปลงก่อน Commit
+
+```bash
+git status
+git diff --check
+git diff --name-only --diff-filter=U
+```
+
+คำสั่งสุดท้ายใช้ตรวจสอบไฟล์ที่ยังมีสถานะ Unmerged หากไม่มีรายการแสดงขึ้นมา หมายความว่า Git ไม่พบไฟล์ที่ยังอยู่ในสถานะ Unmerged
+
+---
+
+## 9. Git Workflow สำหรับการทำงานร่วมกัน
+
+ก่อนเริ่มแก้ไขโค้ด ควรตรวจสอบ branch ปัจจุบันและอัปเดตข้อมูลจาก remote
+
+```bash
+git status
+git branch
+git fetch origin
+```
+
+เปลี่ยนไปยัง branch ที่ต้องการทำงาน เช่น
+
+```bash
+git switch issue-1-registration-login
+```
+
+หากต้องการรวมการเปลี่ยนแปลงจาก branch อื่น ให้ตรวจสอบ branch เป้าหมายก่อนดำเนินการ
+
+```bash
+git merge <branch-name>
+```
+
+หากเกิด Merge Conflict:
+
+1. ตรวจสอบไฟล์ที่มีปัญหาด้วย `git status`
+2. เปิดไฟล์และแก้ไขส่วนที่ขัดแย้งกัน
+3. ลบเครื่องหมาย Conflict ทั้งหมด ได้แก่ `<<<<<<<`, `=======` และ `>>>>>>>`
+4. ตรวจสอบว่าโค้ดและเนื้อหาที่ต้องการเก็บยังอยู่ครบ
+5. ทดสอบระบบ
+6. เพิ่มไฟล์ที่แก้ไขแล้วด้วย `git add`
+7. Commit เมื่อแก้ Conflict ครบทุกไฟล์แล้วเท่านั้น
+
+ตัวอย่าง:
+
+```bash
+git add README.md config/settings.py
+git status
+git commit -m "Resolve merge conflicts"
+```
+
+> อย่า Commit หากยังมีไฟล์ Unmerged หรือยังมี Conflict Markers หลงเหลืออยู่
+
+---
+
+## 10. ข้อควรระวัง
+
+- อย่า commit ไฟล์ `.env`
+- อย่า commit รหัสผ่าน Gmail หรือ Secret Key ที่ใช้งานจริง
+- ตรวจสอบ `.gitignore` ให้ครอบคลุมไฟล์ลับและไฟล์ชั่วคราว
+- ตรวจสอบสิทธิ์ก่อนอนุญาตให้ผู้ใช้เข้าถึงเอกสาร
+- ตรวจสอบชนิดไฟล์และขนาดไฟล์ก่อนบันทึกไฟล์อัปโหลด
+- อย่าใช้ข้อมูลจริงที่มีความอ่อนไหวในชุดทดสอบ
+- ตรวจสอบ Migration ก่อนส่ง Pull Request
+- ทดสอบฟังก์ชันที่เกี่ยวข้องหลังแก้ไขโค้ด
+- หลีกเลี่ยงการลบหรือรีเซ็ตฐานข้อมูลที่มีข้อมูลสำคัญโดยไม่สำรองข้อมูล
+
+---
+
+## 11. เอกสารอ้างอิงภายในโปรเจกต์
+
+- `config/settings.py` — การตั้งค่า Django และอีเมล
+- `accounts/` — ระบบสมาชิกและการเข้าสู่ระบบ
+- `courses/` — ระบบรายวิชา
+- `documents/` — ระบบจัดการเอกสาร
+- `notifications/` — ระบบแจ้งเตือน
+- `requirements.txt` — รายการ Dependencies
+- `.env.example` — ตัวอย่าง Environment Variables
+
+---
+
+## 12. Development Notes
+
+README นี้สรุปแนวทางติดตั้ง การตั้งค่า การทดสอบ และความสามารถหลักของ UC3, UC4 และ UC7
+
+รายละเอียดการทำงานจริง เช่น URL, ชื่อฟังก์ชัน, สถานะเอกสาร, สิทธิ์ผู้ใช้ และ Acceptance Criteria ควรตรวจสอบเทียบกับ Source Code และข้อกำหนดของโปรเจกต์ก่อนส่งงานทุกครั้ง
