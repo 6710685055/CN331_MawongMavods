@@ -1,0 +1,26 @@
+{% extends "base.html" %}
+{% block title %}นัดหมายกลุ่ม {{ group }}{% endblock %}
+{% block content %}
+<div class="card wide">
+  <p class="eyebrow">GROUP WORKSPACE</p>
+  <div class="meeting-heading">
+    <div><h1>พื้นที่ของกลุ่ม: {{ group }}</h1><p class="help">นัดหมายที่กำลังจะมาถึงจะแสดงไว้ด้านบนสุด</p></div>
+    <a class="btn" href="{% url 'meetings:create' group.pk %}">สร้างนัดหมายประชุม</a>
+  </div>
+  {% if meetings %}
+    <div class="meeting-list">
+      {% for meeting in meetings %}
+        <article class="meeting-card {% if forloop.first %}meeting-card-pinned{% endif %}">
+          <div class="meeting-card-top"><span class="tag badge-pin">{% if forloop.first %}นัดหมายถัดไป{% else %}กำลังจะมาถึง{% endif %}</span><time datetime="{{ meeting.starts_at|date:'c' }}">{{ meeting.starts_at|date:"D d/m/Y H:i" }}</time></div>
+          <h2>{{ meeting.title }}</h2>
+          <p>ผู้สร้าง: {{ meeting.created_by.full_name }}</p>
+          <p><a href="{{ meeting.meeting_url }}" target="_blank" rel="noopener noreferrer">เปิดลิงก์ประชุม</a></p>
+          <div class="actions"><a class="btn secondary" href="{% url 'meetings:edit' meeting.pk %}">แก้ไข / เลื่อนเวลา</a></div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state"><h2>ยังไม่มีนัดหมาย</h2><p class="help">สร้างนัดหมายเพื่อให้สมาชิกทุกคนเห็นกำหนดการและลิงก์ประชุม</p><a class="btn" href="{% url 'meetings:create' group.pk %}">สร้างนัดหมายแรก</a></div>
+  {% endif %}
+</div>
+{% endblock %}

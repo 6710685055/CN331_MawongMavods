@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}นัดหมายประชุมของฉัน{% endblock %}
+{% block content %}
+<div class="card wide">
+  <div class="meeting-heading">
+    <div>
+      <p class="eyebrow">SCHEDULE</p>
+      <h1>นัดหมายประชุมของฉัน</h1>
+      <p class="help">ดูนัดหมายที่กำลังจะมาถึงในกลุ่มที่คุณเป็นสมาชิก</p>
+    </div>
+  </div>
+  {% if meetings %}
+    <div class="meeting-list">
+      {% for meeting in meetings %}
+        <article class="meeting-card {% if forloop.first %}meeting-card-pinned{% endif %}">
+          <div class="meeting-card-top">
+            <div><span class="tag badge-pin">{% if forloop.first %}นัดหมายถัดไป{% else %}กำลังจะมาถึง{% endif %}</span></div>
+            <time datetime="{{ meeting.starts_at|date:'c' }}">{{ meeting.starts_at|date:"D d/m/Y H:i" }}</time>
+          </div>
+          <h2>{{ meeting.title }}</h2>
+          <p class="help">กลุ่ม: {{ meeting.group }}</p>
+          <p><a href="{{ meeting.meeting_url }}" target="_blank" rel="noopener noreferrer">เปิดลิงก์ประชุม</a></p>
+          <div class="actions"><a class="btn secondary" href="{% url 'meetings:group' meeting.group_object_id %}">เปิดพื้นที่กลุ่ม</a><a class="btn secondary" href="{% url 'meetings:edit' meeting.pk %}">แก้ไขนัดหมาย</a></div>
+        </article>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state"><h2>ยังไม่มีนัดหมายที่กำลังจะมาถึง</h2><p class="help">เมื่อมีนัดหมายใหม่ ระบบจะแสดงไว้ที่หน้านี้</p></div>
+  {% endif %}
+  {% if groups %}
+    <h2>พื้นที่กลุ่มของฉัน</h2>
+    <div class="meeting-list">
+      {% for group in groups %}
+        <article class="meeting-card"><h2>{{ group }}</h2><div class="actions"><a class="btn secondary" href="{% url 'meetings:group' group.pk %}">เปิดพื้นที่กลุ่ม</a></div></article>
+      {% endfor %}
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,254 +1,182 @@
-# CN331_MawongMavods — UC3, UC4 & UC7
+# CN331 Mawong Mavods — US-02 การนัดหมายประชุมและการแจ้งเตือน
 
-Django 5 implementation of:
-- **UC7 (US-07)**: Registration, Email Verification, Login, Password Reset & Course Enrollment
-- **UC3**: Upload & Share Document (การอัปโหลดและแชร์เอกสาร + การปักหมุดโดย TA/Teacher)
-- **UC4**: Verify Document (การตรวจสอบและยืนยันเอกสาร + คิวรอตรวจ + ส่งกลับให้แก้ไข + ยกเลิก Verify + แจ้งเตือน)
+## เกี่ยวกับ branch นี้
 
-## Getting Started (การตั้งค่าโปรเจคเริ่มต้น)
+branch `issue-2-group-meeting-notification` พัฒนา **Use Case 2 (US-02): Group Meeting & Notification** สมาชิกกลุ่มที่เข้าสู่ระบบสามารถสร้างนัดหมายโดยระบุหัวข้อ ลิงก์ประชุม และวันเวลา ดูนัดหมายที่กำลังจะมาถึงในพื้นที่ของกลุ่ม และแก้ไขหรือเลื่อนนัดหมายได้ เมื่อมีการเปลี่ยนแปลง ระบบจะสร้างการแจ้งเตือนภายในแอปให้สมาชิกในกลุ่ม และมีคำสั่งสำหรับส่งการแจ้งเตือนก่อนถึงเวลาประชุม
 
-### Quick Start
+**User Story:** ในฐานะสมาชิกกลุ่ม ฉันต้องการสร้างและจัดการนัดหมายประชุม เพื่อให้สมาชิกทุกคนทราบว่าจะประชุมเมื่อใดและที่ใด
 
-ถ้ามี Python 3.10 ขึ้นไปและ Git อยู่แล้ว คัดลอกชุดคำสั่งของระบบปฏิบัติการตัวเองไปรันได้เลย รายละเอียดแต่ละขั้นอยู่ในหัวข้อถัดไป
+> **หมายเหตุการเชื่อมต่อ:** branch นี้ยังไม่มีโมเดลกลุ่มทำงานจาก US-01 จึงใช้ Django `Group` ผ่าน adapter ใน `meetings/group_access.py` ชั่วคราว เมื่อนำ US-01 เข้ามารวม อาจต้องปรับ adapter ให้เชื่อมกับโมเดลกลุ่มของโปรเจกต์
 
-**Windows (PowerShell)**
-
-```powershell
-git clone https://github.com/6710685055/CN331_MawongMavods.git
-cd CN331_MawongMavods
-python -m venv venv
-venv\Scripts\Activate.ps1
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py seed_courses
-python manage.py createsuperuser
-python manage.py runserver
-```
-
-> ถ้า `Activate.ps1` ขึ้น error เรื่อง execution policy ให้รัน `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned` หนึ่งครั้ง แล้ว activate ใหม่
-
-**macOS / Linux (bash / zsh)**
-
-```bash
-git clone https://github.com/6710685055/CN331_MawongMavods.git
-cd CN331_MawongMavods
-python3 -m venv venv
-source venv/bin/activate
-pip install -r requirements.txt
-python manage.py migrate
-python manage.py seed_courses
-python manage.py createsuperuser
-python manage.py runserver
-```
-
-เสร็จแล้วเปิดใช้งานได้ที่:
-- เว็บ: <http://127.0.0.1:8000/>
-- หน้า Admin: <http://127.0.0.1:8000/admin/>
+## Getting Started (การตั้งค่าโปรเจกต์เริ่มต้น)
 
 ### 1. เทคโนโลยีหลัก
 
 | ส่วน | เทคโนโลยี |
 |---|---|
-| ภาษา | Python 3.12 (รองรับ 3.10 ขึ้นไป) |
-| Web framework | Django 5.2 (`Django>=5.0,<6.0`) |
-| ฐานข้อมูล | SQLite (`db.sqlite3` ที่ root ของโปรเจค) |
-| หน้าเว็บ | Django Templates (`templates/`) |
-| อีเมล | Gmail SMTP (ตั้งค่าใน `config/settings.py`) |
-
-โปรเจคนี้ **ไม่มี frontend แยก** (ไม่ต้องใช้ Node.js หรือ `npm`) และ **ยังไม่มี Docker**
+| ภาษา | Python 3.10 ขึ้นไป (แนะนำ Python 3.12) |
+| Web framework | Django 5.x |
+| ฐานข้อมูล | SQLite (`db.sqlite3`) |
+| ส่วนติดต่อผู้ใช้ | Django templates ไม่ต้อง build frontend แยกหรือใช้ Node.js |
+| การแจ้งเตือน | แอป `notifications` ที่มีอยู่ในโปรเจกต์ |
 
 ### 2. สิ่งที่ต้องมีก่อนติดตั้ง (Prerequisites)
 
-- Python 3.10 ขึ้นไป (แนะนำ 3.12)
 - Git
+- Python 3.10 ขึ้นไป
+- PowerShell บน Windows หรือ Terminal บน macOS/Linux
 
-```bash
-python --version   # macOS / Linux อาจต้องใช้ python3 --version
+ตรวจสอบโปรแกรมที่ติดตั้งแล้ว:
+
+~~~powershell
+python --version
 git --version
-```
+~~~
 
 ### 3. ขั้นตอนการติดตั้ง (Installation)
 
-```bash
-git clone https://github.com/6710685055/CN331_MawongMavods.git
+Clone branch นี้จาก GitHub:
+
+~~~powershell
+git clone --branch issue-2-group-meeting-notification --single-branch https://github.com/6710685055/CN331_MawongMavods.git
 cd CN331_MawongMavods
-```
-
-สร้างและเปิดใช้ Virtual Environment:
-
-```powershell
-# Windows (PowerShell)
 python -m venv venv
-venv\Scripts\Activate.ps1
-```
+.\venv\Scripts\Activate.ps1
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+~~~
 
-```bash
-# macOS / Linux
+หาก clone repository ไว้แล้ว ให้เปลี่ยนมาใช้ branch นี้:
+
+~~~powershell
+git fetch origin
+git switch issue-2-group-meeting-notification
+~~~
+
+คำสั่งสร้างและเปิดใช้งาน virtual environment บน macOS/Linux:
+
+~~~bash
 python3 -m venv venv
 source venv/bin/activate
-```
-
-ติดตั้ง dependency:
-
-```bash
+python -m pip install --upgrade pip
 pip install -r requirements.txt
-```
+~~~
 
-เมื่อ activate แล้วจะมี `(venv)` นำหน้า prompt คำสั่ง `python manage.py ...` ทุกคำสั่งหลังจากนี้ต้องรันใน venv ที่ root ของโปรเจค
+หาก PowerShell ไม่อนุญาตให้ activate environment ให้เรียก Python ใน venv โดยตรง:
+
+~~~powershell
+.\venv\Scripts\python.exe -m pip install -r requirements.txt
+~~~
 
 ### 4. การตั้งค่า Environment Variables
 
-ตอนพัฒนาในเครื่อง **ไม่ต้องตั้งค่าอะไร** เพราะทุกตัวมีค่าเริ่มต้นสำหรับ dev อยู่แล้ว
+Django อ่านค่าต่อไปนี้จาก environment ของระบบ โดยโปรเจกต์ **ไม่ได้โหลดไฟล์ .env ให้อัตโนมัติ**
 
-| ตัวแปร | ค่าเริ่มต้น | ความหมาย |
+| ตัวแปร | ค่าเริ่มต้นสำหรับพัฒนา | จุดประสงค์ |
 |---|---|---|
-| `DJANGO_SECRET_KEY` | `dev-only-change-me` | Secret key ของ Django (ต้องเปลี่ยนเมื่อ deploy จริง) |
-| `DJANGO_DEBUG` | `1` | `1` = เปิด debug, ค่าอื่น = ปิด |
-| `DJANGO_ALLOWED_HOSTS` | `localhost,127.0.0.1` | Host ที่อนุญาต คั่นด้วย `,` |
+| `DJANGO_SECRET_KEY` | `dev-only-change-me` | กุญแจสำหรับ Django; ตั้งค่าเฉพาะของตนเองเมื่อใช้งานนอกเครื่องพัฒนา |
+| `DJANGO_DEBUG` | `1` | เปิดโหมด debug เมื่อกำหนดเป็น `1` |
+| `DJANGO_ALLOWED_HOSTS` | `localhost,127.0.0.1` | รายชื่อ host ที่คั่นด้วย comma |
 
-โปรเจค **ยังไม่อ่านไฟล์ `.env` อัตโนมัติ** ถ้าต้องการเปลี่ยนค่า ให้ตั้งใน shell ก่อนรันคำสั่ง:
+ตั้งค่าตัวแปรใน PowerShell ก่อนเริ่ม Django ได้ดังนี้:
 
-```powershell
-# Windows (PowerShell)
-$env:DJANGO_SECRET_KEY = "your-secret-key"
-$env:DJANGO_DEBUG = "0"
+~~~powershell
+$env:DJANGO_SECRET_KEY = "your-private-development-key"
+$env:DJANGO_DEBUG = "1"
 $env:DJANGO_ALLOWED_HOSTS = "localhost,127.0.0.1"
-```
+~~~
 
-```bash
-# macOS / Linux
-export DJANGO_SECRET_KEY="your-secret-key"
-export DJANGO_DEBUG="0"
+บน macOS/Linux ใช้คำสั่ง:
+
+~~~bash
+export DJANGO_SECRET_KEY="your-private-development-key"
+export DJANGO_DEBUG="1"
 export DJANGO_ALLOWED_HOSTS="localhost,127.0.0.1"
-```
+~~~
 
-**อีเมล (ยืนยันอีเมลและรีเซ็ตรหัสผ่าน):** ใช้ Gmail SMTP ตามค่าใน `config/settings.py` ดังนั้นตอนสมัครสมาชิก ระบบจะส่งอีเมลจริง
-- ถ้าไม่อยากส่งอีเมลจริงตอน dev ให้เปลี่ยน `EMAIL_BACKEND` ในเครื่องตัวเองเป็น `"django.core.mail.backends.console.EmailBackend"` ชั่วคราว อีเมลจะพิมพ์ออกมาใน terminal ที่รัน `runserver` แทน (**อย่า commit การแก้นี้**)
-- หรือข้ามการยืนยันอีเมลไปเลย โดยเข้าหน้า Admin แล้วติ๊ก `email_verified` ให้ผู้ใช้คนนั้น
+สำหรับการพัฒนาในเครื่อง ระบบเขียนอีเมลยืนยันและรีเซ็ตรหัสผ่านลงใน Terminal ที่รัน `runserver` จึงไม่ต้องใช้บัญชี SMTP เพื่อทดลอง US-02 ห้าม commit รหัสผ่าน app password หรือ credential จริง
 
 ### 5. การจัดการฐานข้อมูล (Database Setup)
 
-ไฟล์ migration ถูก commit ไว้แล้ว ไม่ต้องรัน `makemigrations`
+โปรเจกต์ใช้ SQLite ใช้ migration ที่มีใน repository เพื่อสร้างหรือปรับปรุงฐานข้อมูล `db.sqlite3`:
 
-```bash
-python manage.py migrate            # สร้างตารางทั้งหมดใน db.sqlite3
-python manage.py seed_courses       # เพิ่มรายวิชาตัวอย่าง (CN331, CN240, CN201, CN202, CN310) รันซ้ำได้ไม่เกิดข้อมูลซ้ำ
-python manage.py createsuperuser    # สร้างบัญชี Admin: ถามอีเมล, Name, Surname และรหัสผ่าน
-```
-
-#### รีเซ็ต Database (เริ่มใหม่จากศูนย์)
-
-> ⚠️ ข้อมูลทั้งหมดจะหาย ทั้งผู้ใช้ การลงทะเบียน เอกสาร และการแจ้งเตือน
-
-1. หยุด `runserver` ก่อน (กด `Ctrl+C`)
-2. ลบไฟล์ `db.sqlite3`
-3. **ต้องรัน `migrate` และ `seed_courses` อีกรอบ** ระบบจึงจะกลับมามีตารางและรายวิชาให้ใช้งาน
-4. สร้าง superuser ใหม่ เพราะบัญชี Admin เดิมหายไปพร้อมฐานข้อมูล
-
-```powershell
-# Windows (PowerShell)
-Remove-Item db.sqlite3
+~~~powershell
 python manage.py migrate
 python manage.py seed_courses
 python manage.py createsuperuser
-```
+~~~
 
-```bash
-# macOS / Linux
-rm db.sqlite3
-python manage.py migrate
-python manage.py seed_courses
-python manage.py createsuperuser
-```
+คำสั่ง `seed_courses` เพิ่มรายวิชาตัวอย่างและรันซ้ำได้ ส่วน `createsuperuser` ใช้สร้างบัญชีผู้ดูแลระบบสำหรับหน้า `/admin/`
 
-ไฟล์เอกสารที่เคยอัปโหลดในโฟลเดอร์ `media/` จะไม่ถูกลบตามไปด้วย ถ้าต้องการล้างด้วย ให้ลบเองด้วย `Remove-Item -Recurse media` (Windows) หรือ `rm -rf media` (macOS / Linux)
+สำหรับทดลอง US-02 ในเครื่อง ให้สร้าง Django **Group** ที่หน้า `/admin/` และเพิ่มบัญชีทดสอบเป็นสมาชิก จากนั้นสมาชิกจึงจะเปิดพื้นที่นัดหมายของกลุ่มได้ วิธีนี้เป็น adapter ชั่วคราวระหว่างรอเชื่อมโมเดลกลุ่มจาก US-01
 
-### 6. คำสั่งรันโปรเจค (Running the Project)
+### 6. คำสั่งรันโปรเจกต์ (Running the Project)
 
-```bash
+เริ่ม development server:
+
+~~~powershell
 python manage.py runserver
-```
+~~~
+
+เปิด <http://127.0.0.1:8000/> แล้วเข้าสู่ระบบด้วยบัญชีทดสอบที่ยืนยันอีเมลแล้ว
 
 | หน้า | URL |
 |---|---|
-| หน้าแรก (redirect ไป "วิชาของฉัน") | <http://127.0.0.1:8000/> |
-| สมัครสมาชิก | <http://127.0.0.1:8000/accounts/register/> |
-| เข้าสู่ระบบ | <http://127.0.0.1:8000/accounts/login/> |
-| การแจ้งเตือน | <http://127.0.0.1:8000/notifications/> |
-| **หน้า Admin** | **<http://127.0.0.1:8000/admin/>** |
+| นัดหมายที่กำลังจะมาถึง | <http://127.0.0.1:8000/meetings/> |
+| หน้าผู้ดูแลระบบ (จัดการกลุ่มทดสอบ) | <http://127.0.0.1:8000/admin/> |
 
-**หน้า Admin** (<http://127.0.0.1:8000/admin/>) ล็อกอินด้วยอีเมลและรหัสผ่านของ superuser ที่สร้างในขั้นตอนที่ 5 ใช้สำหรับ:
-- **อนุมัติบัญชีอาจารย์:** Users → เลือกผู้ใช้ → action "อนุมัติบัญชีอาจารย์ที่เลือก" (อาจารย์ต้องได้รับอนุมัติก่อนจึงจะลงทะเบียนรายวิชาได้)
-- **เลื่อน TA ให้มีสิทธิ์ตรวจเอกสาร:** Enrollments → เปลี่ยน role จาก "TA (รออาจารย์อนุมัติ)" เป็น "TA" (หน้าจอให้อาจารย์อนุมัติ TA เป็นงานของ UC16)
-- ติ๊ก `email_verified` ให้ผู้ใช้ เมื่อไม่ได้ตั้งค่าอีเมล
-- จัดการรายวิชา เอกสาร ประวัติการตรวจ และการแจ้งเตือน
-
-ฝั่ง frontend **ไม่ต้องรันแยก** หน้าเว็บ render ผ่าน Django Templates ใน `runserver` ตัวเดียว
+จากหน้ารวมนัดหมาย ให้เปิดพื้นที่ของกลุ่มเพื่อสร้างนัดหมาย ลิงก์ประชุมต้องเป็น URL ที่ขึ้นต้นด้วย `http://` หรือ `https://` และเวลาประชุมต้องอยู่ในอนาคต เมื่อแก้ไขนัดหมาย ระบบจะสร้างการแจ้งเตือนภายในแอปให้สมาชิกกลุ่ม
 
 ### 7. คำสั่งเพิ่มเติม
 
-**รัน Test**
+ตรวจสอบการตั้งค่า Django และรันชุดทดสอบ:
 
-```bash
-python manage.py test                                     # ทั้งโปรเจค
-python manage.py test accounts                            # รายแอป: accounts / courses / documents
-python manage.py test documents.tests.test_uc3_upload     # เฉพาะ UC3
-python manage.py test documents.tests.test_uc4_verify     # เฉพาะ UC4
-```
+~~~powershell
+python manage.py check
+python manage.py test
+~~~
 
-ตอนรัน test ระบบไม่ส่งอีเมลจริงและไม่เขียนไฟล์ลง `media/`
+ตรวจสอบว่ามี model ที่ต้องสร้าง migration หรือไม่:
 
-**ตรวจความเรียบร้อยก่อนเปิด PR**
+~~~powershell
+python manage.py makemigrations --check --dry-run
+~~~
 
-```bash
-python manage.py check                              # ต้องไม่มี issue
-python manage.py makemigrations --check --dry-run   # ต้องได้ "No changes detected" ถ้าไม่ได้ตั้งใจแก้ model
-```
+ส่งการแจ้งเตือนสำหรับนัดหมายที่เข้าสู่ช่วงเวลาเตือน:
 
-**เอกสารเทคนิค:** การทำงานของ UC3/UC4 อธิบายไว้ใน [`docs/documents_uc3_uc4.md`](docs/documents_uc3_uc4.md)
+~~~powershell
+python manage.py send_meeting_reminders
+~~~
 
-**Docker:** ยังไม่มีในโปรเจคนี้
+ค่าเริ่มต้นของช่วงเวลาเตือนคือ 15 นาที (`MEETING_REMINDER_MINUTES`) Django ไม่ได้เรียกคำสั่งนี้ให้อัตโนมัติ หากต้องการส่งอัตโนมัติให้ตั้งเวลารันคำสั่งนี้ทุกหนึ่งนาที เช่น ใช้ Windows Task Scheduler ดูรายละเอียดการออกแบบและการตั้งค่าการเตือนได้ที่ [docs/meeting_uc2.md](docs/meeting_uc2.md)
 
-## Acceptance Criteria → where it is done
+## เกณฑ์การยอมรับ (Acceptance Criteria) → อยู่ที่ไฟล์ใด
 
-### UC7: Registration, Login & Course Enrollment
-| AC | Where |
+| เกณฑ์การยอมรับ | ตำแหน่งที่พัฒนา |
 |---|---|
-| Register with any email, choose Student/TA/Teacher | `accounts/forms.py: RegisterForm` |
-| Duplicate email not allowed | `RegisterForm.clean_email` (case-insensitive) |
-| Verification email; login only after verifying | `accounts/views.py`, `tokens.py`, `EmailLoginForm.confirm_login_allowed` |
-| Student usable right after verifying | `User.email_verified` |
-| TA has no TA rights until the teacher approves | `Enrollment.Role.TA_PENDING` (promotion = UC16) |
-| Teacher is "pending" until Admin approves | `User.teacher_status`, `accounts/admin.py` |
-| Search and enroll in courses | `courses/views.py`, `courses/services.py` |
-| Reset password by email | `accounts/urls.py` (Django built-in views) |
+| สมาชิกกลุ่มสร้างนัดหมายได้ | `meetings/views.py`, `meetings/permissions.py`, `meetings/group_access.py`, `templates/meetings/meeting_form.html` |
+| ระบุหัวข้อ ลิงก์ วัน และเวลาประชุมได้ | `meetings/forms.py`, `meetings/models.py` |
+| แสดงนัดหมายที่กำลังจะมาถึงในพื้นที่กลุ่ม | `meetings/selectors.py`, `templates/meetings/group_meetings.html` |
+| แสดงนัดหมายถัดไปไว้บนสุด | `templates/meetings/group_meetings.html` |
+| สมาชิกแก้ไขหรือเลื่อนนัดหมายได้ | `meetings/views.py`, `meetings/services.py`, `templates/meetings/meeting_form.html` |
+| แจ้งสมาชิกกลุ่มเมื่อมีการเปลี่ยนแปลงนัดหมาย | `meetings/services.py`, `notifications/services.py`, `notifications/models.py` |
+| แจ้งเตือนสมาชิกก่อนถึงเวลาประชุม | `meetings/services.py`, `meetings/management/commands/send_meeting_reminders.py`; ตั้งเวลารันคำสั่งทุกหนึ่งนาที |
+| ปฏิเสธ URL ที่ไม่ถูกต้องและเวลาประชุมในอดีต | `meetings/forms.py` |
 
-### UC3: Upload & Share Document
-| AC | Where |
-|---|---|
-| เฉพาะผู้ที่ลงทะเบียนในรายวิชาอัปโหลดได้ และตรวจสิทธิ์ฝั่ง Server | `courses/permissions.py: is_course_member`, `documents/permissions.py: can_access_course_documents`, `documents/services/library.py: upload_document` |
-| ผู้ใช้ต้องระบุชื่อ ประเภท ปีการศึกษา/เทอม และแนบไฟล์ก่อนยืนยัน | `documents/forms.py: DocumentUploadForm`, `templates/documents/upload.html` |
-| ระบบรับเฉพาะ PDF, DOCX, PPTX, PNG, JPG ขนาดไม่เกิน 50MB พร้อมบอกเหตุผล | `config/settings.py`, `documents/validators.py: validate_document_file` |
-| เอกสารที่อัปโหลดสำเร็จแสดงในคลังเอกสาร และผู้ที่ลงทะเบียนในวิชานั้นดาวน์โหลดได้ | `documents/views/library.py: document_library, download_document` |
-| ผู้ที่ไม่ได้ลงทะเบียนในวิชาเข้าถึงเอกสารไม่ได้ | `documents/views/library.py` (`403 Forbidden`), `documents/services/library.py` |
-| บันทึกผู้อัปโหลด วันเวลา และตั้งคะแนนโหวตเริ่มต้นเป็น 0 | `documents/models.py: Document`, `documents/services/library.py: upload_document` |
-| ชีทสรุปและแนวข้อสอบเริ่มต้นด้วยสถานะ "รอตรวจ" ส่วนการบ้านไม่มีสถานะ Verify | `Document.initial_verify_status_for_type`, `Document.VERIFIABLE_DOC_TYPES` |
-| การอัปโหลดการบ้านต้องยืนยันก่อนว่าเป็นงานที่หมดกำหนดส่งแล้ว | `DocumentUploadForm.clean`, `documents/services/library.py: upload_document` |
-| การอัปโหลดที่ล้มเหลวต้องไม่ทิ้งรายการค้างในคลังเอกสาร | `documents/services/library.py: upload_document` (`transaction.atomic` + file cleanup) |
-| TA หรือ Teacher ของรายวิชาปักหมุดและเลิกปักหมุดเอกสารได้ และแสดงบนสุด | `documents/permissions.py: can_pin_document`, `documents/services/library.py: toggle_document_pin, list_course_documents` |
-| ผู้ที่ไม่ใช่ TA หรือ Teacher ของวิชานั้นปักหมุดไม่ได้ | `documents/permissions.py: can_pin_document`, `documents/services/library.py: toggle_document_pin` |
+## โครงสร้างไฟล์ของ US-02
 
-### UC4: Verify Document
-| AC | Where |
-|---|---|
-| เฉพาะ TA ที่ได้รับอนุมัติและ Teacher ผู้สอนของวิชานั้นเข้าถึงคิว "เอกสารรอตรวจ" และปุ่ม Verify ได้ (ตรวจฝั่ง Server) | `documents/permissions.py: can_access_review_queue, can_verify_document`, `documents/services/review.py` |
-| คิวแสดงเฉพาะชีทสรุปและแนวข้อสอบสถานะ "รอตรวจ" เรียงจากเก่าสุด | `documents/services/review.py: get_verification_queue` |
-| เมื่อกด Verify เอกสารแสดงป้าย "Verified by TA" หรือ "Verified by Teacher" พร้อมชื่อผู้ตรวจและวันที่ | `documents/models.py: Document.verified_badge_label`, `documents/services/review.py: verify_document` |
-| การ Verify ผูกกับเวอร์ชันไฟล์ เมื่อเจ้าของแก้ไฟล์ ป้ายถูกยกเลิกและกลับเข้าคิว | `documents/models.py: Document.has_active_verified_badge`, `documents/services/versioning.py: replace_document_file` |
-| การส่งกลับให้แก้ไขต้องมีความคิดเห็น และสถานะเปลี่ยนเป็น "ต้องแก้ไข" | `documents/forms.py: RequestRevisionForm`, `documents/services/review.py: request_document_revision` |
-| ความคิดเห็นของผู้ตรวจ และสถานะ "รอตรวจ" / "ต้องแก้ไข" เห็นเฉพาะเจ้าของเอกสาร TA และ Teacher ของวิชา ผู้ใช้อื่นเห็นเฉพาะป้าย Verified | `documents/permissions.py: can_view_review_details`, `templates/documents/library.html`, `templates/documents/detail.html` |
-| เจ้าของได้รับแจ้งเตือนทุกครั้งที่เอกสารถูก Verify ส่งกลับให้แก้ไข หรือยกเลิก Verify | `notifications/services.py: send_notification`, `documents/services/review.py` |
-| ผู้ตรวจยกเลิก Verify ได้ โดยต้องระบุเหตุผล | `documents/forms.py: RevokeVerifyForm`, `documents/services/review.py: revoke_document_verification` |
-| ผู้ตรวจต้อง Verify เอกสารที่ตนเองอัปโหลดไม่ได้ | `documents/permissions.py: can_verify_document`, `documents/services/review.py: get_verification_queue, verify_document` |
-| ป้ายที่ให้ไว้คงอยู่แม้ผู้ตรวจถูกถอนสิทธิ์ TA ภายหลัง | `Document.verified_by_name`, `Document.verified_by_role` (Snapshot fields) |
-| เอกสารประเภทการบ้านต้อง Verify ไม่ได้ | `Document.is_verifiable`, `documents/services/review.py` |
+~~~text
+meetings/                 โมเดล ฟอร์ม views services และ adapter สำหรับเข้าถึงกลุ่ม
+meetings/migrations/      migration ของ Meeting
+meetings/management/      คำสั่งส่งการแจ้งเตือนก่อนประชุม
+templates/meetings/       หน้ารวมนัดหมาย พื้นที่กลุ่ม และฟอร์มนัดหมาย
+notifications/            ระบบแจ้งเตือนภายในแอปและชนิดแจ้งเตือนของนัดหมาย
+docs/meeting_uc2.md       เอกสารออกแบบและเกณฑ์การยอมรับของ UC2
+~~~
+
+## ฟีเจอร์เดิมจาก branch ฐาน
+
+branch นี้ต่อยอดจากงานรายวิชาและเอกสารของทีม โดยมีฟีเจอร์เดิมดังนี้:
+
+- **US-07:** สมัครสมาชิก ยืนยันอีเมล เข้าสู่ระบบ รีเซ็ตรหัสผ่าน และลงทะเบียนรายวิชา อยู่ใน `accounts/` และ `courses/`
+- **US-03 / US-04:** อัปโหลดและแชร์เอกสาร ปักหมุด และตรวจสอบเอกสาร อยู่ใน `documents/` ดูรายละเอียดที่ [docs/documents_uc3_uc4.md](docs/documents_uc3_uc4.md)
