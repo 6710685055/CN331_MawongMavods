@@ -8,7 +8,7 @@ from django.views.decorators.http import require_POST
 from accounts.models import User
 
 from .models import Course, Enrollment
-from .permissions import is_course_staff
+from .permissions import get_enrollment, is_course_staff
 from .services import EnrollmentError, enroll
 
 
@@ -93,7 +93,18 @@ def enroll_course(request, course_id):
 @login_required
 def course_detail(request, course_id):
     course = get_object_or_404(Course, pk=course_id)
-    return render(request, "courses/course_detail.html", {"course": course})
+    enrollment = get_enrollment(request.user, course)
+    return render(
+        request,
+        "courses/course_detail.html",
+        {
+            "course": course,
+            "enrollment": enrollment,
+            "is_member": enrollment is not None,
+            "is_staff": is_course_staff(request.user, course),
+            "is_owner": course.owner_id == request.user.id,
+        },
+    )
 
 
 # ──────────────────────────── Teacher: create course ────────────────────────
