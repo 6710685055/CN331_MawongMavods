@@ -111,5 +111,9 @@
   {% else %}
     <p>ยังไม่มีเอกสารในคลังเอกสารของรายวิชานี้</p>
   {% endif %}
+
+  <div class="actions" style="margin-top:1.5rem;">
+    <a class="btn secondary" href="{% url 'courses:detail' course.id %}">← กลับหน้าหลักวิชา</a>
+  </div>
 </div>
 {% endblock %}
