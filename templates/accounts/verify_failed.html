@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}ลิงก์ยืนยันใช้ไม่ได้{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>ลิงก์ยืนยันใช้ไม่ได้</h1>
+  <p>ลิงก์นี้ไม่ถูกต้องหรือหมดอายุแล้ว ขอลิงก์ใหม่ได้จากปุ่มด้านล่าง</p>
+  <div class="actions"><a class="btn" href="{% url 'accounts:resend_verification' %}">ส่งอีเมลยืนยันอีกครั้ง</a></div>
+</div>
+{% endblock %}

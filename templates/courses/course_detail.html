@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% block title %}{{ course.code }} {{ course.name }}{% endblock %}
+{% block content %}
+
+{# ─────────── 1. ส่วนหัวรายวิชา + แถบเมนูนำทาง (Course Header & Toolbar) ─────────── #}
+<div class="card wide" style="margin-bottom:1.25rem;">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem;">
+    <div>
+      <div style="display:flex; align-items:center; gap:.6rem; flex-wrap:wrap;">
+        <h1 style="margin:0;">{{ course.code }} — {{ course.name }}</h1>
+        {% if enrollment %}
+          <span class="tag badge-pin">{{ enrollment.get_role_display }}</span>
+        {% endif %}
+      </div>
+      {% if course.owner %}
+        <p class="help" style="margin:.35rem 0 0;">อาจารย์ผู้สอน: <strong>{{ course.owner.full_name }}</strong></p>
+      {% endif %}
+    </div>
+    <div>
+      <a class="btn secondary" href="{% url 'courses:my' %}">← กลับหน้าวิชาของฉัน</a>
+    </div>
+  </div>
+
+  {% if is_member %}
+    <hr style="border:0; border-top:1px solid var(--line); margin:1.1rem 0;">
+    <nav aria-label="เมนูประจำรายวิชา" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.75rem;">
+      {# กลุ่มเมนูเอกสารและการเรียนรู้ #}
+      <div style="display:flex; align-items:center; gap:.5rem; flex-wrap:wrap;">
+        <a class="btn" href="{% url 'documents:library' course.id %}">📂 คลังเอกสาร</a>
+        <a class="btn secondary" href="{% url 'documents:upload' course.id %}">＋ อัปโหลดเอกสาร</a>
+        {% if is_staff %}
+          <a class="btn secondary" href="{% url 'documents:review_queue' course.id %}">📋 เอกสารรอตรวจ</a>
+        {% endif %}
+      </div>
+
+      {# กลุ่มเมนูจัดการรายวิชา (เฉพาะอาจารย์เจ้าของวิชา) #}
+      {% if is_owner %}
+        <div style="display:flex; align-items:center; gap:.5rem;">
+          <a class="btn secondary" href="{% url 'courses:members' course.id %}">👥 จัดการสมาชิก</a>
+        </div>
+      {% endif %}
+    </nav>
+  {% endif %}
+</div>
+
+{# ─────────── 2. พื้นที่หลักของ Classroom (เว้นว่างไว้ให้ทีมพัฒนาฟีเจอร์อื่นต่อ) ─────────── #}
+{% if is_member %}
+  <div class="card wide" style="min-height:320px; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; border-style:dashed; background:#fafbfe;">
+    {# TODO: พื้นที่สำหรับพัฒนาฟีเจอร์อื่นของรายวิชาต่อ เช่น กระดานถาม-ตอบ (Q&A), ประกาศรายวิชา, หรือฟีดกิจกรรม #}
+    {% block classroom_workspace %}
+      <p style="font-size:1.05rem; font-weight:600; color:var(--muted); margin:0 0 .35rem;">
+        พื้นที่หน้าหลักของรายวิชา {{ course.code }}
+      </p>
+      <p class="help" style="margin:0;">
+        (พื้นที่ว่างสำหรับพัฒนาฟีเจอร์เพิ่มเติมของรายวิชา เช่น กระดานถาม-ตอบ หรือประกาศในชั้นเรียน)
+      </p>
+    {% endblock %}
+  </div>
+{% else %}
+  <div class="card wide" style="text-align:center; padding:2.5rem 1.5rem;">
+    <p style="margin:0 0 1rem;">คุณยังไม่ได้ลงทะเบียนในรายวิชานี้ กรุณาลงทะเบียนเพื่อเข้าใช้งานพื้นที่รายวิชาและคลังเอกสาร</p>
+    <form method="post" action="{% url 'courses:enroll' course.id %}">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.path }}">
+      <button type="submit" class="btn">ลงทะเบียนเรียนวิชานี้</button>
+    </form>
+  </div>
+{% endif %}
+
+{% endblock %}

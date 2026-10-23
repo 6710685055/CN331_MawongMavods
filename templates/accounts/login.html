@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}เข้าสู่ระบบ{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>เข้าสู่ระบบ</h1>
+  <form method="post" novalidate>
+    {% csrf_token %}
+    {% include "partials/form.html" %}
+    <input type="hidden" name="next" value="{{ next }}">
+    <div class="actions"><button type="submit">เข้าสู่ระบบ</button></div>
+  </form>
+  <div class="actions">
+    <a href="{% url 'accounts:password_reset' %}">ลืมรหัสผ่าน?</a>
+    <a href="{% url 'accounts:resend_verification' %}">ส่งอีเมลยืนยันอีกครั้ง</a>
+    <a href="{% url 'accounts:register' %}">สมัครสมาชิก</a>
+  </div>
+</div>
+{% endblock %}

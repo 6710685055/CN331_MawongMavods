@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}การแจ้งเตือน{% endblock %}
+{% block content %}
+<div class="card wide">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.5rem; margin-bottom:1rem;">
+    <h1 style="margin:0;">การแจ้งเตือนของคุณ</h1>
+    {% if unread_notifications_count %}
+      <form method="post" action="{% url 'notifications:mark_all_read' %}">
+        {% csrf_token %}
+        <button type="submit" class="btn secondary">ทำเครื่องหมายว่าอ่านแล้วทั้งหมด</button>
+      </form>
+    {% endif %}
+  </div>
+
+  {% if notifications %}
+    <table>
+      <thead>
+        <tr>
+          <th>สถานะ</th>
+          <th>รายละเอียด</th>
+          <th>เวลา</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for n in notifications %}
+          <tr {% if not n.is_read %}style="background:#f0f5ff;"{% endif %}>
+            <td>
+              {% if not n.is_read %}
+                <span class="tag badge-warn">ใหม่</span>
+              {% else %}
+                <span class="tag">อ่านแล้ว</span>
+              {% endif %}
+            </td>
+            <td>
+              <strong>{{ n.title }}</strong>
+              <div class="help" style="color:var(--ink); margin-top:.2rem;">{{ n.message }}</div>
+            </td>
+            <td class="help">{{ n.created_at|date:"d/m/Y H:i" }}</td>
+            <td style="text-align:right;">
+              {% if n.target_url %}
+                <form method="post" action="{% url 'notifications:mark_read' n.id %}" style="display:inline;">
+                  {% csrf_token %}
+                  <input type="hidden" name="next" value="{{ n.target_url }}">
+                  <button type="submit" class="link">เปิดดูเอกสาร</button>
+                </form>
+              {% elif not n.is_read %}
+                <form method="post" action="{% url 'notifications:mark_read' n.id %}" style="display:inline;">
+                  {% csrf_token %}
+                  <button type="submit" class="link">รับทราบ</button>
+                </form>
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p class="help">ยังไม่มีการแจ้งเตือน</p>
+  {% endif %}
+</div>
+{% endblock %}

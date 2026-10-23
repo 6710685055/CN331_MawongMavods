@@ -1,0 +1,162 @@
+{% extends "base.html" %}
+{% block title %}วิชาของฉัน{% endblock %}
+{% block content %}
+
+{# ─────────── TEACHER VIEW ─────────── #}
+{% if user.role == "teacher" %}
+<div class="card wide">
+  <h1>📚 รายวิชาที่ฉันสอน</h1>
+  <div class="actions" style="margin-top:0; margin-bottom:1rem;">
+    <a class="btn success" href="{% url 'courses:create' %}">＋ สร้างรายวิชาใหม่</a>
+  </div>
+
+  {% if enrollments %}
+  <table>
+    <thead>
+      <tr>
+        <th>รหัสวิชา</th>
+        <th>ชื่อวิชา</th>
+        <th>บทบาท</th>
+        <th>จัดการ</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for e in enrollments %}
+      <tr>
+        <td><a href="{% url 'courses:detail' e.course.id %}"><strong>{{ e.course.code }}</strong></a></td>
+        <td>{{ e.course.name }}</td>
+        <td><span class="tag">{{ e.get_role_display }}</span></td>
+        <td>
+          {% if e.course.owner == user %}
+            <a class="btn secondary" href="{% url 'courses:members' e.course.id %}">จัดการสมาชิก</a>
+            <form method="post" action="{% url 'courses:delete' e.course.id %}" style="display:inline" onsubmit="return confirm('ยืนยันลบรายวิชา {{ e.course.code }}?')">
+              {% csrf_token %}
+              <button type="submit" class="btn danger">ลบวิชา</button>
+            </form>
+          {% else %}
+            <span class="help">ไม่ใช่เจ้าของวิชา</span>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p>คุณยังไม่ได้สร้างหรือสอนวิชาใดๆ</p>
+  {% endif %}
+
+  {# ── Pending enrollments to approve ── #}
+  {% if pending_enrollments %}
+  <div class="panel" style="margin-top:1.5rem;">
+    <h2>📋 คำขอลงทะเบียนรอการอนุมัติ</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>ผู้ขอ</th>
+          <th>อีเมล</th>
+          <th>รายวิชา</th>
+          <th>ประเภท</th>
+          <th>ดำเนินการ</th>
+        </tr>
+      </thead>
+      <tbody>
+      {% for pe in pending_enrollments %}
+        <tr>
+          <td>{{ pe.user.full_name }}</td>
+          <td>{{ pe.user.email }}</td>
+          <td><strong>{{ pe.course.code }}</strong> {{ pe.course.name }}</td>
+          <td><span class="tag badge-pending">{{ pe.get_role_display }}</span></td>
+          <td>
+            <form method="post" action="{% url 'courses:approve' pe.id %}" style="display:inline">
+              {% csrf_token %}
+              <button type="submit" class="btn success">อนุมัติ</button>
+            </form>
+            <form method="post" action="{% url 'courses:reject' pe.id %}" style="display:inline">
+              {% csrf_token %}
+              <button type="submit" class="btn danger">ปฏิเสธ</button>
+            </form>
+          </td>
+        </tr>
+      {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+</div>
+
+{# ─────────── TA VIEW ─────────── #}
+{% elif user.role == "ta" %}
+<div class="card wide">
+  <h1>📚 รายวิชาที่ฉันเป็น TA</h1>
+  {% if enrollments %}
+  <table>
+    <thead>
+      <tr>
+        <th>รหัสวิชา</th>
+        <th>ชื่อวิชา</th>
+        <th>สถานะ</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for e in enrollments %}
+      <tr>
+        <td><a href="{% url 'courses:detail' e.course.id %}"><strong>{{ e.course.code }}</strong></a></td>
+        <td>{{ e.course.name }}</td>
+        <td>
+          {% if e.role == "ta_pending" %}
+            <span class="tag badge-pending">{{ e.get_role_display }}</span>
+          {% elif e.role == "ta" %}
+            <span class="tag badge-verified">{{ e.get_role_display }}</span>
+          {% else %}
+            <span class="tag">{{ e.get_role_display }}</span>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p>คุณยังไม่ได้รับมอบหมายให้เป็น TA ในวิชาใดๆ</p>
+  {% endif %}
+  <p class="help" style="margin-top:1rem;">* รายวิชาจะแสดงเฉพาะที่อาจารย์มอบหมายให้คุณเท่านั้น</p>
+</div>
+
+{# ─────────── STUDENT VIEW ─────────── #}
+{% else %}
+<div class="card wide">
+  <h1>📚 รายวิชาที่ฉันลงเรียน</h1>
+  {% if enrollments %}
+  <table>
+    <thead>
+      <tr>
+        <th>รหัสวิชา</th>
+        <th>ชื่อวิชา</th>
+        <th>สถานะ</th>
+      </tr>
+    </thead>
+    <tbody>
+    {% for e in enrollments %}
+      <tr>
+        <td><a href="{% url 'courses:detail' e.course.id %}"><strong>{{ e.course.code }}</strong></a></td>
+        <td>{{ e.course.name }}</td>
+        <td>
+          {% if e.role == "stu_pending" %}
+            <span class="tag badge-pending">{{ e.get_role_display }}</span>
+          {% elif e.role == "student" %}
+            <span class="tag badge-verified">{{ e.get_role_display }}</span>
+          {% else %}
+            <span class="tag">{{ e.get_role_display }}</span>
+          {% endif %}
+        </td>
+      </tr>
+    {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p>คุณยังไม่ได้ลงทะเบียนวิชาไหน</p>
+  {% endif %}
+  <div class="actions"><a class="btn" href="{% url 'courses:list' %}">🔍 ค้นหาและลงทะเบียนรายวิชา</a></div>
+</div>
+{% endif %}
+
+{% endblock %}

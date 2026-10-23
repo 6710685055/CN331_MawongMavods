@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}ตรวจสอบอีเมล{% endblock %}
+{% block content %}
+<div class="card">
+  <h1>ตรวจสอบอีเมลของคุณ</h1>
+  <p>เราส่งลิงก์ยืนยันไปที่ {% if email %}<strong>{{ email }}</strong>{% else %}อีเมลที่คุณสมัคร{% endif %} แล้ว กดลิงก์ในอีเมลเพื่อเปิดใช้งานบัญชี (ลิงก์ใช้ได้ 3 วัน)</p>
+  <div class="actions">
+    <a href="{% url 'accounts:resend_verification' %}">ไม่ได้รับอีเมล? ส่งอีกครั้ง</a>
+    <a href="{% url 'accounts:login' %}">ไปหน้าเข้าสู่ระบบ</a>
+  </div>
+</div>
+{% endblock %}
