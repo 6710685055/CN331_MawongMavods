@@ -148,6 +148,11 @@ class TeamChatMessage(models.Model):
         related_name="team_chat_messages",
     )
     body = models.TextField("ข้อความ")
+    attachment = models.FileField(
+        "ไฟล์แนบ",
+        upload_to="team_chat/%Y/%m/",
+        blank=True,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:

@@ -30,6 +30,11 @@ urlpatterns = [
         group_views.team_chat,
         name="team_chat",
     ),
+    path(
+        "<int:course_id>/groups/<int:team_id>/chat/attachments/<int:message_id>/",
+        group_views.download_chat_attachment,
+        name="download_chat_attachment",
+    ),
     path("<int:course_id>/members/<int:enrollment_id>/remove/", views.remove_member, name="remove_member"),
     path("enrollment/<int:enrollment_id>/approve/", views.approve_enrollment, name="approve"),
     path("enrollment/<int:enrollment_id>/reject/", views.reject_enrollment, name="reject"),

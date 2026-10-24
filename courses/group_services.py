@@ -1,4 +1,8 @@
+from pathlib import PurePosixPath
+
+from django.conf import settings
 from django.db import IntegrityError, transaction
+from django.urls import reverse
 from django.utils import timezone
 
 from accounts.models import User
@@ -186,12 +190,65 @@ def respond_to_invitation(*, invitation_id, user, accept):
     return invitation
 
 
-def post_chat_message(*, chat, sender, body):
+@transaction.atomic
+def post_chat_message(*, chat, sender, body, attachment=None):
     if not TeamMembership.objects.filter(team=chat.team, user=sender).exists():
         raise GroupError("คุณไม่มีสิทธิ์ส่งข้อความในห้องแชทนี้")
+    if not isinstance(body, str):
+        raise GroupError("รูปแบบข้อความไม่ถูกต้อง")
     body = body.strip()
-    if not body:
-        raise GroupError("กรุณาพิมพ์ข้อความก่อนส่ง")
+    if not body and attachment is None:
+        raise GroupError("กรุณาพิมพ์ข้อความหรือแนบไฟล์ก่อนส่ง")
     if len(body) > 4000:
         raise GroupError("ข้อความต้องมีความยาวไม่เกิน 4,000 ตัวอักษร")
-    return TeamChatMessage.objects.create(chat=chat, sender=sender, body=body)
+    if attachment is not None:
+        extension = PurePosixPath(attachment.name).suffix.lower()
+        if extension not in settings.TEAM_CHAT_ALLOWED_EXTENSIONS:
+            allowed = ", ".join(settings.TEAM_CHAT_ALLOWED_EXTENSIONS)
+            raise GroupError(f"ชนิดไฟล์นี้ไม่รองรับ กรุณาใช้ไฟล์: {allowed}")
+        if attachment.size > settings.TEAM_CHAT_MAX_FILE_SIZE_BYTES:
+            max_size_mb = settings.TEAM_CHAT_MAX_FILE_SIZE_BYTES // (1024 * 1024)
+            raise GroupError(f"ไฟล์แนบต้องมีขนาดไม่เกิน {max_size_mb} MB")
+
+    message = TeamChatMessage.objects.create(
+        chat=chat,
+        sender=sender,
+        body=body,
+        attachment=attachment,
+    )
+    for membership in TeamMembership.objects.filter(team=chat.team).exclude(user=sender):
+        send_notification(
+            recipient=membership.user,
+            actor=sender,
+            title=f"ข้อความใหม่ในกลุ่ม {chat.team.name}",
+            message=f"{sender.full_name} ส่งข้อความในแชทกลุ่ม",
+            notification_type=Notification.Type.TEAM_CHAT_MESSAGE,
+            target_url=reverse(
+                "courses:team_chat",
+                args=[chat.team.course_id, chat.team_id],
+            ),
+        )
+    return message
+
+
+def serialize_chat_message(message):
+    return {
+        "id": message.id,
+        "sender_id": message.sender_id,
+        "sender_name": message.sender.full_name,
+        "body": message.body,
+        "created_at": timezone.localtime(message.created_at).strftime("%d/%m/%Y %H:%M"),
+        "attachment_name": PurePosixPath(message.attachment.name).name
+        if message.attachment
+        else "",
+        "attachment_url": reverse(
+            "courses:download_chat_attachment",
+            args=[
+                message.chat.team.course_id,
+                message.chat.team_id,
+                message.id,
+            ],
+        )
+        if message.attachment
+        else "",
+    }

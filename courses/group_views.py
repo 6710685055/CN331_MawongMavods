@@ -1,5 +1,8 @@
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
@@ -11,8 +14,17 @@ from .group_services import (
     invite_students,
     post_chat_message,
     respond_to_invitation,
+    serialize_chat_message,
 )
-from .models import Course, Enrollment, Team, TeamChat, TeamInvitation, TeamMembership
+from .models import (
+    Course,
+    Enrollment,
+    Team,
+    TeamChat,
+    TeamChatMessage,
+    TeamInvitation,
+    TeamMembership,
+)
 
 
 def _student_enrollment(user, course):
@@ -161,17 +173,30 @@ def team_chat(request, course_id, team_id):
     )
     if request.method == "POST":
         try:
-            post_chat_message(
+            chat_message = post_chat_message(
                 chat=chat,
                 sender=request.user,
                 body=request.POST.get("body", ""),
+                attachment=request.FILES.get("attachment"),
             )
         except GroupError as error:
+            if request.headers.get("Accept") == "application/json":
+                return JsonResponse({"error": str(error)}, status=400)
             messages.error(request, str(error))
+            return redirect("courses:team_chat", course_id=course_id, team_id=team_id)
+
+        serialized_message = serialize_chat_message(chat_message)
+        async_to_sync(get_channel_layer().group_send)(
+            f"team_chat_{team_id}",
+            {"type": "chat.message", "message": serialized_message},
+        )
+        if request.headers.get("Accept") == "application/json":
+            return JsonResponse({"message": serialized_message}, status=201)
+        messages.success(request, "ส่งข้อความแล้ว")
         return redirect("courses:team_chat", course_id=course_id, team_id=team_id)
 
     chat_messages = list(
-        chat.messages.select_related("sender").order_by("-created_at", "-id")[:100]
+        chat.messages.select_related("sender", "chat__team").order_by("-created_at", "-id")[:100]
     )
     return render(
         request,
@@ -180,5 +205,25 @@ def team_chat(request, course_id, team_id):
             "chat": chat,
             "team": chat.team,
             "chat_messages": reversed(chat_messages),
+            "chat_ws_path": f"/ws/courses/{course_id}/groups/{team_id}/chat/",
         },
+    )
+
+
+@login_required
+def download_chat_attachment(request, course_id, team_id, message_id):
+    message = get_object_or_404(
+        TeamChatMessage.objects.select_related("chat__team"),
+        pk=message_id,
+        chat__team_id=team_id,
+        chat__team__course_id=course_id,
+        chat__team__memberships__user=request.user,
+    )
+    if not message.attachment:
+        raise Http404("ไม่พบไฟล์แนบ")
+    return FileResponse(
+        message.attachment.open("rb"),
+        as_attachment=True,
+        filename=message.attachment.name.rsplit("/", 1)[-1],
+        content_type="application/octet-stream",
     )

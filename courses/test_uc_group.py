@@ -1,7 +1,12 @@
-from django.test import TestCase
+import tempfile
+
+from channels.testing import WebsocketCommunicator
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import TestCase, TransactionTestCase, override_settings
 from django.urls import reverse
 
 from accounts.models import User
+from courses.consumers import TeamChatConsumer
 from notifications.models import Notification
 
 from .models import (
@@ -98,17 +103,20 @@ class GroupFormationTests(TestCase):
         response = self.client.post(
             reverse("courses:team_chat", args=[self.course.id, team.id]),
             {"body": "Hello group"},
+            follow=True,
         )
-        self.assertRedirects(
-            response,
-            reverse("courses:team_chat", args=[self.course.id, team.id]),
-        )
+        self.assertRedirects(response, reverse("courses:team_chat", args=[self.course.id, team.id]))
+        self.assertContains(response, "ส่งข้อความแล้ว")
         self.assertTrue(
             TeamChatMessage.objects.filter(chat=chat, sender=self.students[1], body="Hello group").exists()
         )
-        self.assertContains(
-            self.client.get(reverse("courses:team_chat", args=[self.course.id, team.id])),
-            "Hello group",
+        self.assertContains(response, "Hello group")
+        self.assertTrue(
+            Notification.objects.filter(
+                recipient=self.students[0],
+                notification_type=Notification.Type.TEAM_CHAT_MESSAGE,
+                target_url=reverse("courses:team_chat", args=[self.course.id, team.id]),
+            ).exists()
         )
 
     def test_declining_invitation_leaves_student_ungrouped_and_notifies_inviter(self):
@@ -184,3 +192,157 @@ class GroupFormationTests(TestCase):
         self.login_as(student)
         response = self.client.get(reverse("courses:groups", args=[self.course.id]))
         self.assertRedirects(response, reverse("courses:detail", args=[self.course.id]))
+
+    def test_only_team_members_can_access_group_chat(self):
+        self.create_team()
+        team = Team.objects.get(course=self.course)
+        TeamMembership.objects.create(
+            team=team,
+            course=self.course,
+            user=self.students[1],
+        )
+        chat = TeamChat.objects.create(team=team)
+        chat_url = reverse("courses:team_chat", args=[self.course.id, team.id])
+
+        self.login_as(self.students[2])
+        self.assertEqual(self.client.get(chat_url).status_code, 404)
+        self.assertEqual(self.client.post(chat_url, {"body": "Not a member"}).status_code, 404)
+        self.assertFalse(TeamChatMessage.objects.filter(chat=chat).exists())
+
+    def test_blank_group_chat_message_is_not_saved(self):
+        self.create_team()
+        team = Team.objects.get(course=self.course)
+        TeamMembership.objects.create(
+            team=team,
+            course=self.course,
+            user=self.students[1],
+        )
+        chat = TeamChat.objects.create(team=team)
+
+        response = self.client.post(
+            reverse("courses:team_chat", args=[self.course.id, team.id]),
+            {"body": "   "},
+            follow=True,
+        )
+
+        self.assertFalse(TeamChatMessage.objects.filter(chat=chat).exists())
+        self.assertContains(response, "กรุณาพิมพ์ข้อความหรือแนบไฟล์ก่อนส่ง")
+
+    def test_chat_attachment_is_downloadable_only_to_team_members(self):
+        self.create_team()
+        team = Team.objects.get(course=self.course)
+        TeamMembership.objects.create(team=team, course=self.course, user=self.students[1])
+        TeamChat.objects.create(team=team)
+        self.login_as(self.students[1])
+
+        with tempfile.TemporaryDirectory() as media_root:
+            with override_settings(MEDIA_ROOT=media_root):
+                response = self.client.post(
+                    reverse("courses:team_chat", args=[self.course.id, team.id]),
+                    {
+                        "body": "เอกสารประชุม",
+                        "attachment": SimpleUploadedFile(
+                            "meeting.pdf",
+                            b"meeting notes",
+                            content_type="application/pdf",
+                        ),
+                    },
+                    HTTP_ACCEPT="application/json",
+                )
+
+                self.assertEqual(response.status_code, 201)
+                message = TeamChatMessage.objects.get(chat__team=team)
+                self.assertEqual(message.attachment.name.rsplit("/", 1)[-1], "meeting.pdf")
+                self.assertTrue(
+                    Notification.objects.filter(
+                        recipient=self.students[0],
+                        notification_type=Notification.Type.TEAM_CHAT_MESSAGE,
+                    ).exists()
+                )
+                download_url = reverse(
+                    "courses:download_chat_attachment",
+                    args=[self.course.id, team.id, message.id],
+                )
+                downloaded = self.client.get(download_url)
+                self.assertEqual(b"".join(downloaded.streaming_content), b"meeting notes")
+
+        self.login_as(self.students[2])
+        self.assertEqual(self.client.get(download_url).status_code, 404)
+
+
+class TeamChatWebsocketTests(TransactionTestCase):
+    async def test_group_members_receive_new_messages_over_websocket(self):
+        course = await self.create_chat_data()
+        team = await self.get_team(course)
+        user1, user2 = await self.get_members(team)
+        path = f"/ws/courses/{course}/groups/{team}/chat/"
+        url_route = {"kwargs": {"course_id": course, "team_id": team}}
+        first = WebsocketCommunicator(TeamChatConsumer.as_asgi(), path)
+        second = WebsocketCommunicator(TeamChatConsumer.as_asgi(), path)
+        first.scope.update(user=user1, url_route=url_route)
+        second.scope.update(user=user2, url_route=url_route)
+        connected1, _ = await first.connect()
+        connected2, _ = await second.connect()
+        self.assertTrue(connected1)
+        self.assertTrue(connected2)
+
+        await first.send_json_to({"type": "message.send", "body": "Live update"})
+        event1 = await first.receive_json_from()
+        event2 = await second.receive_json_from()
+        self.assertEqual(event1["type"], "message.new")
+        self.assertEqual(event2["message"], event1["message"])
+        self.assertEqual(event1["message"]["body"], "Live update")
+
+        from asgiref.sync import sync_to_async
+
+        await sync_to_async(
+            TeamMembership.objects.filter(team_id=team, user_id=user2.id).delete
+        )()
+        await second.send_json_to({"type": "message.send", "body": "After leaving"})
+        denied = await second.receive_json_from()
+        self.assertEqual(denied["type"], "error")
+        await first.send_json_to({"type": "message.send", "body": "Still a member"})
+        await first.receive_json_from()
+        close_event = await second.receive_output()
+        self.assertEqual(close_event["type"], "websocket.close")
+        await first.disconnect()
+        await second.disconnect()
+
+    @staticmethod
+    async def create_chat_data():
+        from asgiref.sync import sync_to_async
+
+        @sync_to_async
+        def create():
+            course = Course.objects.create(code="WS101", name="WebSockets")
+            users = [make_student(f"socket{i}@example.com") for i in range(2)]
+            team = Team.objects.create(course=course, name="Realtime", created_by=users[0])
+            for user in users:
+                Enrollment.objects.create(user=user, course=course, role=Enrollment.Role.STUDENT)
+                TeamMembership.objects.create(team=team, course=course, user=user)
+            TeamChat.objects.create(team=team)
+            return course.id
+
+        return await create()
+
+    @staticmethod
+    async def get_team(course_id):
+        from asgiref.sync import sync_to_async
+
+        @sync_to_async
+        def get():
+            return Team.objects.get(course_id=course_id).id
+
+        return await get()
+
+    @staticmethod
+    async def get_members(team_id):
+        from asgiref.sync import sync_to_async
+
+        @sync_to_async
+        def get_users():
+            return list(
+                User.objects.filter(team_memberships__team_id=team_id).order_by("id")
+            )
+
+        return await get_users()
