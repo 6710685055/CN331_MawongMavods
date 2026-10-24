@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}ระบบจัดกลุ่ม — {{ course.code }}{% endblock %}
+{% block content %}
+<div class="card wide">
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;">
+    <h1>ระบบจัดกลุ่ม — {{ course.code }} {{ course.name }}</h1>
+    <a class="btn secondary" href="{% url 'courses:detail' course.id %}">← กลับหน้ารายวิชา</a>
+  </div>
+
+  {% if pending_invitations %}
+    <section class="panel">
+      <h2>คำเชิญที่รอตอบรับ</h2>
+      {% for invitation in pending_invitations %}
+        <div class="row" style="justify-content:space-between; align-items:center; margin:.75rem 0;">
+          <span>{{ invitation.inviter.full_name }} เชิญเข้ากลุ่ม <strong>{{ invitation.team.name }}</strong></span>
+          <div class="row">
+            <form method="post" action="{% url 'courses:respond_to_team_invitation' course.id invitation.id %}">
+              {% csrf_token %}<input type="hidden" name="action" value="accept">
+              <button type="submit">ยอมรับ</button>
+            </form>
+            <form method="post" action="{% url 'courses:respond_to_team_invitation' course.id invitation.id %}">
+              {% csrf_token %}<input type="hidden" name="action" value="decline">
+              <button class="btn secondary" type="submit">ปฏิเสธ</button>
+            </form>
+          </div>
+        </div>
+      {% endfor %}
+    </section>
+  {% endif %}
+
+  {% if team %}
+    <section class="panel">
+      <h2>กลุ่มของฉัน: {{ team.name }}</h2>
+      <p class="help">สมาชิก {{ team.member_count }} / 5 คน</p>
+      {% if chat %}
+        <a class="btn" href="{% url 'courses:team_chat' course.id team.id %}">เปิดห้องแชทกลุ่ม</a>
+      {% else %}
+        <p class="help">ห้องแชทจะสร้างอัตโนมัติเมื่อเพื่อนตอบรับเข้ากลุ่ม</p>
+      {% endif %}
+
+      {% if team.available_slots > 0 %}
+        <h3>เชิญเพื่อนที่ยังไม่มีกลุ่ม</h3>
+        {% if ungrouped_students %}
+          <form method="post" action="{% url 'courses:invite_to_team' course.id team.id %}">
+            {% csrf_token %}
+            {% for enrollment in ungrouped_students %}
+              <label style="display:flex; align-items:center; gap:.5rem; font-weight:400;">
+                {% if enrollment.user_id in invited_ids %}
+                  <input type="checkbox" disabled>
+                  {{ enrollment.user.full_name }} — รอตอบรับคำเชิญแล้ว
+                {% else %}
+                  <input type="checkbox" name="invitee_ids" value="{{ enrollment.user_id }}">
+                  {{ enrollment.user.full_name }}
+                {% endif %}
+              </label>
+            {% endfor %}
+            <div class="actions"><button type="submit">ส่งคำเชิญที่เลือก</button></div>
+          </form>
+        {% else %}
+          <p class="help">ไม่มีเพื่อนที่ยังไม่มีกลุ่มให้เชิญในตอนนี้</p>
+        {% endif %}
+      {% else %}
+        <p class="help">กลุ่มเต็มหรือมีคำเชิญที่รอตอบรับครบจำนวนแล้ว</p>
+      {% endif %}
+    </section>
+  {% else %}
+    <section class="panel">
+      <h2>คุณยังไม่มีกลุ่ม</h2>
+      <form method="post" action="{% url 'courses:create_team' course.id %}" class="row">
+        {% csrf_token %}
+        <input type="text" name="name" maxlength="100" placeholder="ตั้งชื่อกลุ่ม" required>
+        <button type="submit">สร้างกลุ่ม</button>
+      </form>
+      <p class="help">สร้างกลุ่มแล้วจึงเลือกเชิญเพื่อนที่ยังไม่มีกลุ่มได้ กลุ่มมีสมาชิกได้สูงสุด 5 คนรวมผู้สร้าง</p>
+    </section>
+  {% endif %}
+
+  <section class="panel">
+    <h2>รายชื่อนักศึกษาในห้อง</h2>
+    <h3>ยังไม่มีกลุ่ม</h3>
+    {% for enrollment in students %}
+      {% if not enrollment.team_membership %}
+        <p>{{ enrollment.user.full_name }}{% if enrollment.user_id == user.id %} <span class="tag">คุณ</span>{% endif %}</p>
+      {% endif %}
+    {% empty %}
+      <p class="help">ยังไม่มีนักศึกษาที่ได้รับอนุมัติในรายวิชานี้</p>
+    {% endfor %}
+
+    <h3>มีกลุ่มแล้ว</h3>
+    {% for group in groups %}
+      <div style="margin:.75rem 0;">
+        <strong>{{ group.name }}</strong>
+        <ul>
+          {% for membership in group.memberships.all %}
+            <li>{{ membership.user.full_name }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+    {% empty %}
+      <p class="help">ยังไม่มีกลุ่มในรายวิชานี้</p>
+    {% endfor %}
+  </section>
+</div>
+{% endblock %}

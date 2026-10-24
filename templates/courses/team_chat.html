@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% block title %}แชทกลุ่ม {{ team.name }}{% endblock %}
+{% block content %}
+<div class="card wide">
+  <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;">
+    <h1>แชทกลุ่ม {{ team.name }} — {{ team.course.code }}</h1>
+    <a class="btn secondary" href="{% url 'courses:groups' team.course_id %}">← กลับหน้าจัดกลุ่ม</a>
+  </div>
+
+  <section class="panel" aria-label="ข้อความในกลุ่ม">
+    {% for message in chat_messages %}
+      <article style="padding:.6rem 0; border-bottom:1px solid var(--line);">
+        <strong>{{ message.sender.full_name }}</strong>
+        <span class="help">{{ message.created_at|date:"d/m/Y H:i" }}</span>
+        <p style="white-space:pre-wrap; margin:.25rem 0;">{{ message.body }}</p>
+      </article>
+    {% empty %}
+      <p class="help">ยังไม่มีข้อความ เริ่มคุยกันได้เลย</p>
+    {% endfor %}
+  </section>
+
+  <form method="post" class="panel">
+    {% csrf_token %}
+    <label for="chat-body">ข้อความ</label>
+    <textarea id="chat-body" name="body" rows="3" maxlength="4000" required></textarea>
+    <div class="actions"><button type="submit">ส่งข้อความ</button></div>
+  </form>
+</div>
+{% endblock %}
