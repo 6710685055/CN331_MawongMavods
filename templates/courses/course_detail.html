@@ -31,6 +31,9 @@
         {% if is_staff %}
           <a class="btn secondary" href="{% url 'documents:review_queue' course.id %}">📋 เอกสารรอตรวจ</a>
         {% endif %}
+        {% if enrollment.role == "student" %}
+          <a class="btn secondary" href="{% url 'courses:groups' course.id %}">👥 ระบบจัดกลุ่ม</a>
+        {% endif %}
       </div>
 
       {# กลุ่มเมนูจัดการรายวิชา (เฉพาะอาจารย์เจ้าของวิชา) #}

@@ -79,3 +79,31 @@ class CourseViewTests(TestCase):
             reverse("courses:enroll", args=[self.c1.id]), {"next": "https://evil.example/"}
         )
         self.assertRedirects(r, reverse("courses:list"))
+
+    def test_approved_student_can_open_group_system_from_my_courses(self):
+        Enrollment.objects.create(
+            user=self.user,
+            course=self.c1,
+            role=Enrollment.Role.STUDENT,
+        )
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("courses:my"))
+        self.assertContains(
+            response,
+            reverse("courses:groups", args=[self.c1.id]),
+        )
+        self.assertContains(response, "เปิดระบบจัดกลุ่ม")
+
+    def test_pending_student_is_told_to_wait_for_enrollment_approval(self):
+        Enrollment.objects.create(
+            user=self.user,
+            course=self.c1,
+            role=Enrollment.Role.STUDENT_PENDING,
+        )
+        self.client.force_login(self.user)
+        response = self.client.get(reverse("courses:my"))
+        self.assertContains(response, "รออนุมัติการลงทะเบียน")
+        self.assertNotContains(
+            response,
+            reverse("courses:groups", args=[self.c1.id]),
+        )

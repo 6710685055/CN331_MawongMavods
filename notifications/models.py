@@ -9,6 +9,10 @@ class Notification(models.Model):
         DOCUMENT_VERIFY_REVOKED = "doc_revoked", "เอกสารถูกยกเลิกการ Verify"
         MEETING_REMINDER = "meeting_reminder", "แจ้งเตือนก่อนประชุม"
         MEETING_UPDATED = "meeting_updated", "มีการเปลี่ยนแปลงนัดหมายประชุม"
+        TEAM_INVITATION = "team_invitation", "คำเชิญเข้ากลุ่ม"
+        TEAM_INVITATION_RESPONSE = "team_response", "การตอบรับคำเชิญเข้ากลุ่ม"
+        TEAM_CHAT_MESSAGE = "team_chat_message", "ข้อความใหม่ในแชทกลุ่ม"
+        TEAM_MEMBERSHIP = "team_membership", "การเปลี่ยนแปลงสมาชิกกลุ่ม"
         GENERAL = "general", "ทั่วไป"
 
     recipient = models.ForeignKey(

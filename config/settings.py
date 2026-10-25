@@ -18,12 +18,14 @@ ALLOWED_HOSTS = os.environ.get(
 
 # Installed Applications
 INSTALLED_APPS = [
+    "daphne",
     "django.contrib.admin",
     "django.contrib.auth",
     "django.contrib.contenttypes",
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
+    "channels",
     "accounts",
     "courses",
     "documents",
@@ -69,6 +71,20 @@ TEMPLATES = [
 
 # WSGI
 WSGI_APPLICATION = "config.wsgi.application"
+ASGI_APPLICATION = "config.asgi.application"
+
+redis_url = os.environ.get("CHANNEL_REDIS_URL")
+if redis_url:
+    CHANNEL_LAYERS = {
+        "default": {
+            "BACKEND": "channels_redis.core.RedisChannelLayer",
+            "CONFIG": {"hosts": [redis_url]},
+        }
+    }
+else:
+    CHANNEL_LAYERS = {
+        "default": {"BACKEND": "channels.layers.InMemoryChannelLayer"}
+    }
 
 # Database
 DATABASES = {
@@ -113,6 +129,8 @@ DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 DOCUMENT_MAX_FILE_SIZE_MB = 50
 DOCUMENT_MAX_FILE_SIZE_BYTES = DOCUMENT_MAX_FILE_SIZE_MB * 1024 * 1024
 DOCUMENT_ALLOWED_EXTENSIONS = (".pdf", ".docx", ".pptx", ".png", ".jpg")
+TEAM_CHAT_MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024
+TEAM_CHAT_ALLOWED_EXTENSIONS = (".pdf", ".docx", ".pptx", ".png", ".jpg", ".jpeg")
 
 LOGIN_URL = "accounts:login"
 LOGIN_REDIRECT_URL = "courses:my"
