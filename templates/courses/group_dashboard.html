@@ -1,19 +1,79 @@
 {% extends "base.html" %}
 {% block title %}ระบบจัดกลุ่ม — {{ course.code }}{% endblock %}
 {% block content %}
-<div class="card wide">
-  <div style="display:flex; justify-content:space-between; align-items:center; gap:1rem; flex-wrap:wrap;">
-    <h1>ระบบจัดกลุ่ม — {{ course.code }} {{ course.name }}</h1>
-    <a class="btn secondary" href="{% url 'courses:detail' course.id %}">← กลับหน้ารายวิชา</a>
-  </div>
+<style>
+  .groups-page { max-width:1040px; margin:0 auto; }
+  .groups-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; margin-bottom:1.25rem; }
+  .groups-heading h1 { margin:0; font-size:1.55rem; }
+  .groups-heading p { margin:.2rem 0 0; color:var(--muted); }
+  .groups-section { padding:1.25rem; margin:0 0 1rem; border:1px solid var(--line); border-radius:12px; background:#fff; }
+  .groups-section h2 { margin:0 0 .25rem; font-size:1.12rem; }
+  .groups-section h3 { margin:1rem 0 .5rem; font-size:.96rem; }
+  .section-description { margin:0 0 1rem; color:var(--muted); font-size:.88rem; }
+  .team-hero { display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:1.25rem; border:1px solid #d9e2ff; border-radius:12px; background:linear-gradient(120deg,#f2f5ff,#fff); }
+  .team-identity { display:flex; align-items:center; gap:.9rem; min-width:0; }
+  .team-avatar { display:grid; place-items:center; width:54px; height:54px; border-radius:15px; background:#e4eaff; color:var(--brand); font-size:1.25rem; font-weight:750; flex:0 0 auto; }
+  .team-title { min-width:0; }
+  .team-title h2 { margin:0; overflow-wrap:anywhere; font-size:1.25rem; }
+  .team-title p { margin:.25rem 0 0; color:var(--muted); font-size:.88rem; }
+  .team-actions { display:flex; flex-wrap:wrap; gap:.5rem; align-items:center; }
+  .team-actions form { margin:0; }
+  .team-roster { display:flex; flex-wrap:wrap; gap:.5rem; margin:1rem 0 0; }
+  .member-chip { display:inline-flex; align-items:center; gap:.35rem; padding:.38rem .6rem; border:1px solid var(--line); border-radius:999px; background:#fff; font-size:.85rem; }
+  .leader-badge { display:inline-flex; align-items:center; padding:.12rem .45rem; border:1px solid #b7e4c7; border-radius:999px; background:#eaf7f0; color:var(--ok); font-size:.7rem; font-weight:700; white-space:nowrap; }
+  .groups-columns { display:grid; grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr); gap:1rem; align-items:start; }
+  .invite-list { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:.5rem; }
+  .invite-option { display:flex; align-items:center; gap:.6rem; min-width:0; margin:0; padding:.65rem .75rem; border:1px solid var(--line); border-radius:8px; background:#fff; font-weight:400; cursor:pointer; }
+  .invite-option input { flex:0 0 auto; }
+  .invite-option span { overflow-wrap:anywhere; }
+  .invite-option small { display:block; color:var(--muted); }
+  .invite-option.disabled { background:#f6f7fa; cursor:not-allowed; }
+  .student-list { display:grid; gap:.4rem; margin:0; padding:0; list-style:none; }
+  .student-item { display:flex; justify-content:space-between; align-items:center; gap:.75rem; padding:.6rem .7rem; border:1px solid #edf0f5; border-radius:8px; background:#fff; }
+  .student-name { min-width:0; overflow-wrap:anywhere; }
+  .group-card { padding:.8rem; margin:.6rem 0; border:1px solid var(--line); border-radius:9px; background:#fff; }
+  .group-card h3 { display:flex; align-items:center; gap:.45rem; margin:0 0 .55rem; }
+  .group-card ul { display:flex; flex-wrap:wrap; gap:.4rem; margin:0; padding:0; list-style:none; }
+  .group-card li { padding:.28rem .55rem; border-radius:999px; background:#f2f4f8; font-size:.82rem; }
+  .invitation-card { display:flex; justify-content:space-between; align-items:center; gap:1rem; padding:.85rem 0; border-top:1px solid var(--line); }
+  .invitation-card:first-of-type { border-top:0; }
+  .invitation-actions { display:flex; gap:.4rem; flex:0 0 auto; }
+  .invitation-actions form { margin:0; }
+  .create-team-form { display:flex; flex-wrap:wrap; gap:.55rem; }
+  .create-team-form input { flex:1 1 240px; }
+  .empty-state { padding:1rem; border:1px dashed var(--line); border-radius:8px; color:var(--muted); text-align:center; }
+  @media (max-width:720px) {
+    .groups-columns { grid-template-columns:1fr; }
+    .team-hero { align-items:flex-start; flex-direction:column; }
+    .team-actions { width:100%; }
+    .team-actions .btn, .team-actions button { flex:1; text-align:center; }
+  }
+  @media (max-width:520px) {
+    .groups-heading { align-items:center; }
+    .groups-heading h1 { font-size:1.25rem; }
+    .groups-heading .btn { padding:.45rem .65rem; font-size:.85rem; }
+    .groups-section { padding:.9rem; }
+    .invitation-card { align-items:flex-start; flex-direction:column; }
+  }
+</style>
+
+<div class="groups-page">
+  <header class="groups-heading">
+    <div>
+      <h1>ระบบจัดกลุ่ม</h1>
+      <p>{{ course.code }} · {{ course.name }}</p>
+    </div>
+    <a class="btn secondary" href="{% url 'courses:detail' course.id %}">← หน้ารายวิชา</a>
+  </header>
 
   {% if pending_invitations %}
-    <section class="panel">
-      <h2>คำเชิญที่รอตอบรับ</h2>
+    <section class="groups-section" aria-labelledby="pending-invitations-heading">
+      <h2 id="pending-invitations-heading">คำเชิญที่รอตอบรับ</h2>
+      <p class="section-description">เลือกว่าจะเข้าร่วมกลุ่มหรือปฏิเสธคำเชิญ</p>
       {% for invitation in pending_invitations %}
-        <div class="row" style="justify-content:space-between; align-items:center; margin:.75rem 0;">
-          <span>{{ invitation.inviter.full_name }} เชิญเข้ากลุ่ม <strong>{{ invitation.team.name }}</strong></span>
-          <div class="row">
+        <div class="invitation-card">
+          <span><strong>{{ invitation.inviter.full_name }}</strong> เชิญคุณเข้ากลุ่ม <strong>{{ invitation.team.name }}</strong></span>
+          <div class="invitation-actions">
             <form method="post" action="{% url 'courses:respond_to_team_invitation' course.id invitation.id %}">
               {% csrf_token %}<input type="hidden" name="action" value="accept">
               <button type="submit">ยอมรับ</button>
@@ -29,76 +89,116 @@
   {% endif %}
 
   {% if team %}
-    <section class="panel">
-      <h2>กลุ่มของฉัน: {{ team.name }}</h2>
-      <p class="help">สมาชิก {{ team.member_count }} / 5 คน</p>
-      {% if chat %}
-        <a class="btn" href="{% url 'courses:team_chat' course.id team.id %}">เปิดห้องแชทกลุ่ม</a>
-      {% else %}
-        <p class="help">ห้องแชทจะสร้างอัตโนมัติเมื่อเพื่อนตอบรับเข้ากลุ่ม</p>
-      {% endif %}
-
-      {% if team.available_slots > 0 %}
-        <h3>เชิญเพื่อนที่ยังไม่มีกลุ่ม</h3>
-        {% if ungrouped_students %}
-          <form method="post" action="{% url 'courses:invite_to_team' course.id team.id %}">
+    <section class="groups-section" aria-labelledby="my-team-heading">
+      <div class="team-hero">
+        <div class="team-identity">
+          <div class="team-avatar" aria-hidden="true">{{ team.name|first|upper }}</div>
+          <div class="team-title">
+            <h2 id="my-team-heading">{{ team.name }}</h2>
+            <p>{{ team.member_count }} / 5 สมาชิก{% if team.created_by_id == user.id %} · คุณเป็นหัวหน้ากลุ่ม{% endif %}</p>
+          </div>
+        </div>
+        <div class="team-actions">
+          {% if chat %}
+            <a class="btn" href="{% url 'courses:team_chat' course.id team.id %}">เปิดแชทกลุ่ม</a>
+          {% else %}
+            <span class="help">แชทจะเปิดเมื่อมีสมาชิกเข้ากลุ่มเพิ่ม</span>
+          {% endif %}
+          <form method="post" action="{% url 'courses:leave_team' course.id team.id %}"
+                onsubmit="return confirm('ยืนยันออกจากกลุ่มนี้หรือไม่?');">
             {% csrf_token %}
+            <button type="submit" class="btn danger">ออกจากกลุ่ม</button>
+          </form>
+        </div>
+      </div>
+
+      <div class="team-roster" aria-label="สมาชิกในกลุ่ม">
+        {% for membership in team_memberships %}
+          <span class="member-chip">
+            {{ membership.user.full_name }}
+            {% if membership.user_id == team.created_by_id %}<span class="leader-badge">หัวหน้ากลุ่ม</span>{% endif %}
+            {% if membership.user_id == user.id %}<span class="tag">คุณ</span>{% endif %}
+          </span>
+        {% endfor %}
+      </div>
+    </section>
+
+    <section class="groups-section" aria-labelledby="invite-heading">
+      <h2 id="invite-heading">เชิญเพื่อนเข้ากลุ่ม</h2>
+      <p class="section-description">
+        {% if team.available_slots > 0 %}เลือกเพื่อนที่ยังไม่มีกลุ่มได้อีก {{ team.available_slots }} คน{% else %}กลุ่มเต็มหรือมีคำเชิญที่รอตอบรับครบจำนวนแล้ว{% endif %}
+      </p>
+      {% if team.available_slots > 0 and ungrouped_students %}
+        <form method="post" action="{% url 'courses:invite_to_team' course.id team.id %}">
+          {% csrf_token %}
+          <div class="invite-list">
             {% for enrollment in ungrouped_students %}
-              <label style="display:flex; align-items:center; gap:.5rem; font-weight:400;">
+              <label class="invite-option{% if enrollment.user_id in invited_ids %} disabled{% endif %}">
                 {% if enrollment.user_id in invited_ids %}
                   <input type="checkbox" disabled>
-                  {{ enrollment.user.full_name }} — รอตอบรับคำเชิญแล้ว
+                  <span>{{ enrollment.user.full_name }}<small>ส่งคำเชิญแล้ว · รอตอบรับ</small></span>
                 {% else %}
                   <input type="checkbox" name="invitee_ids" value="{{ enrollment.user_id }}">
-                  {{ enrollment.user.full_name }}
+                  <span>{{ enrollment.user.full_name }}</span>
                 {% endif %}
               </label>
             {% endfor %}
-            <div class="actions"><button type="submit">ส่งคำเชิญที่เลือก</button></div>
-          </form>
-        {% else %}
-          <p class="help">ไม่มีเพื่อนที่ยังไม่มีกลุ่มให้เชิญในตอนนี้</p>
-        {% endif %}
-      {% else %}
-        <p class="help">กลุ่มเต็มหรือมีคำเชิญที่รอตอบรับครบจำนวนแล้ว</p>
+          </div>
+          <div class="actions"><button type="submit">ส่งคำเชิญที่เลือก</button></div>
+        </form>
+      {% elif team.available_slots > 0 %}
+        <div class="empty-state">ตอนนี้ไม่มีเพื่อนที่ยังไม่มีกลุ่มให้เชิญ</div>
       {% endif %}
     </section>
   {% else %}
-    <section class="panel">
-      <h2>คุณยังไม่มีกลุ่ม</h2>
-      <form method="post" action="{% url 'courses:create_team' course.id %}" class="row">
+    <section class="groups-section" aria-labelledby="create-team-heading">
+      <h2 id="create-team-heading">เริ่มกลุ่มทำงาน</h2>
+      <p class="section-description">สร้างกลุ่มเพื่อเชิญเพื่อนร่วมรายวิชา กลุ่มมีได้สูงสุด 5 คนรวมคุณ</p>
+      <form method="post" action="{% url 'courses:create_team' course.id %}" class="create-team-form">
         {% csrf_token %}
-        <input type="text" name="name" maxlength="100" placeholder="ตั้งชื่อกลุ่ม" required>
+        <input type="text" name="name" maxlength="100" placeholder="เช่น ทีมโปรเจกต์ A" aria-label="ชื่อกลุ่ม" required>
         <button type="submit">สร้างกลุ่ม</button>
       </form>
-      <p class="help">สร้างกลุ่มแล้วจึงเลือกเชิญเพื่อนที่ยังไม่มีกลุ่มได้ กลุ่มมีสมาชิกได้สูงสุด 5 คนรวมผู้สร้าง</p>
     </section>
   {% endif %}
 
-  <section class="panel">
-    <h2>รายชื่อนักศึกษาในห้อง</h2>
-    <h3>ยังไม่มีกลุ่ม</h3>
-    {% for enrollment in students %}
-      {% if not enrollment.team_membership %}
-        <p>{{ enrollment.user.full_name }}{% if enrollment.user_id == user.id %} <span class="tag">คุณ</span>{% endif %}</p>
-      {% endif %}
-    {% empty %}
-      <p class="help">ยังไม่มีนักศึกษาที่ได้รับอนุมัติในรายวิชานี้</p>
-    {% endfor %}
-
-    <h3>มีกลุ่มแล้ว</h3>
-    {% for group in groups %}
-      <div style="margin:.75rem 0;">
-        <strong>{{ group.name }}</strong>
-        <ul>
-          {% for membership in group.memberships.all %}
-            <li>{{ membership.user.full_name }}</li>
+  <div class="groups-columns">
+    <section class="groups-section" aria-labelledby="ungrouped-heading">
+      <h2 id="ungrouped-heading">ยังไม่มีกลุ่ม <span class="tag">{{ ungrouped_enrollments|length }}</span></h2>
+      <p class="section-description">นักศึกษาที่พร้อมเข้าร่วมกลุ่ม</p>
+      {% if ungrouped_enrollments %}
+        <ul class="student-list">
+          {% for enrollment in ungrouped_enrollments %}
+            <li class="student-item">
+              <span class="student-name">{{ enrollment.user.full_name }}</span>
+              {% if enrollment.user_id == user.id %}<span class="tag">คุณ</span>{% endif %}
+            </li>
           {% endfor %}
         </ul>
-      </div>
-    {% empty %}
-      <p class="help">ยังไม่มีกลุ่มในรายวิชานี้</p>
-    {% endfor %}
-  </section>
+      {% else %}
+        <div class="empty-state">ไม่มีนักศึกษาที่ยังไม่มีกลุ่ม</div>
+      {% endif %}
+    </section>
+
+    <section class="groups-section" aria-labelledby="all-teams-heading">
+      <h2 id="all-teams-heading">กลุ่มในรายวิชา <span class="tag">{{ groups|length }}</span></h2>
+      <p class="section-description">รายชื่อกลุ่มและสมาชิกในแต่ละกลุ่ม</p>
+      {% for group in groups %}
+        <article class="group-card">
+          <h3>{{ group.name }}{% if group.created_by_id == user.id %}<span class="leader-badge">หัวหน้ากลุ่มของคุณ</span>{% endif %}</h3>
+          <ul>
+            {% for membership in group.memberships.all %}
+              <li>
+                {{ membership.user.full_name }}
+                {% if membership.user_id == group.created_by_id %}<span class="leader-badge">หัวหน้า</span>{% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+        </article>
+      {% empty %}
+        <div class="empty-state">ยังไม่มีกลุ่มในรายวิชานี้</div>
+      {% endfor %}
+    </section>
+  </div>
 </div>
 {% endblock %}

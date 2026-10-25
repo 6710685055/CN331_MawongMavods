@@ -9,6 +9,9 @@
   .chat-heading { min-width:0; flex:1; }
   .chat-heading h1 { margin:0; font-size:1.05rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .chat-heading p { margin:0; color:var(--muted); font-size:.83rem; }
+  .chat-team-members { display:flex; gap:.35rem; padding:.45rem 1rem; overflow-x:auto; border-bottom:1px solid var(--line); background:#fff; }
+  .chat-member-chip { display:inline-flex; align-items:center; gap:.25rem; padding:.18rem .5rem; border:1px solid var(--line); border-radius:999px; color:#4f5b70; font-size:.72rem; white-space:nowrap; }
+  .chat-leader-badge { display:inline-flex; align-items:center; padding:.08rem .35rem; border:1px solid #b7e4c7; border-radius:999px; background:#eaf7f0; color:var(--ok); font-size:.65rem; font-weight:700; white-space:nowrap; }
   .chat-connection { display:flex; align-items:center; gap:.4rem; color:var(--muted); font-size:.78rem; white-space:nowrap; }
   .chat-connection::before { content:""; width:8px; height:8px; border-radius:50%; background:#d28a19; }
   .chat-connection.connected::before { background:#20a060; }
@@ -62,6 +65,14 @@
     </div>
     <span id="chat-status" class="chat-connection" role="status" aria-live="polite">กำลังเชื่อมต่อ</span>
   </header>
+  <div class="chat-team-members" aria-label="สมาชิกในกลุ่ม">
+    {% for membership in team_memberships %}
+      <span class="chat-member-chip">
+        {{ membership.user.full_name }}{% if membership.user_id == user.id %} (คุณ){% endif %}
+        {% if membership.user_id == team.created_by_id %}<span class="chat-leader-badge">หัวหน้ากลุ่ม</span>{% endif %}
+      </span>
+    {% endfor %}
+  </div>
 
   <section id="chat-messages" class="chat-messages" aria-label="ข้อความในกลุ่ม" aria-live="polite">
     {% for message in chat_messages %}
@@ -71,7 +82,10 @@
           <span class="chat-small-avatar" aria-hidden="true">{{ message.sender.full_name|first|upper }}</span>
         {% endif %}
         <div class="chat-content">
-          {% if message.sender_id != user.id %}<span class="chat-sender">{{ message.sender.full_name }}</span>{% endif %}
+          <span class="chat-sender">
+            {% if message.sender_id == user.id %}คุณ{% else %}{{ message.sender.full_name }}{% endif %}
+            {% if message.sender_id == team.created_by_id %}<span class="chat-leader-badge">หัวหน้ากลุ่ม</span>{% endif %}
+          </span>
           <div class="chat-bubble">
             {% if message.body %}<p class="chat-body">{{ message.body|urlize }}</p>{% endif %}
             {% if message.attachment %}
@@ -128,6 +142,7 @@
   const status = document.getElementById("chat-status");
   const sendButton = document.getElementById("chat-send");
   const currentUserId = "{{ user.id|escapejs }}";
+  const teamLeaderId = "{{ team.created_by_id|escapejs }}";
   const seenIds = new Set(
     Array.from(messageList.querySelectorAll("[data-message-id]"), (item) => item.dataset.messageId)
   );
@@ -183,12 +198,16 @@
     }
     const content = document.createElement("div");
     content.className = "chat-content";
-    if (!mine) {
-      const sender = document.createElement("span");
-      sender.className = "chat-sender";
-      sender.textContent = message.sender_name;
-      content.append(sender);
+    const sender = document.createElement("span");
+    sender.className = "chat-sender";
+    sender.append(document.createTextNode(mine ? "คุณ" : message.sender_name));
+    if (String(message.sender_id) === teamLeaderId) {
+      const leaderBadge = document.createElement("span");
+      leaderBadge.className = "chat-leader-badge";
+      leaderBadge.textContent = "หัวหน้ากลุ่ม";
+      sender.append(leaderBadge);
     }
+    content.append(sender);
     const bubble = document.createElement("div");
     bubble.className = "chat-bubble";
     appendBody(bubble, message.body);

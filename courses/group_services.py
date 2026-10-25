@@ -1,6 +1,7 @@
 from pathlib import PurePosixPath
 
 from django.conf import settings
+from django.core.files.storage import default_storage
 from django.db import IntegrityError, transaction
 from django.urls import reverse
 from django.utils import timezone
@@ -191,6 +192,79 @@ def respond_to_invitation(*, invitation_id, user, accept):
 
 
 @transaction.atomic
+def leave_team(*, team_id, user):
+    team = Team.objects.select_for_update().select_related("course").get(pk=team_id)
+    membership = (
+        TeamMembership.objects.select_for_update()
+        .filter(team=team, user=user)
+        .first()
+    )
+    if membership is None:
+        raise GroupError("คุณไม่ได้เป็นสมาชิกของกลุ่มนี้")
+
+    team_name = team.name
+    course_id = team.course_id
+    was_leader = team.created_by_id == user.id
+    membership.delete()
+
+    remaining_memberships = list(
+        TeamMembership.objects.filter(team=team)
+        .select_related("user")
+        .order_by("joined_at", "id")
+    )
+    if not remaining_memberships:
+        attachment_names = list(
+            TeamChatMessage.objects.filter(chat__team=team)
+            .exclude(attachment="")
+            .values_list("attachment", flat=True)
+        )
+        team.delete()
+        for attachment_name in attachment_names:
+            transaction.on_commit(
+                lambda name=attachment_name: default_storage.delete(name)
+            )
+        return {
+            "team_id": team_id,
+            "team_name": team_name,
+            "course_id": course_id,
+            "dissolved": True,
+            "was_leader": was_leader,
+            "new_leader": None,
+        }
+
+    new_leader = None
+    if was_leader:
+        new_leader = remaining_memberships[0].user
+        team.created_by = new_leader
+        team.save(update_fields=["created_by"])
+
+    chat_url = reverse("courses:groups", args=[course_id])
+    for remaining in remaining_memberships:
+        send_notification(
+            recipient=remaining.user,
+            actor=user,
+            title=f"สมาชิกออกจากกลุ่ม {team_name}",
+            message=f"{user.full_name} ออกจากกลุ่มทำงาน"
+            + (
+                f" และ {new_leader.full_name} เป็นหัวหน้ากลุ่มคนใหม่"
+                if new_leader
+                else ""
+            ),
+            notification_type=Notification.Type.TEAM_MEMBERSHIP,
+            target_url=chat_url,
+        )
+
+    return {
+        "team_id": team_id,
+        "team_name": team_name,
+        "course_id": course_id,
+        "dissolved": False,
+        "was_leader": was_leader,
+        "new_leader": new_leader,
+    }
+
+
+@transaction.atomic
 def post_chat_message(*, chat, sender, body, attachment=None):
     if not TeamMembership.objects.filter(team=chat.team, user=sender).exists():
         raise GroupError("คุณไม่มีสิทธิ์ส่งข้อความในห้องแชทนี้")
@@ -236,6 +310,7 @@ def serialize_chat_message(message):
         "id": message.id,
         "sender_id": message.sender_id,
         "sender_name": message.sender.full_name,
+        "sender_is_leader": message.sender_id == message.chat.team.created_by_id,
         "body": message.body,
         "created_at": timezone.localtime(message.created_at).strftime("%d/%m/%Y %H:%M"),
         "attachment_name": PurePosixPath(message.attachment.name).name

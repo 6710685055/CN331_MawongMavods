@@ -1,5 +1,6 @@
 import tempfile
 
+from channels.layers import get_channel_layer
 from channels.testing import WebsocketCommunicator
 from django.core.files.uploadedfile import SimpleUploadedFile
 from django.test import TestCase, TransactionTestCase, override_settings
@@ -70,6 +71,8 @@ class GroupFormationTests(TestCase):
                 user=self.students[0],
             ).exists()
         )
+        response = self.client.get(reverse("courses:groups", args=[self.course.id]))
+        self.assertContains(response, "หัวหน้ากลุ่ม")
 
     def test_invitation_notifies_friend_and_acceptance_creates_chat(self):
         self.create_team()
@@ -99,6 +102,11 @@ class GroupFormationTests(TestCase):
         self.assertEqual(invitation.status, TeamInvitation.Status.ACCEPTED)
         self.assertEqual(TeamMembership.objects.filter(team=team).count(), 2)
         chat = TeamChat.objects.get(team=team)
+        chat_page = self.client.get(
+            reverse("courses:team_chat", args=[self.course.id, team.id])
+        )
+        self.assertContains(chat_page, "หัวหน้ากลุ่ม")
+        self.assertContains(chat_page, self.students[0].full_name)
 
         response = self.client.post(
             reverse("courses:team_chat", args=[self.course.id, team.id]),
@@ -228,6 +236,92 @@ class GroupFormationTests(TestCase):
         self.assertFalse(TeamChatMessage.objects.filter(chat=chat).exists())
         self.assertContains(response, "กรุณาพิมพ์ข้อความหรือแนบไฟล์ก่อนส่ง")
 
+    def test_leaving_as_team_creator_transfers_leadership_and_notifies_members(self):
+        self.create_team()
+        team = Team.objects.get(course=self.course)
+        TeamMembership.objects.create(team=team, course=self.course, user=self.students[1])
+        self.login_as(self.students[0])
+
+        response = self.client.post(
+            reverse("courses:leave_team", args=[self.course.id, team.id]),
+            follow=True,
+        )
+
+        self.assertRedirects(response, reverse("courses:groups", args=[self.course.id]))
+        self.assertFalse(
+            TeamMembership.objects.filter(team=team, user=self.students[0]).exists()
+        )
+        team.refresh_from_db()
+        self.assertEqual(team.created_by, self.students[1])
+        self.assertFalse(
+            TeamMembership.objects.filter(user=self.students[0], course=self.course).exists()
+        )
+        self.assertTrue(
+            Notification.objects.filter(
+                recipient=self.students[1],
+                notification_type=Notification.Type.TEAM_MEMBERSHIP,
+            ).exists()
+        )
+        self.assertContains(response, "โอนหัวหน้ากลุ่มให้")
+        self.assertContains(response, "หัวหน้ากลุ่ม")
+
+    def test_regular_member_can_leave_and_notifies_remaining_leader(self):
+        self.create_team()
+        team = Team.objects.get(course=self.course)
+        TeamMembership.objects.create(team=team, course=self.course, user=self.students[1])
+        self.login_as(self.students[1])
+
+        self.client.post(reverse("courses:leave_team", args=[self.course.id, team.id]))
+
+        self.assertTrue(Team.objects.filter(pk=team.id, created_by=self.students[0]).exists())
+        self.assertFalse(
+            TeamMembership.objects.filter(team=team, user=self.students[1]).exists()
+        )
+        self.assertTrue(
+            Notification.objects.filter(
+                recipient=self.students[0],
+                actor=self.students[1],
+                notification_type=Notification.Type.TEAM_MEMBERSHIP,
+            ).exists()
+        )
+
+    def test_leaving_as_last_member_deletes_team_chat_and_messages(self):
+        self.create_team()
+        team = Team.objects.get(course=self.course)
+        chat = TeamChat.objects.create(team=team)
+        TeamChatMessage.objects.create(chat=chat, sender=self.students[0], body="Keep no history")
+        self.login_as(self.students[0])
+
+        response = self.client.post(
+            reverse("courses:leave_team", args=[self.course.id, team.id]),
+            follow=True,
+        )
+
+        self.assertRedirects(response, reverse("courses:groups", args=[self.course.id]))
+        self.assertFalse(Team.objects.filter(pk=team.id).exists())
+        self.assertFalse(TeamChat.objects.filter(pk=chat.id).exists())
+        self.assertFalse(TeamChatMessage.objects.filter(chat_id=chat.id).exists())
+        self.assertFalse(
+            TeamMembership.objects.filter(user=self.students[0], course=self.course).exists()
+        )
+        self.assertContains(response, "ระบบยุบกลุ่ม")
+
+    def test_non_member_cannot_leave_a_team(self):
+        self.create_team()
+        team = Team.objects.get(course=self.course)
+        self.login_as(self.students[1])
+
+        response = self.client.post(
+            reverse("courses:leave_team", args=[self.course.id, team.id]),
+            follow=True,
+        )
+
+        self.assertContains(response, "คุณไม่ได้เป็นสมาชิกของกลุ่มนี้")
+        self.assertTrue(Team.objects.filter(pk=team.id).exists())
+        self.assertTrue(
+            TeamMembership.objects.filter(team=team, user=self.students[0]).exists()
+        )
+
     def test_chat_attachment_is_downloadable_only_to_team_members(self):
         self.create_team()
         team = Team.objects.get(course=self.course)
@@ -298,13 +392,14 @@ class TeamChatWebsocketTests(TransactionTestCase):
         await sync_to_async(
             TeamMembership.objects.filter(team_id=team, user_id=user2.id).delete
         )()
-        await second.send_json_to({"type": "message.send", "body": "After leaving"})
-        denied = await second.receive_json_from()
-        self.assertEqual(denied["type"], "error")
-        await first.send_json_to({"type": "message.send", "body": "Still a member"})
-        await first.receive_json_from()
+        await get_channel_layer().group_send(
+            f"team_chat_{team}",
+            {"type": "team.member_removed", "user_id": user2.id},
+        )
         close_event = await second.receive_output()
         self.assertEqual(close_event["type"], "websocket.close")
+        await first.send_json_to({"type": "message.send", "body": "Still a member"})
+        await first.receive_json_from()
         await first.disconnect()
         await second.disconnect()
 

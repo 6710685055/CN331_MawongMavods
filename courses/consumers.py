@@ -53,6 +53,12 @@ class TeamChatConsumer(AsyncJsonWebsocketConsumer):
             return
         await self.send_json({"type": "message.new", "message": event["message"]})
 
+    async def team_member_removed(self, event):
+        if event["user_id"] == self.scope["user"].id or not await self.is_member(
+            self.scope["user"].id
+        ):
+            await self.close(code=4403)
+
     @database_sync_to_async
     def get_member_chat_id(self, user_id):
         chat = (

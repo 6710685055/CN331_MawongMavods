@@ -21,6 +21,11 @@ urlpatterns = [
         name="invite_to_team",
     ),
     path(
+        "<int:course_id>/groups/<int:team_id>/leave/",
+        group_views.leave_team,
+        name="leave_team",
+    ),
+    path(
         "<int:course_id>/groups/invitations/<int:invitation_id>/respond/",
         group_views.respond_to_team_invitation,
         name="respond_to_team_invitation",

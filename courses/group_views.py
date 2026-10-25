@@ -12,6 +12,7 @@ from .group_services import (
     GroupError,
     create_team,
     invite_students,
+    leave_team as leave_team_service,
     post_chat_message,
     respond_to_invitation,
     serialize_chat_message,
@@ -78,6 +79,14 @@ def group_dashboard(request, course_id):
         for enrollment in students
         if enrollment.team_membership is None and enrollment.user_id != request.user.id
     ]
+    ungrouped_enrollments = [
+        enrollment for enrollment in students if enrollment.team_membership is None
+    ]
+    team_memberships = (
+        [membership for membership in memberships if membership.team_id == team.id]
+        if team
+        else []
+    )
     chat = TeamChat.objects.filter(team=team).first() if team else None
 
     return render(
@@ -93,6 +102,8 @@ def group_dashboard(request, course_id):
             "sent_invitations": sent_invitations,
             "invited_ids": invited_ids,
             "ungrouped_students": ungrouped_students,
+            "ungrouped_enrollments": ungrouped_enrollments,
+            "team_memberships": team_memberships,
         },
     )
 
@@ -164,6 +175,32 @@ def respond_to_team_invitation(request, course_id, invitation_id):
 
 
 @login_required
+@require_POST
+def leave_team(request, course_id, team_id):
+    team = get_object_or_404(Team, pk=team_id, course_id=course_id)
+    try:
+        result = leave_team_service(team_id=team.id, user=request.user)
+    except GroupError as error:
+        messages.error(request, str(error))
+        return redirect("courses:groups", course_id=course_id)
+
+    async_to_sync(get_channel_layer().group_send)(
+        f"team_chat_{team_id}",
+        {"type": "team.member_removed", "user_id": request.user.id},
+    )
+    if result["dissolved"]:
+        messages.success(request, f"คุณออกจากกลุ่ม {result['team_name']} แล้ว และระบบยุบกลุ่มเนื่องจากไม่มีสมาชิกเหลือ")
+    elif result["was_leader"]:
+        messages.success(
+            request,
+            f"คุณออกจากกลุ่ม {result['team_name']} แล้ว โดยโอนหัวหน้ากลุ่มให้ {result['new_leader'].full_name}",
+        )
+    else:
+        messages.success(request, f"คุณออกจากกลุ่ม {result['team_name']} แล้ว")
+    return redirect("courses:groups", course_id=course_id)
+
+
+@login_required
 def team_chat(request, course_id, team_id):
     chat = get_object_or_404(
         TeamChat.objects.select_related("team", "team__course"),
@@ -198,12 +235,18 @@ def team_chat(request, course_id, team_id):
     chat_messages = list(
         chat.messages.select_related("sender", "chat__team").order_by("-created_at", "-id")[:100]
     )
+    team_memberships = list(
+        TeamMembership.objects.filter(team=chat.team)
+        .select_related("user")
+        .order_by("joined_at", "id")
+    )
     return render(
         request,
         "courses/team_chat.html",
         {
             "chat": chat,
             "team": chat.team,
+            "team_memberships": team_memberships,
             "chat_messages": reversed(chat_messages),
             "chat_ws_path": f"/ws/courses/{course_id}/groups/{team_id}/chat/",
         },
