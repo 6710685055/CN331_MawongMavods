@@ -4,15 +4,28 @@ from django.db import migrations, models
 
 
 class Migration(migrations.Migration):
-
     dependencies = [
-        ('notifications', '0001_initial'),
+        ("notifications", "0001_initial"),
     ]
 
     operations = [
         migrations.AlterField(
-            model_name='notification',
-            name='notification_type',
-            field=models.CharField(choices=[('doc_verified', 'เอกสารได้รับการยืนยัน (Verified)'), ('doc_revision', 'เอกสารถูกส่งกลับให้แก้ไข'), ('doc_revoked', 'เอกสารถูกยกเลิกการ Verify'), ('team_invitation', 'คำเชิญเข้ากลุ่ม'), ('team_response', 'การตอบรับคำเชิญเข้ากลุ่ม'), ('general', 'ทั่วไป')], default='general', max_length=30, verbose_name='ประเภทการแจ้งเตือน'),
+            model_name="notification",
+            name="notification_type",
+            field=models.CharField(
+                choices=[
+                    ("doc_verified", "เอกสารได้รับการยืนยัน (Verified)"),
+                    ("doc_revision", "เอกสารถูกส่งกลับให้แก้ไข"),
+                    ("doc_revoked", "เอกสารถูกยกเลิกการ Verify"),
+                    ("team_invitation", "คำเชิญเข้ากลุ่ม"),
+                    ("team_response", "การตอบรับคำเชิญเข้ากลุ่ม"),
+                    ("meeting_reminder", "แจ้งเตือนก่อนประชุม"),
+                    ("meeting_updated", "มีการเปลี่ยนแปลงนัดหมายประชุม"),
+                    ("general", "ทั่วไป"),
+                ],
+                default="general",
+                max_length=30,
+                verbose_name="ประเภทการแจ้งเตือน",
+            ),
         ),
     ]

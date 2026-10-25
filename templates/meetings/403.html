@@ -1,0 +1,5 @@
+{% extends "base.html" %}
+{% block title %}ไม่มีสิทธิ์เข้าถึง{% endblock %}
+{% block content %}
+<div class="card"><h1>ไม่มีสิทธิ์เข้าถึงพื้นที่กลุ่มนี้</h1><p>หน้านี้เปิดได้เฉพาะสมาชิกของกลุ่มเท่านั้น</p><a class="btn secondary" href="{% url 'meetings:index' %}">กลับไปนัดหมายของฉัน</a></div>
+{% endblock %}

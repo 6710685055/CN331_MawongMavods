@@ -8,5 +8,6 @@ urlpatterns = [
     path("courses/", include("courses.urls")),
     path("", include("documents.urls")),
     path("notifications/", include("notifications.urls")),
+    path("meetings/", include("meetings.urls")),
     path("", RedirectView.as_view(pattern_name="courses:my", permanent=False)),
 ]
