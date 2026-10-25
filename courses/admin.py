@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Course, Enrollment
+from .models import Course, Enrollment, Team, TeamChat, TeamChatMessage, TeamInvitation, TeamMembership
 
 
 @admin.register(Course)
@@ -13,3 +13,10 @@ class CourseAdmin(admin.ModelAdmin):
 class EnrollmentAdmin(admin.ModelAdmin):
     list_display = ("user", "course", "role", "created_at")
     list_filter = ("role", "course")
+
+
+admin.site.register(Team)
+admin.site.register(TeamMembership)
+admin.site.register(TeamInvitation)
+admin.site.register(TeamChat)
+admin.site.register(TeamChatMessage)

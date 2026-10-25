@@ -95,6 +95,7 @@
         <th>รหัสวิชา</th>
         <th>ชื่อวิชา</th>
         <th>สถานะ</th>
+        <th>ระบบจัดกลุ่ม</th>
       </tr>
     </thead>
     <tbody>
@@ -146,6 +147,13 @@
             <span class="tag badge-verified">{{ e.get_role_display }}</span>
           {% else %}
             <span class="tag">{{ e.get_role_display }}</span>
+          {% endif %}
+        </td>
+        <td>
+          {% if e.role == "student" %}
+            <a class="btn secondary" href="{% url 'courses:groups' e.course.id %}">เปิดระบบจัดกลุ่ม</a>
+          {% else %}
+            <span class="help">รออนุมัติการลงทะเบียน</span>
           {% endif %}
         </td>
       </tr>

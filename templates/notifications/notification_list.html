@@ -42,7 +42,7 @@
                 <form method="post" action="{% url 'notifications:mark_read' n.id %}" style="display:inline;">
                   {% csrf_token %}
                   <input type="hidden" name="next" value="{{ n.target_url }}">
-                  <button type="submit" class="link">เปิดดูเอกสาร</button>
+                  <button type="submit" class="link">เปิดดู</button>
                 </form>
               {% elif not n.is_read %}
                 <form method="post" action="{% url 'notifications:mark_read' n.id %}" style="display:inline;">
