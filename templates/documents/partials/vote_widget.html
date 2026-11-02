@@ -1,0 +1,18 @@
+{# UC10 vote widget. Context: course, document, vote_options, can_vote. #}
+<div class="vote-widget" data-vote-widget data-vote-url="{% url 'documents:vote' course.id document.id %}">
+  {% if can_vote %}
+    <form method="post" action="{% url 'documents:vote' course.id document.id %}" class="vote-form">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.path }}">
+      {% for option in vote_options %}
+        <button type="submit" name="value" value="{{ option.value }}"
+                class="vote-btn{% if option.active %} active{% endif %}"
+                data-vote-button data-value="{{ option.value }}"
+                aria-pressed="{% if option.active %}true{% else %}false{% endif %}"
+                title="{{ option.label }}">{{ option.icon }}</button>
+      {% endfor %}
+    </form>
+  {% endif %}
+  <span class="help">คะแนนสุทธิ</span>
+  <strong class="vote-score" data-vote-score>{{ document.vote_score }}</strong>
+</div>

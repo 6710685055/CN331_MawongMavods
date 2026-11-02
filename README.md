@@ -11,6 +11,7 @@
 - **UC4 — Document Verification:** ตรวจสอบ ยืนยัน และส่งเอกสารกลับเพื่อแก้ไข พร้อมระบบแจ้งเตือน
 - **UC7 — Registration & Login:** สมัครสมาชิก ยืนยันอีเมล เข้าสู่ระบบ รีเซ็ตรหัสผ่าน และลงทะเบียนรายวิชา
 - **UC9 - Group Chatting Message:** การสนทนาระหว่างสมาชิกในกลุ่ม
+- **UC10 — Vote & Report Document:** โหวตคุณภาพเอกสาร (Upvote/Downvote) และ Report เอกสารที่ไม่เหมาะสม พร้อมซ่อนอัตโนมัติเมื่อถึงเกณฑ์
 - **UC11 — Leave Group:** สมาชิกออกจากกลุ่ม โอนหัวหน้ากลุ่ม และแจ้งเตือนสมาชิกที่เหลือ
 
 ---
@@ -317,6 +318,36 @@ python manage.py runserver
 
 ---
 
+## 7B. UC10 — Vote & Report Document
+
+รายละเอียดเชิงเทคนิคอยู่ที่ `docs/documents_uc10.md`
+
+### 7B.1 ความสามารถหลัก
+
+- สมาชิกรายวิชาโหวตเอกสาร 👍/👎 ได้คนละ 1 โหวตต่อเอกสาร กดซ้ำเพื่อยกเลิก กดอีกฝั่งเพื่อเปลี่ยน และคะแนนสุทธิอัปเดตทันทีโดยไม่โหลดหน้าใหม่
+- Report เอกสารโดยเลือกเหตุผล (ผิดวิชา/ผิดหมวดหมู่, เนื้อหาไม่ถูกต้อง, สแปม, ละเมิดลิขสิทธิ์, เนื้อหาไม่เหมาะสม, อื่นๆ) ถ้าเลือก "อื่นๆ" ต้องกรอกรายละเอียด
+- ถอน Report ของตนเองได้ก่อน TA/อาจารย์ตัดสิน
+- เมื่อผู้ Report (นับไม่ซ้ำคน) ถึงเกณฑ์ `DOCUMENT_REPORT_HIDE_THRESHOLD` (ค่าเริ่มต้น 5 ใน `config/settings.py`) ระบบซ่อนเอกสารและแจ้งเตือนเจ้าของกับ TA/อาจารย์ ระหว่างซ่อน เอกสารเห็นได้เฉพาะเจ้าของ TA และอาจารย์
+- คิวตรวจ Report สำหรับ TA/อาจารย์เป็นส่วนของ UC14 (ยังไม่ได้ทำ)
+
+### 7B.2 Acceptance Criteria — UC10
+
+| ID | เงื่อนไข | โค้ดที่รับผิดชอบ | Test |
+|---|---|---|---|
+| UC10-01 | เฉพาะสมาชิกรายวิชาโหวต/Report ได้ (ตรวจฝั่ง Server) | `services/feedback.py: _require_can_vote_or_report` | `test_outsider_and_owner_cannot_vote_or_report` |
+| UC10-02 | เจ้าของโหวต/Report เอกสารตัวเองไม่ได้ และไม่เห็นปุ่ม | `permissions.can_vote_or_report`, `partials/vote_widget.html` | `test_owner_does_not_see_vote_or_report_buttons` |
+| UC10-03 | 1 โหวตต่อคน กดซ้ำยกเลิก กดอีกฝั่งเปลี่ยน | `vote_document`, `unique_vote_per_user` | `test_vote_toggle_switch_and_net_score`, `test_duplicate_vote_blocked_by_database` |
+| UC10-04 | แสดงคะแนนสุทธิและโหวตของผู้ใช้ อัปเดตโดยไม่ reload | `views/feedback.py` (JSON), `static/documents/js/vote.js` | `test_vote_endpoint_returns_json_and_shows_user_vote` |
+| UC10-05 | ต้องเลือกเหตุผล และ "อื่นๆ" ต้องกรอกรายละเอียด | `ReportDocumentForm`, `REASONS_REQUIRING_DETAIL` | `test_report_requires_reason_and_detail_for_other` |
+| UC10-06 | Report ซ้ำขณะค้างไม่ได้ (กันซ้ำระดับ DB) | `unique_open_report_per_user` | `test_duplicate_open_report_rejected_and_db_constraint` |
+| UC10-07 | ถอน Report ได้ก่อนตัดสิน | `withdraw_report` | `test_withdraw_report`, `test_withdraw_keeps_hidden_until_no_open_reports_remain` |
+| UC10-08 | ถึงเกณฑ์ → ซ่อน + แจ้งเตือนเจ้าของและ TA/อาจารย์ (ครั้งเดียว) | `_hide_if_threshold_reached`, `services/notifiers.py` | `test_threshold_hides_document_and_notifies_once` |
+| UC10-09 | ระหว่างซ่อน เห็นเฉพาะเจ้าของ TA อาจารย์ และโหวตไม่ได้ | `permissions.can_view_document`, `list_course_documents` | `test_hidden_document_visibility_and_no_voting` |
+| UC10-10 | Report ที่ถูกปฏิเสธ Report ซ้ำไม่ได้จนกว่าจะมีเวอร์ชันใหม่ | `selectors.has_dismissed_report` | `test_dismissed_report_blocks_rereport_until_new_version` |
+| UC10-11 | เจ้าของไม่เห็นชื่อผู้ Report | `constants/feedback.py` (ข้อความแจ้งเตือน), `partials/hidden_banner.html` | `test_threshold_hides_document_and_notifies_once`, `test_hidden_document_visibility_and_no_voting` |
+
+---
+
 ## 8. UC1 — Group Formation and UC9 — Group Chat Messaging
 
 ### 8.1 ความสามารถและกติกา
@@ -488,6 +519,7 @@ git commit -m "Resolve merge conflicts"
 - `accounts/` — ระบบสมาชิกและการเข้าสู่ระบบ
 - `courses/` — ระบบรายวิชา การจัดกลุ่ม และแชทกลุ่ม
 - `documents/` — ระบบจัดการเอกสาร
+- `docs/documents_uc3_uc4.md`, `docs/documents_uc10.md` — เอกสารเทคนิคของระบบเอกสาร
 - `notifications/` — ระบบแจ้งเตือน
 - `requirements.txt` — รายการ Dependencies
 - `.env.example` — ตัวอย่าง Environment Variables
