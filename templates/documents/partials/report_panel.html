@@ -1,0 +1,36 @@
+{# UC10 report panel. Context: course, document, report_form, has_open_report, can_report, reasons_requiring_detail. #}
+{% if has_open_report %}
+  <div class="report-panel">
+    <span class="tag badge-reported">🚩 Report แล้ว</span>
+    <form method="post" action="{% url 'documents:withdraw_report' course.id document.id %}" class="inline-form">
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.path }}">
+      <button type="submit" class="btn secondary">ถอน Report</button>
+    </form>
+  </div>
+{% elif can_report %}
+  <details class="report-panel">
+    <summary class="btn secondary">🚩 Report เอกสารนี้</summary>
+    <form method="post" action="{% url 'documents:report' course.id document.id %}" data-report-form>
+      {% csrf_token %}
+      <input type="hidden" name="next" value="{{ request.path }}">
+      <fieldset class="report-reasons">
+        <legend>{{ report_form.reason.label }} *</legend>
+        {% for radio in report_form.reason %}
+          <label class="report-reason" for="{{ radio.id_for_label }}">
+            <input type="radio" name="{{ report_form.reason.html_name }}" value="{{ radio.data.value }}"
+                   id="{{ radio.id_for_label }}" required
+                   {% if radio.data.value in reasons_requiring_detail %}data-requires-detail{% endif %}>
+            <span>{{ radio.choice_label }}</span>
+          </label>
+        {% endfor %}
+      </fieldset>
+      <label for="{{ report_form.detail.id_for_label }}">{{ report_form.detail.label }}</label>
+      {{ report_form.detail }}
+      <p class="help">{{ report_form.detail.help_text }}</p>
+      <div class="actions" style="margin-top:.5rem;">
+        <button type="submit" class="btn danger">ส่ง Report</button>
+      </div>
+    </form>
+  </details>
+{% endif %}

@@ -51,6 +51,32 @@ def can_revoke_verification(user, document: Document) -> bool:
     return can_verify_document(user, document) and document.has_active_verified_badge
 
 
+def can_see_hidden_documents(user, course) -> bool:
+    """Approved TAs and Teachers of the course see documents hidden by reports (UC10)."""
+    return is_course_staff(user, course)
+
+
+def can_view_document(user, document: Document) -> bool:
+    """
+    Course members may see a document, except while it is hidden by reports (UC10):
+    then only the owner and course TAs/Teachers may see it.
+    """
+    if not can_access_course_documents(user, document.course):
+        return False
+    if not document.is_hidden:
+        return True
+    return document.uploader_id == user.id or can_see_hidden_documents(user, document.course)
+
+
+def can_vote_or_report(user, document: Document) -> bool:
+    """Course members may vote on / report a visible document they did not upload (UC10)."""
+    return (
+        can_access_course_documents(user, document.course)
+        and document.uploader_id != user.id
+        and not document.is_hidden
+    )
+
+
 def can_view_review_details(user, document: Document) -> bool:
     """
     Only the document owner (uploader), course TAs, and course Teachers

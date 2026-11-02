@@ -1,5 +1,9 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}คลังเอกสาร {{ course.code }}{% endblock %}
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'documents/css/feedback.css' %}">
+{% endblock %}
 {% block content %}
 <div class="card wide">
   <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.75rem; margin-bottom:1rem;">
@@ -63,6 +67,12 @@
               {% if doc.is_pinned %}
                 <span class="tag badge-pin" title="ปักหมุดไว้บนสุด">📌 ปักหมุด</span>
               {% endif %}
+              {% if doc.is_hidden %}
+                <span class="tag badge-warn" title="ถูก Report ถึงเกณฑ์ เห็นเฉพาะเจ้าของ TA และอาจารย์">ซ่อนชั่วคราว</span>
+              {% endif %}
+              {% if doc.reported_by_me %}
+                <span class="tag badge-reported">🚩 Report แล้ว</span>
+              {% endif %}
               <a href="{% url 'documents:detail' course.id doc.id %}"><strong>{{ doc.title }}</strong></a>
               <span class="help">(v{{ doc.version }})</span>
               {% if doc.related_chapter %}
@@ -91,7 +101,10 @@
               <div>{{ doc.uploader.full_name }}</div>
               <div class="help">{{ doc.created_at|date:"d/m/Y H:i" }}</div>
             </td>
-            <td><strong>{{ doc.vote_score }}</strong></td>
+            <td>
+              <strong>{{ doc.vote_score }}</strong>
+              {% if doc.my_vote_marker %}<span class="vote-marker" title="โหวตของคุณ">{{ doc.my_vote_marker }}</span>{% endif %}
+            </td>
             <td style="text-align:right; white-space:nowrap;">
               <a class="btn secondary" href="{% url 'documents:download' course.id doc.id %}">ดาวน์โหลด</a>
               {% if can_pin %}

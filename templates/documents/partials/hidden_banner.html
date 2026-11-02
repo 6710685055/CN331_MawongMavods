@@ -1,0 +1,8 @@
+{# UC10: shown only to the owner and course staff (others get 404 for hidden documents). Never names reporters. #}
+{% if document.is_hidden %}
+  <div class="panel hidden-banner">
+    <span class="tag badge-warn">ซ่อนชั่วคราว</span>
+    <span>เอกสารนี้ถูก Report ถึงเกณฑ์ จึงถูกซ่อนจากผู้ใช้อื่นระหว่างรอ TA/อาจารย์ตรวจสอบ</span>
+    {% if document.hidden_at %}<span class="help">(ตั้งแต่ {{ document.hidden_at|date:"d/m/Y H:i" }})</span>{% endif %}
+  </div>
+{% endif %}
