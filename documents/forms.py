@@ -1,10 +1,13 @@
 from pathlib import Path
 
 from django import forms
+from django.core.validators import MaxLengthValidator
 from django.utils import timezone
 
-from .models import Document
+from .constants import feedback as feedback_texts
+from .models import Document, DocumentReport
 from .permissions import can_pin_document
+from .selectors import get_report_detail_max_length
 from .validators import (
     get_allowed_extensions,
     get_allowed_extensions_display,
@@ -141,3 +144,52 @@ class ReplaceDocumentFileForm(forms.Form):
             f"เมื่ออัปโหลดไฟล์ใหม่ ระบบจะเพิ่มเลขเวอร์ชัน ยกเลิกป้าย Verified เดิม (ถ้ามี) "
             f"และส่งเอกสารกลับเข้าคิวรอตรวจอัตโนมัติ (รองรับ {get_allowed_extensions_display()} ไม่เกิน {get_max_file_size_mb()}MB)"
         )
+
+
+class ReportDocumentForm(forms.Form):
+    reason = forms.ChoiceField(
+        label="เหตุผลในการ Report",
+        choices=DocumentReport.Reason.choices,
+        widget=forms.RadioSelect,
+        error_messages={
+            "required": feedback_texts.REPORT_REASON_REQUIRED,
+            "invalid_choice": feedback_texts.REPORT_REASON_INVALID,
+        },
+    )
+    detail = forms.CharField(
+        label="รายละเอียดเพิ่มเติม",
+        required=False,
+        widget=forms.Textarea(
+            attrs={"rows": 3, "placeholder": "อธิบายปัญหาที่พบในเอกสารนี้..."}
+        ),
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        max_length = get_report_detail_max_length()
+        self.fields["detail"].widget.attrs["maxlength"] = max_length
+        self.fields["detail"].validators.append(
+            MaxLengthValidator(
+                max_length,
+                message=feedback_texts.REPORT_DETAIL_TOO_LONG.format(max_length=max_length),
+            )
+        )
+        required_labels = ", ".join(
+            DocumentReport.Reason(reason).label
+            for reason in DocumentReport.REASONS_REQUIRING_DETAIL
+        )
+        self.fields["detail"].help_text = f"จำเป็นต้องกรอกเมื่อเลือก: {required_labels}"
+
+    def clean(self):
+        cleaned_data = super().clean()
+        reason = cleaned_data.get("reason")
+        detail = (cleaned_data.get("detail") or "").strip()
+        cleaned_data["detail"] = detail
+        if reason in DocumentReport.REASONS_REQUIRING_DETAIL and not detail:
+            self.add_error(
+                "detail",
+                feedback_texts.REPORT_DETAIL_REQUIRED.format(
+                    reason=DocumentReport.Reason(reason).label
+                ),
+            )
+        return cleaned_data

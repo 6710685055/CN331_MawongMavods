@@ -6,7 +6,11 @@ from django.db import models, transaction
 from django.utils import timezone
 
 from ..models import Document
-from ..permissions import can_access_course_documents, can_pin_document
+from ..permissions import (
+    can_access_course_documents,
+    can_pin_document,
+    can_see_hidden_documents,
+)
 from .errors import DocumentPermissionError, DocumentServiceError, _validate_file_or_raise
 
 
@@ -27,6 +31,9 @@ def list_course_documents(
         )
 
     qs = Document.objects.filter(course=course).select_related("uploader", "course")
+    if not can_see_hidden_documents(user, course):
+        # Documents hidden by reports (UC10) stay visible only to their owner and course staff.
+        qs = qs.exclude(models.Q(is_hidden=True) & ~models.Q(uploader=user))
 
     if doc_type:
         qs = qs.filter(doc_type=doc_type)

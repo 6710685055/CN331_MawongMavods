@@ -36,6 +36,21 @@ urlpatterns = [
         name="toggle_pin",
     ),
     path(
+        "courses/<int:course_id>/documents/<int:doc_id>/vote/",
+        views.vote_document_view,
+        name="vote",
+    ),
+    path(
+        "courses/<int:course_id>/documents/<int:doc_id>/report/",
+        views.report_document_view,
+        name="report",
+    ),
+    path(
+        "courses/<int:course_id>/documents/<int:doc_id>/report/withdraw/",
+        views.withdraw_report_view,
+        name="withdraw_report",
+    ),
+    path(
         "courses/<int:course_id>/documents/<int:doc_id>/verify/",
         views.verify_document_view,
         name="verify",

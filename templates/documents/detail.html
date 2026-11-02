@@ -1,7 +1,13 @@
 {% extends "base.html" %}
+{% load static %}
 {% block title %}{{ document.title }} — {{ course.code }}{% endblock %}
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'documents/css/feedback.css' %}">
+  <script src="{% static 'documents/js/vote.js' %}" defer></script>
+{% endblock %}
 {% block content %}
 <div class="card wide">
+  {% include "documents/partials/hidden_banner.html" %}
   <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:.75rem;">
     <div>
       {% if document.is_pinned %}
@@ -28,6 +34,8 @@
       {% endif %}
     </div>
   </div>
+
+  {% include "documents/partials/report_panel.html" with can_report=can_vote_or_report %}
 
   {% if document.has_active_verified_badge %}
     <div class="panel" style="background:#eaf7f0; border-color:#b7e4c7;">
@@ -81,7 +89,7 @@
       </tr>
       <tr>
         <th>คะแนนโหวต</th>
-        <td><strong>{{ document.vote_score }}</strong></td>
+        <td>{% include "documents/partials/vote_widget.html" with can_vote=can_vote_or_report %}</td>
       </tr>
     </tbody>
   </table>

@@ -13,17 +13,26 @@ from courses.models import Course
 from ..forms import (
     DocumentUploadForm,
     ReplaceDocumentFileForm,
+    ReportDocumentForm,
     RequestRevisionForm,
     RevokeVerifyForm,
 )
-from ..models import Document
+from ..models import Document, DocumentReport
 from ..permissions import (
     can_access_course_documents,
     can_access_review_queue,
     can_pin_document,
     can_revoke_verification,
     can_verify_document,
+    can_view_document,
     can_view_review_details,
+    can_vote_or_report,
+)
+from ..selectors import (
+    has_open_report,
+    user_open_report_doc_ids,
+    user_vote_for,
+    user_votes_for,
 )
 from ..services import (
     DocumentPermissionError,
@@ -34,6 +43,7 @@ from ..services import (
     upload_document,
 )
 from .common import _safe_redirect
+from .feedback import build_vote_options, vote_marker
 
 
 @login_required
@@ -59,8 +69,12 @@ def document_library(request, course_id):
         return HttpResponseForbidden(str(exc))
 
     documents = list(documents_qs)
+    my_votes = user_votes_for(request.user, documents)
+    reported_doc_ids = user_open_report_doc_ids(request.user, documents)
     for doc in documents:
         doc.show_review_details = can_view_review_details(request.user, doc)
+        doc.my_vote_marker = vote_marker(my_votes.get(doc.id))
+        doc.reported_by_me = doc.id in reported_doc_ids
 
     can_pin = can_pin_document(request.user, course)
     can_review = can_access_review_queue(request.user, course)
@@ -154,6 +168,8 @@ def document_detail(request, course_id, doc_id):
         pk=doc_id,
         course=course,
     )
+    if not can_view_document(request.user, document):
+        raise Http404("ไม่พบเอกสาร")
 
     show_review_details = can_view_review_details(request.user, document)
     can_verify = can_verify_document(request.user, document)
@@ -178,6 +194,11 @@ def document_detail(request, course_id, doc_id):
             "revision_form": RequestRevisionForm(),
             "revoke_form": RevokeVerifyForm(),
             "replace_file_form": ReplaceDocumentFileForm() if is_owner else None,
+            "can_vote_or_report": can_vote_or_report(request.user, document),
+            "vote_options": build_vote_options(user_vote_for(request.user, document)),
+            "has_open_report": has_open_report(request.user, document),
+            "report_form": ReportDocumentForm(),
+            "reasons_requiring_detail": DocumentReport.REASONS_REQUIRING_DETAIL,
         },
     )
 
@@ -191,6 +212,8 @@ def download_document(request, course_id, doc_id):
         )
 
     document = get_object_or_404(Document, pk=doc_id, course=course)
+    if not can_view_document(request.user, document):
+        raise Http404("ไม่พบเอกสาร")
     if not document.file:
         raise Http404("ไม่พบไฟล์เอกสาร")
 
