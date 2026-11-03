@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+{% block title %}แก้ไขเอกสาร — {{ course.code }}{% endblock %}
+{% block content %}
+<div class="card wide">
+  <h1>แก้ไขข้อมูลเอกสาร</h1>
+  <p class="help">{{ course.code }} {{ course.name }} · ไฟล์ปัจจุบัน: {{ document.original_filename }} (v{{ document.version }})</p>
+
+  <form method="post">
+    {% csrf_token %}
+    {% if form.non_field_errors %}
+      {% for error in form.non_field_errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+    {% endif %}
+    {% for field in form %}
+      <div>
+        <label for="{{ field.id_for_label }}">{{ field.label }}{% if field.field.required %} *{% endif %}</label>
+        {{ field }}
+        {% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}
+        {% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+      </div>
+    {% endfor %}
+    <div class="actions">
+      <button type="submit" class="btn">บันทึกการแก้ไข</button>
+      <a class="btn secondary" href="{% url 'documents:detail' course.id document.id %}">ยกเลิก</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

@@ -13,6 +13,7 @@
 - **UC9 - Group Chatting Message:** การสนทนาระหว่างสมาชิกในกลุ่ม
 - **UC10 — Vote & Report Document:** โหวตคุณภาพเอกสาร (Upvote/Downvote) และ Report เอกสารที่ไม่เหมาะสม พร้อมซ่อนอัตโนมัติเมื่อถึงเกณฑ์
 - **UC11 — Leave Group:** สมาชิกออกจากกลุ่ม โอนหัวหน้ากลุ่ม และแจ้งเตือนสมาชิกที่เหลือ
+- **US-12 — Edit & Delete Documents:** เจ้าของเอกสารแก้ไขข้อมูลเอกสารและลบเอกสารพร้อมไฟล์ได้
 
 ---
 
@@ -36,7 +37,7 @@ CN331/
 ├── accounts/        # สมัครสมาชิก เข้าสู่ระบบ และยืนยันอีเมล
 ├── courses/         # รายวิชา การลงทะเบียน กลุ่มงาน และแชทกลุ่ม
 ├── documents/       # อัปโหลดและจัดการเอกสาร
-├── meetings/       # นัดหมายประชุมและการแจ้งเตือน
+├── meetings/        # นัดหมายประชุมและการแจ้งเตือน
 ├── notifications/   # ระบบแจ้งเตือน
 ├── config/          # Django settings และ URL configuration
 ├── templates/       # HTML templates
@@ -528,7 +529,7 @@ git commit -m "Resolve merge conflicts"
 
 ## 13. Development Notes
 
-README นี้สรุปแนวทางติดตั้ง การตั้งค่า การทดสอบ และความสามารถหลักของ UC1, US02, UC3, UC4 และ UC7
+README นี้สรุปแนวทางติดตั้ง การตั้งค่า การทดสอบ และภาพรวมความสามารถหลักของโปรเจกต์ ซึ่งรวมถึง US-12 สำหรับแก้ไขข้อมูลและลบเอกสารโดยเจ้าของเอกสาร
 
 รายละเอียดการทำงานจริง เช่น URL, ชื่อฟังก์ชัน, สถานะเอกสาร, สิทธิ์ผู้ใช้ และ Acceptance Criteria ควรตรวจสอบเทียบกับ Source Code และข้อกำหนดของโปรเจกต์ก่อนส่งงานทุกครั้ง
 
@@ -582,3 +583,44 @@ python manage.py send_meeting_reminders
 คำสั่งเตือนต้องถูกเรียกตามกำหนดเวลา เช่น ตั้ง Windows Task Scheduler ให้รันทุกหนึ่งนาที Django ไม่ได้รันคำสั่งนี้ให้อัตโนมัติ
 
 ดูรายละเอียดการออกแบบเพิ่มเติมได้ที่ `docs/meeting_uc2.md`.
+
+---
+
+## US-12 — แก้ไขและลบเอกสาร
+
+**User Story:** ในฐานะเจ้าของเอกสาร ฉันต้องการแก้ไขหรือลบเอกสารของตนเอง เพื่อจัดการข้อมูลเอกสารให้ถูกต้องและเป็นปัจจุบัน
+
+### ขอบเขตและสิทธิ์
+
+- เจ้าของเอกสารที่ยังเป็นสมาชิกของรายวิชาแก้ไขชื่อ ประเภท ปีการศึกษา ภาคการศึกษา บทที่เกี่ยวข้อง และคำอธิบายได้
+- การเปลี่ยนประเภทเอกสารจะตั้งสถานะ Verify ใหม่ตามประเภท หากเปลี่ยนเป็นการบ้าน ต้องยืนยันว่าเลยกำหนดส่งแล้ว
+- เจ้าของเปลี่ยนไฟล์แนบเป็นเวอร์ชันใหม่ได้จากหน้าเอกสาร ระบบเพิ่มเลขเวอร์ชันและส่งเอกสารที่ตรวจได้กลับเข้าคิวรอตรวจ
+- เฉพาะเจ้าของเอกสารลบได้ การลบส่งด้วย `POST` หลังยืนยัน แล้วลบทั้งไฟล์และข้อมูลโหวต Report และประวัติการตรวจที่ผูกกับเอกสาร
+- หน้าเอกสารแสดงปุ่มแก้ไขและลบให้เจ้าของเท่านั้น ส่วนเซิร์ฟเวอร์ตรวจสิทธิ์ซ้ำทุกคำขอ
+
+### หน้าของ US-12
+
+| การทำงาน | URL | Method |
+|---|---|---|
+| แก้ไขข้อมูลเอกสาร | `/courses/<course_id>/documents/<doc_id>/edit/` | `GET`, `POST` |
+| เปลี่ยนไฟล์เป็นเวอร์ชันใหม่ | `/courses/<course_id>/documents/<doc_id>/replace-file/` | `POST` |
+| ลบเอกสาร | `/courses/<course_id>/documents/<doc_id>/delete/` | `POST` |
+
+ทุกการทำงานเริ่มจากหน้าเอกสาร `/courses/<course_id>/documents/<doc_id>/` โดยปุ่มแก้ไขและลบแสดงให้เจ้าของเอกสาร
+
+### Acceptance Criteria และตำแหน่งที่พัฒนา
+
+| เกณฑ์การยอมรับ | ตำแหน่งในโค้ด |
+|---|---|
+| เจ้าของแก้ไขข้อมูลที่อนุญาตได้ พร้อมตรวจข้อมูลบังคับและปีการศึกษา | `documents/forms.py`, `documents/services/management.py`, `documents/views/management.py`, `templates/documents/edit.html` |
+| ป้องกันสมาชิกคนอื่นหรือผู้ที่ไม่ได้ลงทะเบียนแก้ไขและลบ | `documents/services/management.py`, `documents/views/management.py` |
+| เปลี่ยนไฟล์ เพิ่มเลขเวอร์ชัน และรีเซ็ตสถานะ Verify | `documents/services/versioning.py`, `documents/views/review.py` |
+| ยืนยันก่อนลบ ส่งคำขอลบด้วย POST และลบไฟล์หลังบันทึกฐานข้อมูล | `templates/documents/detail.html`, `documents/views/management.py`, `documents/services/management.py` |
+| ลบโหวต Report และประวัติการตรวจที่อ้างถึงเอกสาร | Foreign keys ใน `documents/models/feedback.py` และ `documents/models/review.py` ใช้ `on_delete=CASCADE` |
+
+รันชุดทดสอบ US-12 หรือชุดเอกสารทั้งหมดได้ด้วย:
+
+```bash
+python manage.py test documents.tests.test_us12_document_management
+python manage.py test documents
+```

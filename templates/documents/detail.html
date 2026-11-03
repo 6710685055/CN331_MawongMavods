@@ -23,6 +23,13 @@
     </div>
     <div class="actions" style="margin:0;">
       <a class="btn" href="{% url 'documents:download' course.id document.id %}">ดาวน์โหลดไฟล์</a>
+      {% if is_owner %}
+        <a class="btn secondary" href="{% url 'documents:edit' course.id document.id %}">แก้ไขข้อมูล</a>
+        <form method="post" action="{% url 'documents:delete' course.id document.id %}" style="display:inline;" onsubmit="return confirm('ยืนยันลบเอกสารนี้หรือไม่? การลบไม่สามารถย้อนกลับได้');">
+          {% csrf_token %}
+          <button type="submit" class="btn danger">ลบเอกสาร</button>
+        </form>
+      {% endif %}
       {% if can_pin %}
         <form method="post" action="{% url 'documents:toggle_pin' course.id document.id %}" style="display:inline;">
           {% csrf_token %}
