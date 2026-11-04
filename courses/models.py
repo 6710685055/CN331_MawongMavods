@@ -38,6 +38,7 @@ class Enrollment(models.Model):
     )
     course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="enrollments")
     role = models.CharField(max_length=12, choices=Role.choices)
+    completed = models.BooleanField("เรียนจบแล้ว", default=False)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -47,6 +48,29 @@ class Enrollment(models.Model):
 
     def __str__(self):
         return f"{self.user} -> {self.course} ({self.role})"
+
+
+class CourseReview(models.Model):
+    """A course review written by a student who completed the course."""
+
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="reviews")
+    author = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="course_reviews"
+    )
+    difficulty_rating = models.PositiveSmallIntegerField("ความยาก (1–5)")
+    workload_rating = models.PositiveSmallIntegerField("ภาระงาน (1–5)")
+    content = models.TextField("รีวิว")
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-updated_at", "-id"]
+        constraints = [
+            models.UniqueConstraint(fields=["course", "author"], name="unique_course_review_author")
+        ]
+
+    def __str__(self):
+        return f"รีวิว {self.course.code} โดย {self.author}"
 
 
 class Team(models.Model):

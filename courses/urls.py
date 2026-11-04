@@ -10,6 +10,9 @@ urlpatterns = [
     path("mine/", views.my_courses, name="my"),
     path("create/", views.create_course, name="create"),
     path("<int:course_id>/", views.course_detail, name="detail"),
+    path("<int:course_id>/reviews/", views.course_reviews, name="reviews"),
+    path("reviews/<int:review_id>/edit/", views.edit_course_review, name="edit_review"),
+    path("reviews/<int:review_id>/delete/", views.delete_course_review, name="delete_review"),
     path("<int:course_id>/enroll/", views.enroll_course, name="enroll"),
     path("<int:course_id>/delete/", views.delete_course, name="delete"),
     path("<int:course_id>/members/", views.course_members, name="members"),
@@ -41,6 +44,7 @@ urlpatterns = [
         name="download_chat_attachment",
     ),
     path("<int:course_id>/members/<int:enrollment_id>/remove/", views.remove_member, name="remove_member"),
+    path("<int:course_id>/members/<int:enrollment_id>/completion/", views.set_enrollment_completed, name="set_completed"),
     path("enrollment/<int:enrollment_id>/approve/", views.approve_enrollment, name="approve"),
     path("enrollment/<int:enrollment_id>/reject/", views.reject_enrollment, name="reject"),
 ]

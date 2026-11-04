@@ -28,6 +28,7 @@
       <div style="display:flex; align-items:center; gap:.5rem; flex-wrap:wrap;">
         <a class="btn" href="{% url 'documents:library' course.id %}">📂 คลังเอกสาร</a>
         <a class="btn secondary" href="{% url 'documents:upload' course.id %}">＋ อัปโหลดเอกสาร</a>
+        <a class="btn secondary" href="{% url 'courses:reviews' course.id %}">⭐ รีวิวรายวิชา</a>
         {% if is_staff %}
           <a class="btn secondary" href="{% url 'documents:review_queue' course.id %}">📋 เอกสารรอตรวจ</a>
         {% endif %}

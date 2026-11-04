@@ -13,6 +13,7 @@
 - **UC9 - Group Chatting Message:** การสนทนาระหว่างสมาชิกในกลุ่ม
 - **UC10 — Vote & Report Document:** โหวตคุณภาพเอกสาร (Upvote/Downvote) และ Report เอกสารที่ไม่เหมาะสม พร้อมซ่อนอัตโนมัติเมื่อถึงเกณฑ์
 - **UC11 — Leave Group:** สมาชิกออกจากกลุ่ม โอนหัวหน้ากลุ่ม และแจ้งเตือนสมาชิกที่เหลือ
+- **UC13 — Edit / Delete Course Review:** ผู้เขียนแก้ไขหรือลบรีวิวของตัวเองได้ พร้อมตรวจเจ้าของฝั่งเซิร์ฟเวอร์และยืนยันก่อนลบ
 
 ---
 
@@ -34,7 +35,7 @@
 ```text
 CN331/
 ├── accounts/        # สมัครสมาชิก เข้าสู่ระบบ และยืนยันอีเมล
-├── courses/         # รายวิชา การลงทะเบียน กลุ่มงาน และแชทกลุ่ม
+├── courses/         # รายวิชา การลงทะเบียน รีวิว กลุ่มงาน และแชทกลุ่ม
 ├── documents/       # อัปโหลดและจัดการเอกสาร
 ├── meetings/       # นัดหมายประชุมและการแจ้งเตือน
 ├── notifications/   # ระบบแจ้งเตือน
@@ -437,6 +438,7 @@ python manage.py test
 ```bash
 python manage.py test accounts
 python manage.py test courses
+python manage.py test courses.test_uc13_reviews
 python manage.py test documents
 python manage.py test notifications
 ```
@@ -582,3 +584,48 @@ python manage.py send_meeting_reminders
 คำสั่งเตือนต้องถูกเรียกตามกำหนดเวลา เช่น ตั้ง Windows Task Scheduler ให้รันทุกหนึ่งนาที Django ไม่ได้รันคำสั่งนี้ให้อัตโนมัติ
 
 ดูรายละเอียดการออกแบบเพิ่มเติมได้ที่ `docs/meeting_uc2.md`.
+
+---
+
+## UC13 — แก้ไข / ลบรีวิวรายวิชา
+
+### 13.1 ความสามารถหลัก
+
+- นักศึกษาที่ลงทะเบียนเป็น Student และเรียนจบแล้วเขียนรีวิวรายวิชาได้ โดยให้คะแนนความยากและภาระงาน 1–5 พร้อมข้อความรีวิว
+- หน้ารวมแสดงรีวิว ชื่อผู้เขียน และป้ายยืนยันสถานะ 🎓 Alumni
+- ผู้ใช้เขียนรีวิวได้หนึ่งรายการต่อหนึ่งรายวิชา และแก้ไขคะแนนหรือข้อความของรีวิวเดิมได้
+- ผู้เขียนเท่านั้นที่เห็นปุ่มแก้ไข/ลบ และทุกคำขอแก้ไขหรือลบตรวจเจ้าของซ้ำฝั่งเซิร์ฟเวอร์
+- การลบต้องผ่านหน้ายืนยัน และลบข้อมูลเมื่อส่งคำขอ POST ที่ยืนยันแล้วเท่านั้น
+
+### 13.2 เส้นทางที่เกี่ยวข้อง
+
+| หน้า | URL |
+|---|---|
+| รีวิวรายวิชา | `/courses/<course_id>/reviews/` |
+| แก้ไขรีวิว | `/courses/reviews/<review_id>/edit/` |
+| ยืนยันลบรีวิว | `/courses/reviews/<review_id>/delete/` |
+
+### 13.3 เงื่อนไขและการเตรียมสถานะเรียนจบ
+
+อาจารย์เจ้าของวิชาเปิด **จัดการสมาชิก** แล้วกด **ทำเครื่องหมายว่าเรียนจบ** ที่แถวของนักศึกษาบทบาท Student ได้ สถานะนี้เก็บใน `Enrollment.completed` และใช้แสดง Alumni badge / อนุญาตให้เขียนรีวิว ผู้ใช้เขียนได้หนึ่งรีวิวต่อหนึ่งรายวิชา และแก้ไขคะแนนความยากกับภาระงานได้ตั้งแต่ 1 ถึง 5
+
+### 13.4 Acceptance Criteria — UC13
+
+| ID | เงื่อนไข | โค้ดที่รับผิดชอบ | Test |
+|---|---|---|---|
+| UC13-01 | เฉพาะนักศึกษาที่เรียนจบแล้วเขียนรีวิวได้ | `views.course_reviews`, `Enrollment.completed` | `test_student_who_has_not_completed_course_cannot_post_review` |
+| UC13-02 | แสดงรีวิวพร้อม Alumni badge และปุ่มจัดการเฉพาะเจ้าของ | `templates/courses/reviews.html` | `test_reviews_page_shows_alumni_badge_and_owner_controls_only` |
+| UC13-03 | นักศึกษาที่เรียนจบแล้วสร้างรีวิวได้หนึ่งรายการต่อวิชา | `CourseReview`, `unique_course_review_author` | `test_completed_student_can_create_one_review` |
+| UC13-04 | เจ้าของแก้คะแนนและข้อความได้ และหน้ารวมแสดงค่าล่าสุด | `views.edit_course_review`, `CourseReviewForm` | `test_author_can_edit_review_and_course_list_shows_updated_values` |
+| UC13-05 | คะแนนความยากและภาระงานต้องอยู่ระหว่าง 1–5 | `CourseReviewForm.clean_difficulty_rating`, `clean_workload_rating` | `test_review_form_rejects_ratings_outside_one_to_five` |
+| UC13-06 | ผู้เขียนต้องยืนยันก่อนลบ และการลบทำผ่าน POST | `views.delete_course_review`, `templates/courses/review_confirm_delete.html` | `test_author_must_confirm_before_delete_and_delete_is_post_only` |
+| UC13-07 | ผู้ที่ไม่ใช่เจ้าของถูกปฏิเสธเมื่อแก้ไขหรือลบผ่าน URL โดยตรง | `views.edit_course_review`, `views.delete_course_review` | `test_non_author_cannot_edit_or_delete_even_by_direct_request` |
+
+
+### 13.5 Automated tests
+
+```bash
+python manage.py test courses.test_uc13_reviews
+```
+
+ชุดทดสอบครอบคลุมการแก้ไข/ลบของเจ้าของ การยืนยันก่อนลบ การปฏิเสธผู้ใช้ที่ไม่ใช่เจ้าของ การตรวจช่วงคะแนน การแสดงปุ่มเฉพาะเจ้าของ และเงื่อนไขการเขียนรีวิวของนักศึกษาที่เรียนจบแล้ว

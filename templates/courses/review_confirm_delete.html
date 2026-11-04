@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}ยืนยันการลบรีวิว — {{ course.code }}{% endblock %}
+{% block content %}
+<div class="card wide">
+  <h1>ยืนยันการลบรีวิว</h1>
+  <p>ต้องการลบรีวิวของคุณในวิชา {{ course.code }} — {{ course.name }} หรือไม่?</p>
+  <p>รีวิวนี้จะถูกนำออกจากหน้ารวมรายวิชา</p>
+  <form method="post">
+    {% csrf_token %}
+    <div class="actions">
+      <button class="btn danger" type="submit">ยืนยันลบรีวิว</button>
+      <a class="btn secondary" href="{% url 'courses:reviews' course.id %}">ยกเลิก</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

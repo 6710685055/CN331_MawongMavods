@@ -1,5 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.db.models import Q
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.http import url_has_allowed_host_and_scheme
@@ -7,7 +8,8 @@ from django.views.decorators.http import require_POST
 
 from accounts.models import User
 
-from .models import Course, Enrollment
+from .forms import CourseReviewForm
+from .models import Course, CourseReview, Enrollment
 from .permissions import get_enrollment, is_course_staff
 from .services import EnrollmentError, enroll
 
@@ -105,6 +107,66 @@ def course_detail(request, course_id):
             "is_owner": course.owner_id == request.user.id,
         },
     )
+
+
+@login_required
+def course_reviews(request, course_id):
+    course = get_object_or_404(Course, pk=course_id)
+    enrollment = get_enrollment(request.user, course)
+    can_review = bool(
+        enrollment
+        and enrollment.role == Enrollment.Role.STUDENT
+        and enrollment.completed
+    )
+    existing_review = CourseReview.objects.filter(course=course, author=request.user).first()
+    form = CourseReviewForm(instance=existing_review)
+
+    if request.method == "POST":
+        if not can_review:
+            raise PermissionDenied("เฉพาะนักศึกษาที่เรียนจบวิชานี้แล้วเท่านั้นจึงจะเขียนรีวิวได้")
+        form = CourseReviewForm(request.POST, instance=existing_review)
+        if form.is_valid():
+            review = form.save(commit=False)
+            review.course = course
+            review.author = request.user
+            review.save()
+            messages.success(request, "บันทึกรีวิวรายวิชาเรียบร้อยแล้ว")
+            return redirect("courses:reviews", course_id=course.id)
+
+    return render(request, "courses/reviews.html", {
+        "course": course,
+        "reviews": course.reviews.select_related("author"),
+        "can_review": can_review,
+        "existing_review": existing_review,
+        "form": form,
+    })
+
+
+@login_required
+def edit_course_review(request, review_id):
+    review = get_object_or_404(CourseReview.objects.select_related("course", "author"), pk=review_id)
+    if review.author_id != request.user.id:
+        raise PermissionDenied("แก้ไขได้เฉพาะรีวิวที่คุณเขียน")
+
+    form = CourseReviewForm(request.POST or None, instance=review)
+    if request.method == "POST" and form.is_valid():
+        form.save()
+        messages.success(request, "แก้ไขรีวิวเรียบร้อยแล้ว")
+        return redirect("courses:reviews", course_id=review.course_id)
+    return render(request, "courses/review_edit.html", {"course": review.course, "review": review, "form": form})
+
+
+@login_required
+def delete_course_review(request, review_id):
+    review = get_object_or_404(CourseReview.objects.select_related("course"), pk=review_id)
+    if review.author_id != request.user.id:
+        raise PermissionDenied("ลบได้เฉพาะรีวิวที่คุณเขียน")
+    if request.method == "POST":
+        course_id = review.course_id
+        review.delete()
+        messages.success(request, "ลบรีวิวเรียบร้อยแล้ว")
+        return redirect("courses:reviews", course_id=course_id)
+    return render(request, "courses/review_confirm_delete.html", {"course": review.course, "review": review})
 
 
 # ──────────────────────────── Teacher: create course ────────────────────────
@@ -249,4 +311,22 @@ def remove_member(request, course_id, enrollment_id):
     user_name = enrollment.user.full_name
     enrollment.delete()
     messages.success(request, f"ลบ {user_name} ออกจากรายวิชา {course.code}")
+    return redirect("courses:members", course_id=course.id)
+
+
+@login_required
+@require_POST
+def set_enrollment_completed(request, course_id, enrollment_id):
+    course = get_object_or_404(Course, pk=course_id)
+    if course.owner_id != request.user.id:
+        raise PermissionDenied("เฉพาะอาจารย์เจ้าของรายวิชาเท่านั้นที่จัดการสถานะเรียนจบได้")
+    enrollment = get_object_or_404(
+        Enrollment,
+        pk=enrollment_id,
+        course=course,
+        role=Enrollment.Role.STUDENT,
+    )
+    enrollment.completed = request.POST.get("completed") == "1"
+    enrollment.save(update_fields=["completed"])
+    messages.success(request, f"อัปเดตสถานะเรียนจบของ {enrollment.user.full_name} แล้ว")
     return redirect("courses:members", course_id=course.id)

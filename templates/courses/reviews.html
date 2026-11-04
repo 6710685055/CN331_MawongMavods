@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}รีวิวรายวิชา — {{ course.code }}{% endblock %}
+{% block content %}
+<div class="card wide">
+  <div style="display:flex;justify-content:space-between;gap:1rem;align-items:center;flex-wrap:wrap;">
+    <h1>รีวิว {{ course.code }} — {{ course.name }}</h1>
+    <a class="btn secondary" href="{% url 'courses:detail' course.id %}">กลับหน้ารายวิชา</a>
+  </div>
+
+  {% if can_review %}
+    <section class="panel">
+      <h2>{% if existing_review %}รีวิวของคุณ{% else %}เขียนรีวิว{% endif %}</h2>
+      <form method="post">
+        {% csrf_token %}
+        {% for field in form %}
+          <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+          {{ field }}
+          {% if field.help_text %}<p class="help">{{ field.help_text }}</p>{% endif %}
+          {% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+        {% endfor %}
+        {% for error in form.non_field_errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+        <div class="actions"><button type="submit">{% if existing_review %}บันทึกรีวิว{% else %}เผยแพร่รีวิว{% endif %}</button></div>
+      </form>
+    </section>
+  {% elif not existing_review %}
+    <p class="help">เฉพาะนักศึกษาที่ผ่านรายวิชานี้แล้วเท่านั้นจึงจะเขียนรีวิวได้</p>
+  {% endif %}
+
+  <h2>รีวิวจากผู้เรียนจบ</h2>
+  {% for review in reviews %}
+    <article class="panel">
+      <div style="display:flex;justify-content:space-between;gap:1rem;align-items:flex-start;flex-wrap:wrap;">
+        <div>
+          <strong>{{ review.author.full_name }}</strong> <span class="tag badge-verified">🎓 Alumni</span>
+          <p class="help">ความยาก {{ review.difficulty_rating }}/5 · ภาระงาน {{ review.workload_rating }}/5 · อัปเดต {{ review.updated_at|date:"d/m/Y H:i" }}</p>
+        </div>
+        {% if review.author == user %}
+          <div class="actions" style="margin:0;">
+            <a class="btn secondary" href="{% url 'courses:edit_review' review.id %}">แก้ไข</a>
+            <a class="btn danger" href="{% url 'courses:delete_review' review.id %}">ลบ</a>
+          </div>
+        {% endif %}
+      </div>
+      <p style="white-space:pre-wrap;">{{ review.content }}</p>
+    </article>
+  {% empty %}
+    <div class="empty-state">ยังไม่มีรีวิวรายวิชานี้</div>
+  {% endfor %}
+</div>
+{% endblock %}

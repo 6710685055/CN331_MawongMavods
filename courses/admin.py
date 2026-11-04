@@ -11,8 +11,8 @@ class CourseAdmin(admin.ModelAdmin):
 
 @admin.register(Enrollment)
 class EnrollmentAdmin(admin.ModelAdmin):
-    list_display = ("user", "course", "role", "created_at")
-    list_filter = ("role", "course")
+    list_display = ("user", "course", "role", "completed", "created_at")
+    list_filter = ("role", "completed", "course")
 
 
 admin.site.register(Team)

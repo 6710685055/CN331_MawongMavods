@@ -1,0 +1,20 @@
+{% extends "base.html" %}
+{% block title %}แก้ไขรีวิว — {{ course.code }}{% endblock %}
+{% block content %}
+<div class="card wide">
+  <h1>แก้ไขรีวิว — {{ course.code }} {{ course.name }}</h1>
+  <form method="post">
+    {% csrf_token %}
+    {% for field in form %}
+      <label for="{{ field.id_for_label }}">{{ field.label }}</label>
+      {{ field }}
+      {% for error in field.errors %}<p class="field-error">{{ error }}</p>{% endfor %}
+    {% endfor %}
+    <div class="actions">
+      <button type="submit">บันทึก</button>
+      <a class="btn secondary" href="{% url 'courses:reviews' course.id %}">ยกเลิก</a>
+      <a class="btn danger" href="{% url 'courses:delete_review' review.id %}">ลบรีวิว</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

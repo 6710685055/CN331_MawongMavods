@@ -27,6 +27,7 @@
         <th>ชื่อ</th>
         <th>อีเมล</th>
         <th>บทบาท</th>
+        <th>สถานะเรียนจบ</th>
         <th>ดำเนินการ</th>
       </tr>
     </thead>
@@ -43,6 +44,16 @@
           {% else %}
             <span class="tag badge-verified">{{ m.get_role_display }}</span>
           {% endif %}
+        </td>
+        <td>
+          {% if m.role == "student" %}
+            {% if m.completed %}<span class="tag badge-verified">เรียนจบแล้ว</span>{% else %}<span class="tag">กำลังเรียน</span>{% endif %}
+            <form method="post" action="{% url 'courses:set_completed' course.id m.id %}" style="margin-top:.35rem;">
+              {% csrf_token %}
+              <input type="hidden" name="completed" value="{% if m.completed %}0{% else %}1{% endif %}">
+              <button class="btn secondary" type="submit">{% if m.completed %}ยกเลิกสถานะเรียนจบ{% else %}ทำเครื่องหมายว่าเรียนจบ{% endif %}</button>
+            </form>
+          {% else %}—{% endif %}
         </td>
         <td>
           {% if m.user != user %}
