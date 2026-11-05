@@ -8,6 +8,7 @@ class Notification(models.Model):
         DOCUMENT_NEEDS_REVISION = "doc_revision", "เอกสารถูกส่งกลับให้แก้ไข"
         DOCUMENT_VERIFY_REVOKED = "doc_revoked", "เอกสารถูกยกเลิกการ Verify"
         DOCUMENT_HIDDEN = "doc_hidden", "เอกสารถูกซ่อนชั่วคราวจากการถูก Report"
+        MEETING_CREATED = "meeting_created", "มีนัดหมายประชุมใหม่"
         MEETING_REMINDER = "meeting_reminder", "แจ้งเตือนก่อนประชุม"
         MEETING_UPDATED = "meeting_updated", "มีการเปลี่ยนแปลงนัดหมายประชุม"
         TEAM_INVITATION = "team_invitation", "คำเชิญเข้ากลุ่ม"

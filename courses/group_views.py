@@ -7,6 +7,7 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
 
 from accounts.models import User
+from meetings.selectors import upcoming_for_group
 
 from .group_services import (
     GroupError,
@@ -88,6 +89,8 @@ def group_dashboard(request, course_id):
         else []
     )
     chat = TeamChat.objects.filter(team=team).first() if team else None
+    # UC2: the next few meetings of the user's own team, linking to its meeting page.
+    upcoming_meetings = list(upcoming_for_group(team)[:3]) if team else []
 
     return render(
         request,
@@ -98,6 +101,7 @@ def group_dashboard(request, course_id):
             "groups": groups,
             "team": team,
             "chat": chat,
+            "upcoming_meetings": upcoming_meetings,
             "pending_invitations": pending_invitations,
             "sent_invitations": sent_invitations,
             "invited_ids": invited_ids,
