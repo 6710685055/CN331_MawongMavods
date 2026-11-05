@@ -14,6 +14,11 @@ class Notification(models.Model):
         TEAM_INVITATION_RESPONSE = "team_response", "การตอบรับคำเชิญเข้ากลุ่ม"
         TEAM_CHAT_MESSAGE = "team_chat_message", "ข้อความใหม่ในแชทกลุ่ม"
         TEAM_MEMBERSHIP = "team_membership", "การเปลี่ยนแปลงสมาชิกกลุ่ม"
+        PRIVATE_CHAT_MESSAGE = "private_chat_message", "ข้อความส่วนตัวใหม่"
+        PRIVATE_REPORT_RESULT = "private_report_result", "ผลการพิจารณารายงานข้อความ"
+        PRIVATE_CHAT_WARNING = "private_chat_warning", "คำเตือนการใช้แชทส่วนตัว"
+        PRIVATE_CHAT_SUSPENDED = "private_chat_suspended", "ระงับการส่งข้อความส่วนตัว"
+        PRIVATE_CHAT_UNSUSPENDED = "private_chat_unsuspended", "ยกเลิกการระงับข้อความส่วนตัว"
         GENERAL = "general", "ทั่วไป"
 
     recipient = models.ForeignKey(

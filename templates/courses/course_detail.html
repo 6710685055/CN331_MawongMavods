@@ -34,6 +34,9 @@
         {% if enrollment.role == "student" %}
           <a class="btn secondary" href="{% url 'courses:groups' course.id %}">👥 ระบบจัดกลุ่ม</a>
         {% endif %}
+        {% if enrollment.role == "student" or enrollment.role == "ta" %}
+          <a class="btn secondary" href="{% url 'courses:private_chats' course.id %}">💬 แชทส่วนตัว</a>
+        {% endif %}
       </div>
 
       {# กลุ่มเมนูจัดการรายวิชา (เฉพาะอาจารย์เจ้าของวิชา) #}
