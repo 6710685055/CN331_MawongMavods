@@ -5,55 +5,96 @@
 {# ─────────── TEACHER VIEW ─────────── #}
 {% if user.role == "teacher" %}
 <div class="card wide">
-  <h1>📚 รายวิชาที่ฉันสอน</h1>
-  <div class="actions" style="margin-top:0; margin-bottom:1rem;">
-    <a class="btn success" href="{% url 'courses:create' %}">＋ สร้างรายวิชาใหม่</a>
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.75rem; margin-bottom:.5rem;">
+    <div>
+      <h1 style="margin:0;">
+        <i data-lucide="book-open" style="width:22px;height:22px;color:var(--brand);"></i>
+        รายวิชาที่ฉันสอน
+      </h1>
+      <p class="help" style="margin:.25rem 0 0;">จัดการรายวิชา สมาชิก และการเรียนการสอน</p>
+    </div>
+    <a class="btn accent" href="{% url 'courses:create' %}" style="border-radius:var(--radius-xs);">
+      <i data-lucide="plus" style="width:16px;height:16px;"></i>
+      สร้างรายวิชาใหม่
+    </a>
   </div>
 
   {% if enrollments %}
-  <table>
-    <thead>
-      <tr>
-        <th>รหัสวิชา</th>
-        <th>ชื่อวิชา</th>
-        <th>บทบาท</th>
-        <th>จัดการ</th>
-      </tr>
-    </thead>
-    <tbody>
+  <div class="course-grid">
     {% for e in enrollments %}
-      <tr>
-        <td><a href="{% url 'courses:detail' e.course.id %}"><strong>{{ e.course.code }}</strong></a></td>
-        <td>{{ e.course.name }}</td>
-        <td><span class="tag">{{ e.get_role_display }}</span></td>
-        <td>
-          {% if e.course.owner == user %}
-            <a class="btn secondary" href="{% url 'courses:members' e.course.id %}">จัดการสมาชิก</a>
-            <form method="post" action="{% url 'courses:delete' e.course.id %}" style="display:inline" onsubmit="return confirm('ยืนยันลบรายวิชา {{ e.course.code }}?')">
+    <div class="poster-card">
+      <div class="poster-media gradient-{{ forloop.counter0|divisibleby:6|yesno:'1,2' }}">
+        <span class="poster-tag">
+          <i data-lucide="award" style="width:11px;height:11px;display:inline-block;vertical-align:middle;"></i>
+          {{ e.get_role_display }}
+        </span>
+        <div class="poster-code-wrap">
+          <h2 class="poster-code">{{ e.course.code }}</h2>
+          <div class="poster-sub">{{ e.course.name|truncatechars:26 }}</div>
+        </div>
+        <div class="poster-watermark">{{ e.course.code|slice:":2" }}</div>
+      </div>
+
+      <div class="poster-body">
+        <a class="poster-title" href="{% url 'courses:detail' e.course.id %}">
+          {{ e.course.code }} {{ e.course.name }}
+        </a>
+
+        <div class="poster-meta">
+          <div class="poster-meta-item">
+            <i data-lucide="user" style="width:13px;height:13px;"></i>
+            <span>ผู้สอน: {% if e.course.owner %}{{ e.course.owner.full_name }}{% else %}ไม่ระบุผู้สอน{% endif %}</span>
+          </div>
+          <div class="poster-meta-item">
+            <span class="tag badge-pin" style="font-size:.7rem;">{{ e.get_role_display }}</span>
+          </div>
+        </div>
+
+        {% if e.course.owner == user %}
+          <a class="poster-btn-pill pill-primary-solid" href="{% url 'courses:detail' e.course.id %}" style="margin-bottom:.45rem;">
+            <i data-lucide="layout-grid" style="width:14px;height:14px;"></i>
+            เข้าสู่ห้องเรียน
+          </a>
+          <div style="display:flex; gap:.35rem; width:100%;">
+            <a class="btn secondary" href="{% url 'courses:members' e.course.id %}" style="flex:1; border-radius:99px; font-size:.78rem; padding:.35rem .5rem;">
+              <i data-lucide="users" style="width:12px;height:12px;"></i>
+              สมาชิก
+            </a>
+            <form method="post" action="{% url 'courses:delete' e.course.id %}" style="margin:0;" onsubmit="return confirm('ยืนยันลบรายวิชา {{ e.course.code }}?')">
               {% csrf_token %}
-              <button type="submit" class="btn danger">ลบวิชา</button>
+              <button type="submit" class="btn danger" style="border-radius:99px; padding:.35rem .65rem; font-size:.78rem;" title="ลบรายวิชา">
+                <i data-lucide="trash-2" style="width:12px;height:12px;"></i>
+              </button>
             </form>
-          {% else %}
-            <span class="help">ไม่ใช่เจ้าของวิชา</span>
-          {% endif %}
-        </td>
-      </tr>
+          </div>
+        {% else %}
+          <a class="poster-btn-pill pill-brand-outline" href="{% url 'courses:detail' e.course.id %}">
+            เข้าสู่ห้องเรียน
+          </a>
+        {% endif %}
+      </div>
+    </div>
     {% endfor %}
-    </tbody>
-  </table>
+  </div>
   {% else %}
-    <p>คุณยังไม่ได้สร้างหรือสอนวิชาใดๆ</p>
+    <div class="empty-state">
+      <i data-lucide="book-plus" style="width:40px;height:40px;color:var(--text-dim);margin-bottom:.75rem;"></i>
+      <p style="color:var(--text-muted); margin:0;">คุณยังไม่ได้สร้างหรือสอนวิชาใดๆ<br>เริ่มสร้างรายวิชาใหม่เลย!</p>
+    </div>
   {% endif %}
 
   {# ── Pending enrollments to approve ── #}
   {% if pending_enrollments %}
-  <div class="panel" style="margin-top:1.5rem;">
-    <h2>📋 คำขอลงทะเบียนรอการอนุมัติ</h2>
+  <div class="panel" style="margin-top:2rem;">
+    <h2>
+      <i data-lucide="clipboard-list" style="width:18px;height:18px;color:var(--warn);"></i>
+      คำขอลงทะเบียนรอการอนุมัติ
+    </h2>
     <table>
       <thead>
         <tr>
           <th>ผู้ขอ</th>
-          <th>อีเมล</th>
+          <th class="hide-mobile">อีเมล</th>
           <th>รายวิชา</th>
           <th>ประเภท</th>
           <th>ดำเนินการ</th>
@@ -62,19 +103,27 @@
       <tbody>
       {% for pe in pending_enrollments %}
         <tr>
-          <td>{{ pe.user.full_name }}</td>
-          <td>{{ pe.user.email }}</td>
+          <td style="font-weight:500;">{{ pe.user.full_name }}</td>
+          <td class="hide-mobile" style="color:var(--text-muted);">{{ pe.user.email }}</td>
           <td><strong>{{ pe.course.code }}</strong> {{ pe.course.name }}</td>
           <td><span class="tag badge-pending">{{ pe.get_role_display }}</span></td>
           <td>
-            <form method="post" action="{% url 'courses:approve' pe.id %}" style="display:inline">
-              {% csrf_token %}
-              <button type="submit" class="btn success">อนุมัติ</button>
-            </form>
-            <form method="post" action="{% url 'courses:reject' pe.id %}" style="display:inline">
-              {% csrf_token %}
-              <button type="submit" class="btn danger">ปฏิเสธ</button>
-            </form>
+            <div style="display:flex; gap:.35rem;">
+              <form method="post" action="{% url 'courses:approve' pe.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn success" style="font-size:.8rem; padding:.35rem .6rem; border-radius:99px;">
+                  <i data-lucide="check" style="width:13px;height:13px;"></i>
+                  อนุมัติ
+                </button>
+              </form>
+              <form method="post" action="{% url 'courses:reject' pe.id %}">
+                {% csrf_token %}
+                <button type="submit" class="btn danger" style="font-size:.8rem; padding:.35rem .6rem; border-radius:99px;">
+                  <i data-lucide="x" style="width:13px;height:13px;"></i>
+                  ปฏิเสธ
+                </button>
+              </form>
+            </div>
           </td>
         </tr>
       {% endfor %}
@@ -87,83 +136,150 @@
 {# ─────────── TA VIEW ─────────── #}
 {% elif user.role == "ta" %}
 <div class="card wide">
-  <h1>📚 รายวิชาที่ฉันเป็น TA</h1>
+  <div style="margin-bottom:.5rem;">
+    <h1 style="margin:0;">
+      <i data-lucide="graduation-cap" style="width:22px;height:22px;color:var(--brand);"></i>
+      รายวิชาที่ฉันเป็น TA
+    </h1>
+    <p class="help" style="margin:.25rem 0 0;">รายวิชาที่อาจารย์ผู้สอนมอบหมายให้คุณช่วยสอน</p>
+  </div>
+
   {% if enrollments %}
-  <table>
-    <thead>
-      <tr>
-        <th>รหัสวิชา</th>
-        <th>ชื่อวิชา</th>
-        <th>สถานะ</th>
-        <th>ระบบจัดกลุ่ม</th>
-      </tr>
-    </thead>
-    <tbody>
+  <div class="course-grid">
     {% for e in enrollments %}
-      <tr>
-        <td><a href="{% url 'courses:detail' e.course.id %}"><strong>{{ e.course.code }}</strong></a></td>
-        <td>{{ e.course.name }}</td>
-        <td>
-          {% if e.role == "ta_pending" %}
-            <span class="tag badge-pending">{{ e.get_role_display }}</span>
-          {% elif e.role == "ta" %}
-            <span class="tag badge-verified">{{ e.get_role_display }}</span>
-          {% else %}
-            <span class="tag">{{ e.get_role_display }}</span>
-          {% endif %}
-        </td>
-      </tr>
+    <div class="poster-card">
+      <div class="poster-media gradient-{{ forloop.counter0|divisibleby:5|yesno:'3,5' }}">
+        <span class="poster-tag">
+          {% if e.role == "ta_pending" %}รออนุมัติ TA{% else %}ผู้ช่วยสอน (TA){% endif %}
+        </span>
+        <div class="poster-code-wrap">
+          <h2 class="poster-code">{{ e.course.code }}</h2>
+          <div class="poster-sub">{{ e.course.name|truncatechars:26 }}</div>
+        </div>
+        <div class="poster-watermark">{{ e.course.code|slice:":2" }}</div>
+      </div>
+
+      <div class="poster-body">
+        <a class="poster-title" href="{% url 'courses:detail' e.course.id %}">
+          {{ e.course.code }} {{ e.course.name }}
+        </a>
+
+        <div class="poster-meta">
+          <div class="poster-meta-item">
+            <i data-lucide="user" style="width:13px;height:13px;"></i>
+            <span>ผู้สอน: {% if e.course.owner %}{{ e.course.owner.full_name }}{% else %}ไม่ระบุผู้สอน{% endif %}</span>
+          </div>
+          <div class="poster-meta-item">
+            {% if e.role == "ta_pending" %}
+              <span class="tag badge-pending">{{ e.get_role_display }}</span>
+            {% else %}
+              <span class="tag badge-verified">{{ e.get_role_display }}</span>
+            {% endif %}
+          </div>
+        </div>
+
+        <a class="poster-btn-pill pill-primary-solid" href="{% url 'courses:detail' e.course.id %}">
+          <i data-lucide="layout-grid" style="width:14px;height:14px;"></i>
+          เข้าสู่ห้องเรียน
+        </a>
+      </div>
+    </div>
     {% endfor %}
-    </tbody>
-  </table>
+  </div>
   {% else %}
-    <p>คุณยังไม่ได้รับมอบหมายให้เป็น TA ในวิชาใดๆ</p>
+    <div class="empty-state">
+      <i data-lucide="inbox" style="width:40px;height:40px;color:var(--text-dim);margin-bottom:.75rem;"></i>
+      <p style="color:var(--text-muted); margin:0;">คุณยังไม่ได้รับมอบหมายให้เป็น TA ในวิชาใดๆ</p>
+    </div>
   {% endif %}
-  <p class="help" style="margin-top:1rem;">* รายวิชาจะแสดงเฉพาะที่อาจารย์มอบหมายให้คุณเท่านั้น</p>
 </div>
 
 {# ─────────── STUDENT VIEW ─────────── #}
 {% else %}
 <div class="card wide">
-  <h1>📚 รายวิชาที่ฉันลงเรียน</h1>
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.75rem; margin-bottom:.5rem;">
+    <div>
+      <h1 style="margin:0;">
+        <i data-lucide="backpack" style="width:22px;height:22px;color:var(--brand);"></i>
+        รายวิชาที่ฉันลงเรียน
+      </h1>
+      <p class="help" style="margin:.25rem 0 0;">รายวิชาทั้งหมดที่คุณได้ลงทะเบียนเรียนในระบบ</p>
+    </div>
+    <a class="btn" href="{% url 'courses:list' %}" style="border-radius:99px;">
+      <i data-lucide="search" style="width:16px;height:16px;"></i>
+      ค้นหาและลงทะเบียนรายวิชา
+    </a>
+  </div>
+
   {% if enrollments %}
-  <table>
-    <thead>
-      <tr>
-        <th>รหัสวิชา</th>
-        <th>ชื่อวิชา</th>
-        <th>สถานะ</th>
-      </tr>
-    </thead>
-    <tbody>
+  <div class="course-grid">
     {% for e in enrollments %}
-      <tr>
-        <td><a href="{% url 'courses:detail' e.course.id %}"><strong>{{ e.course.code }}</strong></a></td>
-        <td>{{ e.course.name }}</td>
-        <td>
-          {% if e.role == "stu_pending" %}
-            <span class="tag badge-pending">{{ e.get_role_display }}</span>
-          {% elif e.role == "student" %}
-            <span class="tag badge-verified">{{ e.get_role_display }}</span>
-          {% else %}
-            <span class="tag">{{ e.get_role_display }}</span>
-          {% endif %}
-        </td>
-        <td>
+    <div class="poster-card">
+      {# Course Poster Banner with vibrant gradient #}
+      <div class="poster-media gradient-{{ forloop.counter0|divisibleby:4|yesno:'4,1' }}">
+        <span class="poster-tag">
           {% if e.role == "student" %}
-            <a class="btn secondary" href="{% url 'courses:groups' e.course.id %}">เปิดระบบจัดกลุ่ม</a>
+            นักศึกษา
+          {% elif e.role == "stu_pending" %}
+            รออนุมัติ
           {% else %}
-            <span class="help">รออนุมัติการลงทะเบียน</span>
+            {{ e.get_role_display }}
           {% endif %}
-        </td>
-      </tr>
+        </span>
+        <div class="poster-code-wrap">
+          <h2 class="poster-code">{{ e.course.code }}</h2>
+          <div class="poster-sub">{{ e.course.name|truncatechars:26 }}</div>
+        </div>
+        <div class="poster-watermark">{{ e.course.code|slice:":2" }}</div>
+      </div>
+
+      {# Card Details Body #}
+      <div class="poster-body">
+        <a class="poster-title" href="{% url 'courses:detail' e.course.id %}">
+          {{ e.course.code }} {{ e.course.name }}
+        </a>
+
+        <div class="poster-meta">
+          <div class="poster-meta-item">
+            <i data-lucide="user" style="width:13px;height:13px;"></i>
+            <span>ผู้สอน: {% if e.course.owner %}{{ e.course.owner.full_name }}{% else %}ไม่ระบุผู้สอน{% endif %}</span>
+          </div>
+          <div class="poster-meta-item">
+            <i data-lucide="info" style="width:13px;height:13px;"></i>
+            <span>
+              {% if e.role == "stu_pending" %}
+                <span class="tag badge-pending">{{ e.get_role_display }}</span>
+              {% elif e.role == "student" %}
+                <span class="tag badge-verified">{{ e.get_role_display }}</span>
+              {% else %}
+                <span class="tag">{{ e.get_role_display }}</span>
+              {% endif %}
+            </span>
+          </div>
+        </div>
+
+        {# Action Buttons: Business AI Azul Negócios #}
+        {% if e.role == "student" %}
+          <a class="poster-btn-pill pill-primary-solid" href="{% url 'courses:groups' e.course.id %}">
+            <i data-lucide="users" style="width:14px;height:14px;"></i>
+            เปิดระบบจัดกลุ่ม
+          </a>
+        {% else %}
+          <button type="button" class="poster-btn-pill pill-primary-outline" disabled style="cursor:not-allowed; opacity:.85;">
+            <i data-lucide="clock" style="width:14px;height:14px;"></i>
+            รออนุมัติการลงทะเบียน
+          </button>
+        {% endif %}
+      </div>
+    </div>
     {% endfor %}
-    </tbody>
-  </table>
+  </div>
   {% else %}
-    <p>คุณยังไม่ได้ลงทะเบียนวิชาไหน</p>
+    <div class="empty-state">
+      <i data-lucide="book-open" style="width:40px;height:40px;color:var(--text-dim);margin-bottom:.75rem;"></i>
+      <p style="color:var(--text-muted); margin:0;">คุณยังไม่ได้ลงทะเบียนวิชาไหน<br>เริ่มค้นหาและลงทะเบียนรายวิชาได้เลย!</p>
+    </div>
   {% endif %}
-  <div class="actions"><a class="btn" href="{% url 'courses:list' %}">🔍 ค้นหาและลงทะเบียนรายวิชา</a></div>
 </div>
 {% endif %}
 

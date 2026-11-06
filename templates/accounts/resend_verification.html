@@ -1,12 +1,24 @@
 {% extends "base.html" %}
 {% block title %}ส่งอีเมลยืนยันอีกครั้ง{% endblock %}
 {% block content %}
-<div class="card">
-  <h1>ส่งอีเมลยืนยันอีกครั้ง</h1>
-  <form method="post" novalidate>
-    {% csrf_token %}
-    {% include "partials/form.html" %}
-    <div class="actions"><button type="submit">ส่งลิงก์ยืนยัน</button></div>
-  </form>
+<div style="display:flex; justify-content:center; padding-top:2rem;">
+  <div class="card" style="width:100%; max-width:420px;">
+    <div style="text-align:center; margin-bottom:1.25rem;">
+      <div style="width:48px; height:48px; border-radius:12px; background:linear-gradient(135deg,var(--info),#60a5fa); display:inline-grid; place-items:center; margin-bottom:.75rem;">
+        <i data-lucide="mail" style="width:22px;height:22px;color:#fff;"></i>
+      </div>
+      <h1 style="justify-content:center;">ส่งอีเมลยืนยันอีกครั้ง</h1>
+    </div>
+    <form method="post" novalidate>
+      {% csrf_token %}
+      {% include "partials/form.html" %}
+      <div class="actions" style="margin-top:1.25rem;">
+        <button type="submit" style="width:100%;">
+          <i data-lucide="send" style="width:15px;height:15px;"></i>
+          ส่งลิงก์ยืนยัน
+        </button>
+      </div>
+    </form>
+  </div>
 </div>
 {% endblock %}
