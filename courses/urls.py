@@ -15,6 +15,26 @@ urlpatterns = [
     path("<int:course_id>/delete/", views.delete_course, name="delete"),
     path("<int:course_id>/members/", views.course_members, name="members"),
     path("<int:course_id>/groups/", group_views.group_dashboard, name="groups"),
+    path(
+        "<int:course_id>/groups/manage/",
+        group_views.manage_unassigned_students,
+        name="manage_unassigned_students",
+    ),
+    path(
+        "<int:course_id>/groups/manage/assign/",
+        group_views.ta_assign_student,
+        name="ta_assign_student",
+    ),
+    path(
+        "<int:course_id>/groups/manage/create-team/",
+        group_views.ta_create_and_assign_team,
+        name="ta_create_and_assign_team",
+    ),
+    path(
+        "<int:course_id>/groups/manage/auto-assign/",
+        group_views.ta_auto_assign,
+        name="ta_auto_assign",
+    ),
     path("<int:course_id>/groups/create/", group_views.create_course_team, name="create_team"),
     path(
         "<int:course_id>/groups/<int:team_id>/invite/",

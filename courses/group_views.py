@@ -2,6 +2,7 @@ from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import PermissionDenied
 from django.http import FileResponse, Http404, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_POST
@@ -11,14 +12,18 @@ from meetings.selectors import upcoming_for_group
 
 from .group_services import (
     GroupError,
+    assign_student_to_team,
+    auto_assign_unassigned_students,
     create_team,
     invite_students,
     leave_team as leave_team_service,
     post_chat_message,
     respond_to_invitation,
     serialize_chat_message,
+    ta_create_team_and_assign,
 )
 from .models import (
+    MAX_TEAM_MEMBERS,
     Course,
     Enrollment,
     Team,
@@ -27,6 +32,7 @@ from .models import (
     TeamInvitation,
     TeamMembership,
 )
+from .permissions import is_course_staff
 
 
 def _student_enrollment(user, course):
@@ -41,6 +47,10 @@ def _student_enrollment(user, course):
 def group_dashboard(request, course_id):
     course = get_object_or_404(Course, pk=course_id)
     if not _student_enrollment(request.user, course):
+        if is_course_staff(request.user, course) or (
+            course.owner_id and course.owner_id == request.user.id
+        ):
+            return redirect("courses:manage_unassigned_students", course_id=course.id)
         messages.error(request, "ระบบจัดกลุ่มเปิดให้เฉพาะนักศึกษาที่ได้รับอนุมัติในรายวิชานี้")
         return redirect("courses:detail", course_id=course.id)
 
@@ -274,3 +284,112 @@ def download_chat_attachment(request, course_id, team_id, message_id):
         filename=message.attachment.name.rsplit("/", 1)[-1],
         content_type="application/octet-stream",
     )
+
+
+@login_required
+def manage_unassigned_students(request, course_id):
+    course = get_object_or_404(Course, pk=course_id)
+    is_owner = bool(course.owner_id and course.owner_id == request.user.id)
+    if not (is_course_staff(request.user, course) or is_owner):
+        raise PermissionDenied("เฉพาะอาจารย์ผู้สอนหรือผู้ช่วยสอน (TA) เท่านั้นที่เข้าถึงหน้านี้ได้")
+
+    student_enrollments = list(
+        Enrollment.objects.filter(
+            course=course,
+            role=Enrollment.Role.STUDENT,
+        )
+        .select_related("user")
+        .order_by("user__first_name", "user__last_name", "user__email")
+    )
+
+    memberships = list(
+        TeamMembership.objects.filter(course=course).select_related("user", "team")
+    )
+    membership_by_user = {m.user_id: m for m in memberships}
+
+    for enrollment in student_enrollments:
+        enrollment.team_membership = membership_by_user.get(enrollment.user_id)
+
+    unassigned_students = [e for e in student_enrollments if e.team_membership is None]
+    assigned_students = [e for e in student_enrollments if e.team_membership is not None]
+
+    teams = list(
+        Team.objects.filter(course=course)
+        .prefetch_related("memberships__user")
+        .order_by("name", "id")
+    )
+    available_teams = [t for t in teams if t.memberships.count() < MAX_TEAM_MEMBERS]
+
+    return render(
+        request,
+        "courses/manage_unassigned_students.html",
+        {
+            "course": course,
+            "unassigned_students": unassigned_students,
+            "assigned_students": assigned_students,
+            "teams": teams,
+            "available_teams": available_teams,
+            "total_students": len(student_enrollments),
+            "assigned_count": len(assigned_students),
+            "unassigned_count": len(unassigned_students),
+            "max_team_members": MAX_TEAM_MEMBERS,
+        },
+    )
+
+
+@login_required
+@require_POST
+def ta_assign_student(request, course_id):
+    course = get_object_or_404(Course, pk=course_id)
+    student_id = request.POST.get("student_id")
+    team_id = request.POST.get("team_id")
+
+    student = get_object_or_404(User, pk=student_id)
+    team = get_object_or_404(Team, pk=team_id, course=course)
+
+    try:
+        assign_student_to_team(actor=request.user, team=team, student=student)
+        messages.success(request, f"จัด {student.full_name} เข้ากลุ่ม '{team.name}' เรียบร้อยแล้ว")
+    except GroupError as e:
+        messages.error(request, str(e))
+
+    return redirect("courses:manage_unassigned_students", course_id=course.id)
+
+
+@login_required
+@require_POST
+def ta_create_and_assign_team(request, course_id):
+    course = get_object_or_404(Course, pk=course_id)
+    name = request.POST.get("name", "").strip()
+    student_ids = request.POST.getlist("student_ids")
+
+    students = list(User.objects.filter(id__in=student_ids))
+    try:
+        team = ta_create_team_and_assign(
+            actor=request.user,
+            course=course,
+            name=name,
+            students=students,
+        )
+        messages.success(
+            request, f"สร้างกลุ่ม '{team.name}' และจัดสมาชิก {len(students)} คนเรียบร้อยแล้ว"
+        )
+    except GroupError as e:
+        messages.error(request, str(e))
+
+    return redirect("courses:manage_unassigned_students", course_id=course.id)
+
+
+@login_required
+@require_POST
+def ta_auto_assign(request, course_id):
+    course = get_object_or_404(Course, pk=course_id)
+    try:
+        count = auto_assign_unassigned_students(actor=request.user, course=course)
+        messages.success(
+            request, f"จัดนักศึกษาที่ยังไม่มีกลุ่มเข้ากลุ่มอัตโนมัติสำเร็จทั้งหมด {count} คน"
+        )
+    except GroupError as e:
+        messages.error(request, str(e))
+
+    return redirect("courses:manage_unassigned_students", course_id=course.id)

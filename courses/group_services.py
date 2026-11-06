@@ -327,3 +327,197 @@ def serialize_chat_message(message):
         if message.attachment
         else "",
     }
+
+
+def _check_staff_permission(actor, course):
+    from .permissions import is_course_staff
+
+    is_owner = bool(course.owner_id and course.owner_id == actor.id)
+    if not (is_course_staff(actor, course) or is_owner):
+        raise GroupError("เฉพาะอาจารย์ผู้สอนหรือผู้ช่วยสอน (TA) เท่านั้นที่สามารถจัดการกลุ่มได้")
+
+
+@transaction.atomic
+def assign_student_to_team(*, actor, team, student):
+    course = team.course
+    _check_staff_permission(actor, course)
+
+    if not Enrollment.objects.filter(
+        user=student, course=course, role=Enrollment.Role.STUDENT
+    ).exists():
+        raise GroupError("นักศึกษาไม่ได้ลงทะเบียนหรือยังไม่ได้รับอนุมัติในรายวิชานี้")
+
+    if TeamMembership.objects.filter(user=student, course=course).exists():
+        raise GroupError(f"{student.full_name} มีกลุ่มในรายวิชานี้แล้ว")
+
+    team = Team.objects.select_for_update().get(pk=team.pk)
+    if team.memberships.count() >= MAX_TEAM_MEMBERS:
+        raise GroupError(f"กลุ่ม '{team.name}' เต็มแล้ว (จำกัดสมาชิกสูงสุด {MAX_TEAM_MEMBERS} คน)")
+
+    # Cancel any pending invitations to or from this student in this course
+    TeamInvitation.objects.filter(
+        team__course=course,
+        invitee=student,
+        status=TeamInvitation.Status.PENDING,
+    ).update(
+        status=TeamInvitation.Status.CANCELLED,
+        responded_at=timezone.now(),
+    )
+
+    membership = TeamMembership.objects.create(team=team, course=course, user=student)
+
+    if team.memberships.count() >= 2:
+        TeamChat.objects.get_or_create(team=team)
+
+    send_notification(
+        recipient=student,
+        actor=actor,
+        title="คุณได้รับการจัดเข้ากลุ่ม",
+        message=f"ผู้ช่วยสอน (TA) ได้จัดคุณเข้ากลุ่ม '{team.name}' ในรายวิชา {course.code}",
+        notification_type=Notification.Type.TEAM_MEMBERSHIP,
+        target_url=reverse("courses:groups", args=[course.id]),
+    )
+    return membership
+
+
+@transaction.atomic
+def ta_create_team_and_assign(*, actor, course, name, students):
+    _check_staff_permission(actor, course)
+
+    name = name.strip() if name else ""
+    if not name:
+        raise GroupError("กรุณาระบุชื่อกลุ่ม")
+    if len(name) > 100:
+        raise GroupError("ชื่อกลุ่มต้องมีความยาวไม่เกิน 100 ตัวอักษร")
+
+    if not students:
+        raise GroupError("กรุณาเลือกนักศึกษาอย่างน้อย 1 คน")
+
+    if len(students) > MAX_TEAM_MEMBERS:
+        raise GroupError(f"กลุ่มหนึ่งสามารถมีสมาชิกได้สูงสุดไม่เกิน {MAX_TEAM_MEMBERS} คน")
+
+    for student in students:
+        if not Enrollment.objects.filter(
+            user=student, course=course, role=Enrollment.Role.STUDENT
+        ).exists():
+            raise GroupError(f"{student.full_name} ไม่ใช่นักศึกษาที่ได้รับการอนุมัติในรายวิชานี้")
+        if TeamMembership.objects.filter(user=student, course=course).exists():
+            raise GroupError(f"{student.full_name} มีกลุ่มในรายวิชานี้แล้ว")
+
+    team = Team.objects.create(course=course, name=name, created_by=actor)
+    for student in students:
+        TeamInvitation.objects.filter(
+            team__course=course,
+            invitee=student,
+            status=TeamInvitation.Status.PENDING,
+        ).update(
+            status=TeamInvitation.Status.CANCELLED,
+            responded_at=timezone.now(),
+        )
+        TeamMembership.objects.create(team=team, course=course, user=student)
+        send_notification(
+            recipient=student,
+            actor=actor,
+            title="คุณได้รับการจัดเข้ากลุ่ม",
+            message=f"ผู้ช่วยสอน (TA) ได้สร้างกลุ่ม '{team.name}' และจัดคุณเข้ากลุ่มในรายวิชา {course.code}",
+            notification_type=Notification.Type.TEAM_MEMBERSHIP,
+            target_url=reverse("courses:groups", args=[course.id]),
+        )
+
+    if len(students) >= 2:
+        TeamChat.objects.get_or_create(team=team)
+
+    return team
+
+
+@transaction.atomic
+def auto_assign_unassigned_students(*, actor, course):
+    _check_staff_permission(actor, course)
+
+    assigned_user_ids = TeamMembership.objects.filter(course=course).values_list(
+        "user_id", flat=True
+    )
+    unassigned_enrollments = list(
+        Enrollment.objects.filter(
+            course=course,
+            role=Enrollment.Role.STUDENT,
+        )
+        .exclude(user_id__in=assigned_user_ids)
+        .select_related("user")
+        .order_by("user__id")
+    )
+
+    if not unassigned_enrollments:
+        raise GroupError("ไม่มีนักศึกษาที่ยังไม่มีกลุ่มในรายวิชานี้")
+
+    unassigned_students = [e.user for e in unassigned_enrollments]
+    total_assigned = 0
+
+    # 1. Fill existing teams with open slots
+    existing_teams = list(
+        Team.objects.filter(course=course)
+        .prefetch_related("memberships")
+        .order_by("id")
+    )
+
+    for team in existing_teams:
+        if not unassigned_students:
+            break
+        current_count = team.memberships.count()
+        slots = MAX_TEAM_MEMBERS - current_count
+        while slots > 0 and unassigned_students:
+            student = unassigned_students.pop(0)
+            TeamInvitation.objects.filter(
+                team__course=course,
+                invitee=student,
+                status=TeamInvitation.Status.PENDING,
+            ).update(
+                status=TeamInvitation.Status.CANCELLED,
+                responded_at=timezone.now(),
+            )
+            TeamMembership.objects.create(team=team, course=course, user=student)
+            total_assigned += 1
+            slots -= 1
+            send_notification(
+                recipient=student,
+                actor=actor,
+                title="คุณได้รับการจัดเข้ากลุ่ม",
+                message=f"ผู้ช่วยสอน (TA) ได้จัดคุณเข้ากลุ่ม '{team.name}' ในรายวิชา {course.code}",
+                notification_type=Notification.Type.TEAM_MEMBERSHIP,
+                target_url=reverse("courses:groups", args=[course.id]),
+            )
+        if team.memberships.count() >= 2:
+            TeamChat.objects.get_or_create(team=team)
+
+    # 2. For remaining unassigned students, create new teams
+    new_team_counter = 1
+    while unassigned_students:
+        batch = unassigned_students[:MAX_TEAM_MEMBERS]
+        unassigned_students = unassigned_students[MAX_TEAM_MEMBERS:]
+        team_name = f"กลุ่มที่ {len(existing_teams) + new_team_counter}"
+        new_team_counter += 1
+        team = Team.objects.create(course=course, name=team_name, created_by=actor)
+        for student in batch:
+            TeamInvitation.objects.filter(
+                team__course=course,
+                invitee=student,
+                status=TeamInvitation.Status.PENDING,
+            ).update(
+                status=TeamInvitation.Status.CANCELLED,
+                responded_at=timezone.now(),
+            )
+            TeamMembership.objects.create(team=team, course=course, user=student)
+            total_assigned += 1
+            send_notification(
+                recipient=student,
+                actor=actor,
+                title="คุณได้รับการจัดเข้ากลุ่ม",
+                message=f"ผู้ช่วยสอน (TA) ได้สร้างกลุ่ม '{team.name}' และจัดคุณเข้ากลุ่มในรายวิชา {course.code}",
+                notification_type=Notification.Type.TEAM_MEMBERSHIP,
+                target_url=reverse("courses:groups", args=[course.id]),
+            )
+        if len(batch) >= 2:
+            TeamChat.objects.get_or_create(team=team)
+
+    return total_assigned
+

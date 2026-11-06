@@ -159,7 +159,9 @@ def approve_enrollment(request, enrollment_id):
     enrollment = get_object_or_404(Enrollment, pk=enrollment_id)
     course = enrollment.course
 
-    if course.owner != request.user:
+    from .permissions import is_course_teacher
+
+    if course.owner != request.user and not is_course_teacher(request.user, course):
         messages.error(request, "คุณไม่มีสิทธิ์อนุมัติในรายวิชานี้")
         return redirect("courses:my")
 
@@ -174,6 +176,9 @@ def approve_enrollment(request, enrollment_id):
     else:
         messages.info(request, "ไม่มีคำขอที่ต้องอนุมัติ")
 
+    next_url = request.POST.get("next", "")
+    if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        return redirect(next_url)
     return redirect("courses:my")
 
 
@@ -183,13 +188,19 @@ def reject_enrollment(request, enrollment_id):
     enrollment = get_object_or_404(Enrollment, pk=enrollment_id)
     course = enrollment.course
 
-    if course.owner != request.user:
+    from .permissions import is_course_teacher
+
+    if course.owner != request.user and not is_course_teacher(request.user, course):
         messages.error(request, "คุณไม่มีสิทธิ์ปฏิเสธในรายวิชานี้")
         return redirect("courses:my")
 
     user_name = enrollment.user.full_name
     enrollment.delete()
     messages.success(request, f"ปฏิเสธคำขอของ {user_name} ในวิชา {course.code}")
+
+    next_url = request.POST.get("next", "")
+    if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+        return redirect(next_url)
     return redirect("courses:my")
 
 
