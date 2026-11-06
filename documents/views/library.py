@@ -21,6 +21,7 @@ from ..models import Document, DocumentReport
 from ..permissions import (
     can_access_course_documents,
     can_access_review_queue,
+    can_moderate_reports,
     can_pin_document,
     can_revoke_verification,
     can_verify_document,
@@ -30,6 +31,7 @@ from ..permissions import (
 )
 from ..selectors import (
     has_open_report,
+    open_report_count,
     user_open_report_doc_ids,
     user_vote_for,
     user_votes_for,
@@ -37,6 +39,7 @@ from ..selectors import (
 from ..services import (
     DocumentPermissionError,
     DocumentServiceError,
+    get_reported_queue,
     get_verification_queue,
     list_course_documents,
     toggle_document_pin,
@@ -79,8 +82,12 @@ def document_library(request, course_id):
     can_pin = can_pin_document(request.user, course)
     can_review = can_access_review_queue(request.user, course)
     pending_queue_count = 0
+    reported_queue_count = 0
     if can_review:
         pending_queue_count = get_verification_queue(
+            reviewer=request.user, course=course
+        ).count()
+        reported_queue_count = get_reported_queue(
             reviewer=request.user, course=course
         ).count()
 
@@ -93,6 +100,7 @@ def document_library(request, course_id):
             "can_pin": can_pin,
             "can_review": can_review,
             "pending_queue_count": pending_queue_count,
+            "reported_queue_count": reported_queue_count,
             "doc_types": Document.DocType.choices,
             "semesters": Document.Semester.choices,
             "filter_doc_type": doc_type,
@@ -199,6 +207,8 @@ def document_detail(request, course_id, doc_id):
             "has_open_report": has_open_report(request.user, document),
             "report_form": ReportDocumentForm(),
             "reasons_requiring_detail": DocumentReport.REASONS_REQUIRING_DETAIL,
+            "can_moderate_reports": can_moderate_reports(request.user, document),
+            "open_report_count": open_report_count(document),
         },
     )
 

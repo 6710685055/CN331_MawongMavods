@@ -1,0 +1,93 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}ตรวจ Report: {{ document.title }} — {{ course.code }}{% endblock %}
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'documents/css/feedback.css' %}">
+  <script src="{% static 'documents/js/moderation.js' %}" defer></script>
+{% endblock %}
+{% block content %}
+<div class="card wide">
+  {% include "documents/partials/hidden_banner.html" %}
+
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:.75rem;">
+    <div>
+      <p class="eyebrow">ตรวจเอกสารที่ถูก Report</p>
+      <h1 style="margin:.25rem 0;">{{ document.title }}</h1>
+      <p class="help" style="margin:0;">
+        วิชา {{ course.code }} · {{ document.get_doc_type_display }} · เวอร์ชัน v{{ document.version }}
+        · ผู้อัปโหลด {{ document.uploader.full_name }}
+      </p>
+      {% if document.has_active_verified_badge %}
+        <span class="tag badge-verified" style="margin-top:.5rem;">✓ {{ document.verified_badge_label }}</span>
+      {% endif %}
+    </div>
+    <div class="actions" style="margin:0;">
+      <a class="btn" href="{% url 'documents:download' course.id document.id %}">ดาวน์โหลดไฟล์</a>
+      <a class="btn secondary" href="{% url 'documents:detail' course.id document.id %}">เปิดหน้าเอกสาร</a>
+    </div>
+  </div>
+
+  <h2>Report ที่รอดำเนินการ ({{ reports|length }})</h2>
+  {% if reports %}
+    <table>
+      <thead>
+        <tr>
+          <th>ผู้ Report</th>
+          <th>เหตุผล</th>
+          <th>รายละเอียด</th>
+          <th>เวอร์ชันที่ Report</th>
+          <th>วันเวลา</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for report in reports %}
+          <tr>
+            <td>{{ report.reporter.full_name }}</td>
+            <td><span class="tag">{{ report.get_reason_display }}</span></td>
+            <td>{{ report.detail|linebreaksbr|default:"-" }}</td>
+            <td>v{{ report.document_version }}</td>
+            <td class="help">{{ report.created_at|date:"d/m/Y H:i" }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+
+    <h2>ตัดสิน</h2>
+    {% include "documents/partials/decision_forms.html" %}
+  {% else %}
+    <p>ไม่มี Report ค้างสำหรับเอกสารนี้แล้ว</p>
+  {% endif %}
+
+  {% if decisions %}
+    <h2>ประวัติการตัดสิน</h2>
+    <table>
+      <thead>
+        <tr>
+          <th>วันเวลา</th>
+          <th>ผล</th>
+          <th>ผู้ตัดสิน</th>
+          <th>เวอร์ชัน</th>
+          <th>จำนวน Report</th>
+          <th>เหตุผล</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for decision in decisions %}
+          <tr>
+            <td class="help">{{ decision.created_at|date:"d/m/Y H:i" }}</td>
+            <td><strong>{{ decision.get_outcome_display }}</strong></td>
+            <td>{{ decision.reviewer_name_snapshot }}{% if decision.reviewer_role_snapshot %} ({{ decision.reviewer_role_snapshot }}){% endif %}</td>
+            <td>v{{ decision.document_version }}</td>
+            <td>{{ decision.report_count }}</td>
+            <td>{{ decision.reason|default:"-" }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% endif %}
+
+  <div class="actions" style="margin-top:1.5rem;">
+    <a class="btn secondary" href="{% url 'documents:reported_queue' course.id %}">← กลับไปคิวเอกสารที่ถูก Report</a>
+  </div>
+</div>
+{% endblock %}

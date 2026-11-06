@@ -61,7 +61,7 @@ def can_view_document(user, document: Document) -> bool:
     Course members may see a document, except while it is hidden by reports (UC10):
     then only the owner and course TAs/Teachers may see it.
     """
-    if not can_access_course_documents(user, document.course):
+    if document.is_removed or not can_access_course_documents(user, document.course):
         return False
     if not document.is_hidden:
         return True
@@ -74,6 +74,23 @@ def can_vote_or_report(user, document: Document) -> bool:
         can_access_course_documents(user, document.course)
         and document.uploader_id != user.id
         and not document.is_hidden
+        and not document.is_removed
+    )
+
+
+def can_access_report_queue(user, course) -> bool:
+    """Only approved TAs or Teachers of the course may open the reported-documents queue (UC14)."""
+    return is_course_staff(user, course)
+
+
+def can_moderate_reports(user, document: Document) -> bool:
+    """Course staff may judge reports, except on a document they uploaded or one already removed (UC14)."""
+    if not user or not getattr(user, "is_authenticated", False):
+        return False
+    return (
+        not document.is_removed
+        and document.uploader_id != user.id
+        and can_access_report_queue(user, document.course)
     )
 
 

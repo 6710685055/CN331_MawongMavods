@@ -31,6 +31,9 @@ def replace_document_file(*, user, document: Document, new_file) -> Document:
         if document.is_verifiable:
             document.verify_status = Document.VerifyStatus.PENDING
             document.clear_verification()
+        elif document.verify_status == Document.VerifyStatus.NEEDS_REVISION:
+            # Homework sent back from a report review (UC14) has no verify queue to return to.
+            document.verify_status = Document.VerifyStatus.NONE
 
         document.save()
 

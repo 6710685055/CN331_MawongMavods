@@ -15,6 +15,13 @@ def document_upload_path(instance, filename: str) -> str:
     return f"documents/{course_code}/v{version}/{safe_name}"
 
 
+class ActiveDocumentManager(models.Manager):
+    """Default manager: hides documents removed by a reviewer (UC14). Use `Document.all_objects` to include them."""
+
+    def get_queryset(self):
+        return super().get_queryset().filter(removed_at__isnull=True)
+
+
 class Document(models.Model):
     class DocType(models.TextChoices):
         SUMMARY = "summary", "ชีทสรุป"
@@ -114,8 +121,22 @@ class Document(models.Model):
     is_hidden = models.BooleanField("ซ่อนชั่วคราว (ถูก Report ถึงเกณฑ์)", default=False)
     hidden_at = models.DateTimeField("วันเวลาที่ถูกซ่อน", null=True, blank=True)
 
+    removed_at = models.DateTimeField("วันเวลาที่ถูกลบ", null=True, blank=True)
+    removed_by = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
+        verbose_name="ผู้ลบ",
+    )
+    removal_reason = models.TextField("เหตุผลการลบ", blank=True)
+
     created_at = models.DateTimeField("วันเวลาที่อัปโหลด", auto_now_add=True)
     updated_at = models.DateTimeField("แก้ไขล่าสุด", auto_now=True)
+
+    objects = ActiveDocumentManager()  # first manager = default manager
+    all_objects = models.Manager()
 
     class Meta:
         ordering = ["-is_pinned", "-pinned_at", "-created_at", "-id"]
@@ -129,6 +150,10 @@ class Document(models.Model):
         if doc_type in cls.VERIFIABLE_DOC_TYPES:
             return cls.VerifyStatus.PENDING
         return cls.VerifyStatus.NONE
+
+    @property
+    def is_removed(self) -> bool:
+        return self.removed_at is not None
 
     @property
     def is_verifiable(self) -> bool:

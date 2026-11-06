@@ -2,7 +2,7 @@
 
 - **ขอบเขต:** แอป `documents` (ส่วน UC10) และ `notifications` (ประเภท `doc_hidden`)
 - **อัปเดตล่าสุด:** 2026-11-02 (branch `us10-pp`)
-- **ส่วนที่ยังไม่ทำใน UC10:** คิวตรวจ Report สำหรับ TA/อาจารย์และการตัดสิน (UC14)
+- **ต่อยอดโดย:** UC14 (`docs/documents_uc14.md`) ซึ่งเป็นคิวตรวจ Report และการตัดสิน และ UC12 (การแก้ไข/ลบเอกสารโดยเจ้าของ)
 
 ---
 
@@ -47,7 +47,7 @@
 
 **`DocumentReport`**: `document`, `reporter`, `reason`, `detail`, `document_version`, `status`, `resolution`, `created_at`, `closed_at`
 - `status`: `open` → `withdrawn` (ผู้ใช้ถอน) หรือ `resolved` (UC14 ตัดสิน)
-- `resolution`: `dismissed` / `revision` / `removed` ซึ่ง UC14 จะเป็นคนตั้งค่า
+- `resolution`: `dismissed` / `revision` / `removed` / `owner_deleted` ซึ่งตั้งโดย UC14 (`services/moderation.py`) และผูกกับ `DocumentReportDecision` ผ่าน `decision`
 - partial unique `UniqueConstraint(document, reporter, condition=status="open")` ชื่อ `unique_open_report_per_user`
 
 ---

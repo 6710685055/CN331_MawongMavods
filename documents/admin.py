@@ -1,6 +1,12 @@
 from django.contrib import admin
 
-from .models import Document, DocumentReport, DocumentReviewLog, DocumentVote
+from .models import (
+    Document,
+    DocumentReport,
+    DocumentReportDecision,
+    DocumentReviewLog,
+    DocumentVote,
+)
 
 
 @admin.register(Document)
@@ -14,11 +20,16 @@ class DocumentAdmin(admin.ModelAdmin):
         "verify_status",
         "is_pinned",
         "is_hidden",
+        "removed_at",
         "vote_score",
         "created_at",
     )
     list_filter = ("doc_type", "verify_status", "is_pinned", "is_hidden", "course")
     search_fields = ("title", "description", "uploader__email", "course__code")
+
+    def get_queryset(self, request):
+        # Include documents soft-deleted by a reviewer (UC14).
+        return Document.all_objects.select_related("course", "uploader")
 
 
 @admin.register(DocumentReviewLog)
@@ -54,3 +65,17 @@ class DocumentReportAdmin(admin.ModelAdmin):
     )
     list_filter = ("status", "reason", "resolution")
     search_fields = ("document__title", "reporter__email", "detail")
+
+
+@admin.register(DocumentReportDecision)
+class DocumentReportDecisionAdmin(admin.ModelAdmin):
+    list_display = (
+        "document",
+        "outcome",
+        "reviewer_name_snapshot",
+        "reviewer_role_snapshot",
+        "report_count",
+        "created_at",
+    )
+    list_filter = ("outcome", "reviewer_role_snapshot")
+    search_fields = ("document__title", "reviewer_name_snapshot", "reason")

@@ -13,6 +13,7 @@
 - **UC8 — Private Chat:** แชทส่วนตัวกับนักศึกษา/TA ในรายวิชาเดียวกัน พร้อมแจ้งเตือน บล็อก รายงานข้อความ และการพิจารณารายงาน/คำเตือน/ระงับ 24 ชั่วโมงผ่าน Django Admin
 - **UC9 - Group Chatting Message:** การสนทนาระหว่างสมาชิกในกลุ่ม
 - **UC10 — Vote & Report Document:** โหวตคุณภาพเอกสาร (Upvote/Downvote) และ Report เอกสารที่ไม่เหมาะสม พร้อมซ่อนอัตโนมัติเมื่อถึงเกณฑ์
+- **UC14 — Review Reported Documents:** TA/อาจารย์ตรวจเอกสารที่ถูก Report แล้วปฏิเสธ Report, ส่งกลับให้แก้ไข หรือลบเอกสาร พร้อมแจ้งเตือนเจ้าของและผู้ Report
 - **UC11 — Leave Group:** สมาชิกออกจากกลุ่ม โอนหัวหน้ากลุ่ม และแจ้งเตือนสมาชิกที่เหลือ
 - **US-12 — Edit & Delete Documents:** เจ้าของเอกสารแก้ไขข้อมูลเอกสารและลบเอกสารพร้อมไฟล์ได้
 
@@ -330,7 +331,7 @@ python manage.py runserver
 - Report เอกสารโดยเลือกเหตุผล (ผิดวิชา/ผิดหมวดหมู่, เนื้อหาไม่ถูกต้อง, สแปม, ละเมิดลิขสิทธิ์, เนื้อหาไม่เหมาะสม, อื่นๆ) ถ้าเลือก "อื่นๆ" ต้องกรอกรายละเอียด
 - ถอน Report ของตนเองได้ก่อน TA/อาจารย์ตัดสิน
 - เมื่อผู้ Report (นับไม่ซ้ำคน) ถึงเกณฑ์ `DOCUMENT_REPORT_HIDE_THRESHOLD` (ค่าเริ่มต้น 5 ใน `config/settings.py`) ระบบซ่อนเอกสารและแจ้งเตือนเจ้าของกับ TA/อาจารย์ ระหว่างซ่อน เอกสารเห็นได้เฉพาะเจ้าของ TA และอาจารย์
-- คิวตรวจ Report สำหรับ TA/อาจารย์เป็นส่วนของ UC14 (ยังไม่ได้ทำ)
+- คิวตรวจ Report สำหรับ TA/อาจารย์อยู่ในหัวข้อ 7C (UC14)
 
 ### 7B.2 Acceptance Criteria — UC10
 
@@ -347,6 +348,41 @@ python manage.py runserver
 | UC10-09 | ระหว่างซ่อน เห็นเฉพาะเจ้าของ TA อาจารย์ และโหวตไม่ได้ | `permissions.can_view_document`, `list_course_documents` | `test_hidden_document_visibility_and_no_voting` |
 | UC10-10 | Report ที่ถูกปฏิเสธ Report ซ้ำไม่ได้จนกว่าจะมีเวอร์ชันใหม่ | `selectors.has_dismissed_report` | `test_dismissed_report_blocks_rereport_until_new_version` |
 | UC10-11 | เจ้าของไม่เห็นชื่อผู้ Report | `constants/feedback.py` (ข้อความแจ้งเตือน), `partials/hidden_banner.html` | `test_threshold_hides_document_and_notifies_once`, `test_hidden_document_visibility_and_no_voting` |
+
+---
+
+## 7C. UC14 — Review Reported Documents
+
+รายละเอียดเชิงเทคนิคอยู่ที่ `docs/documents_uc14.md`
+
+### 7C.1 ความสามารถหลัก
+
+- TA ที่ได้รับอนุมัติและอาจารย์ผู้สอนเปิดเมนู "🚩 เอกสารที่ถูก Report" ได้จากหน้ารายวิชาหรือคลังเอกสาร คิวเรียงเอกสารที่ถูกซ่อนก่อน แล้วตามจำนวน Report พร้อมสรุปเหตุผล
+- เปิดดูเอกสาร (ดาวน์โหลดได้แม้ถูกซ่อน) และรายละเอียด Report รวมถึงชื่อผู้ Report
+- ตัดสินได้ 3 แบบ
+  - **ปฏิเสธ Report:** เอกสารแสดงตามปกติ ป้าย Verified คงอยู่
+  - **ส่งกลับให้แก้ไข:** ต้องมีเหตุผล สถานะเป็น "ต้องแก้ไข" และป้าย Verified ถูกถอด
+  - **ลบเอกสาร:** ต้องมีเหตุผลและยืนยันอีกครั้ง เอกสารหายจากคลังและดาวน์โหลดไม่ได้
+- ทุกการตัดสินปิด Report ทั้งหมดของเอกสาร บันทึกผู้ตัดสิน ผล เหตุผล และวันเวลา (`DocumentReportDecision`) แล้วแจ้งเตือนเจ้าของ (ไม่มีชื่อผู้ Report) และผู้ Report ทุกคน
+
+### 7C.2 Acceptance Criteria — UC14
+
+| ID | เงื่อนไข | โค้ดที่รับผิดชอบ | Test |
+|---|---|---|---|
+| UC14-01 | เฉพาะ TA ที่อนุมัติแล้วและ Teacher ของวิชาเข้าคิวและปุ่มดำเนินการได้ (ตรวจฝั่ง Server) | `permissions.can_access_report_queue`, `services/moderation.py: _require_can_moderate` | `test_only_approved_staff_can_access_queue_and_actions` |
+| UC14-02 | คิวแสดงเหตุผลและจำนวน Report เรียงเอกสารที่ซ่อนก่อน แล้วตามจำนวน | `selectors.reported_documents`, `selectors.reason_summary_for` | `test_queue_order_counts_reasons_and_excludes_own_uploads` |
+| UC14-03 | ผู้ตรวจเปิดดูเอกสารและรายละเอียด Report ได้ | `views/moderation.py: report_review_view` | `test_reviewer_sees_reporter_names_but_owner_cannot` |
+| UC14-04 | เลือกได้ 3 ทาง และต้องมีเหตุผลเมื่อส่งกลับหรือลบ | `ResolveReportsForm`, `RESOLUTIONS_REQUIRING_REASON` | `test_revision_requires_reason_drops_badge_and_returns_to_pending_after_fix`, `test_remove_requires_reason_and_confirmation_and_hides_everywhere` |
+| UC14-05 | การลบต้องยืนยันอีกครั้ง | `RESOLUTIONS_REQUIRING_CONFIRMATION`, `static/documents/js/moderation.js` | `test_remove_via_http_requires_confirm_checkbox` |
+| UC14-06 | ปฏิเสธ: แสดงปกติ ป้าย Verified คงอยู่ ตัวนับ Report เป็น 0 | `_apply_dismiss` | `test_dismiss_unhides_keeps_badge_and_resets_count` |
+| UC14-07 | ส่งกลับ: สถานะ "ต้องแก้ไข" และถอดป้าย Verified | `_apply_revision`, `services/versioning.py` | `test_revision_requires_reason_drops_badge_and_returns_to_pending_after_fix`, `test_revision_of_homework_resets_after_owner_replaces_file` |
+| UC14-08 | ลบ: ไม่แสดงในคลังและดาวน์โหลดไม่ได้ | `_apply_remove`, `ActiveDocumentManager` | `test_remove_requires_reason_and_confirmation_and_hides_everywhere` |
+| UC14-09 | ปิด Report ทั้งหมด และบันทึกผู้ตัดสิน ผล เหตุผล วันเวลา | `_close_open_reports`, `DocumentReportDecision` | `test_decision_closes_all_reports_and_records_who_what_why_when` |
+| UC14-10 | แจ้งเตือนเจ้าของพร้อมเหตุผล และแจ้งผู้ Report ทุกคน ทุกผลการตัดสิน | `notifiers.notify_report_decision` | `test_owner_and_all_reporters_notified_for_every_outcome` |
+| UC14-11 | เจ้าของไม่เห็นชื่อผู้ Report | `constants/moderation.py`, `report_review_view` (403 สำหรับเจ้าของ) | `test_reviewer_sees_reporter_names_but_owner_cannot` |
+| UC14-12 | ผู้ตรวจไม่เห็นและตัดสินเอกสารที่ตัวเองอัปโหลดไม่ได้ | `reported_documents(exclude_uploader=...)`, `CANNOT_MODERATE_OWN` | `test_queue_order_counts_reasons_and_excludes_own_uploads` |
+| UC14-13 | ผู้ตรวจสองคนพร้อมกัน: บันทึกครั้งเดียว และคนที่สองได้ "ดำเนินการแล้ว" | conditional UPDATE ใน `_close_open_reports` | `test_second_concurrent_decision_is_rejected_and_not_recorded` |
+| UC14-14 | เจ้าของลบเอกสารเองระหว่างรอ (US12): ปิด Report และแจ้งผู้ Report (การลบเป็น hard delete จึงไม่เก็บประวัติการตัดสิน) | `close_reports_for_owner_deletion`, `services/management.py: delete_document` | `test_owner_deletion_hook_closes_reports_and_notifies_reporters`, `test_owner_delete_via_us12_notifies_reporters_and_links_to_library`, `test_owner_delete_without_open_reports_sends_no_report_notifications` |
 
 ---
 
@@ -577,7 +613,7 @@ git commit -m "Resolve merge conflicts"
 - `accounts/` — ระบบสมาชิกและการเข้าสู่ระบบ
 - `courses/` — ระบบรายวิชา การจัดกลุ่ม และแชทกลุ่ม
 - `documents/` — ระบบจัดการเอกสาร
-- `docs/documents_uc3_uc4.md`, `docs/documents_uc10.md` — เอกสารเทคนิคของระบบเอกสาร
+- `docs/documents_uc3_uc4.md`, `docs/documents_uc10.md`, `docs/documents_uc14.md` — เอกสารเทคนิคของระบบเอกสาร
 - `notifications/` — ระบบแจ้งเตือน
 - `requirements.txt` — รายการ Dependencies
 - `.env.example` — ตัวอย่าง Environment Variables

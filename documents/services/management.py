@@ -5,6 +5,7 @@ from django.db import transaction
 from ..models import Document
 from ..permissions import can_access_course_documents
 from .errors import DocumentPermissionError, DocumentServiceError
+from .moderation import close_reports_for_owner_deletion
 
 
 def _require_document_owner(user, document):
@@ -86,6 +87,8 @@ def delete_document(*, user, document: Document) -> str:
             .get(pk=document.pk)
         )
         _require_document_owner(user, document)
+        # UC14: close open reports and notify reporters before the reports cascade away.
+        close_reports_for_owner_deletion(document=document, owner=user)
         title = document.title
         file_field = document.file
         file_name = file_field.name if file_field else ""

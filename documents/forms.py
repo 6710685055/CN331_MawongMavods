@@ -5,9 +5,10 @@ from django.core.validators import MaxLengthValidator
 from django.utils import timezone
 
 from .constants import feedback as feedback_texts
+from .constants import moderation as moderation_texts
 from .models import Document, DocumentReport
 from .permissions import can_pin_document
-from .selectors import get_report_detail_max_length
+from .selectors import get_decision_reason_max_length, get_report_detail_max_length
 from .validators import (
     get_allowed_extensions,
     get_allowed_extensions_display,
@@ -245,4 +246,58 @@ class ReportDocumentForm(forms.Form):
                     reason=DocumentReport.Reason(reason).label
                 ),
             )
+        return cleaned_data
+
+
+class ResolveReportsForm(forms.Form):
+    """One reviewer decision on all open reports of a document (UC14). Rules mirror services.resolve_reports."""
+
+    outcome = forms.ChoiceField(
+        choices=[
+            (outcome.value, outcome.label) for outcome in DocumentReport.REVIEWER_RESOLUTIONS
+        ],
+        widget=forms.HiddenInput,
+        error_messages={
+            "required": moderation_texts.OUTCOME_INVALID,
+            "invalid_choice": moderation_texts.OUTCOME_INVALID,
+        },
+    )
+    reason = forms.CharField(
+        label="เหตุผล",
+        required=False,
+        widget=forms.Textarea(attrs={"rows": 3}),
+    )
+    confirm_remove = forms.BooleanField(
+        label=moderation_texts.REMOVE_CONFIRM_LABEL, required=False
+    )
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        max_length = get_decision_reason_max_length()
+        self.fields["reason"].widget.attrs["maxlength"] = max_length
+        self.fields["reason"].validators.append(
+            MaxLengthValidator(
+                max_length,
+                message=moderation_texts.REASON_TOO_LONG.format(max_length=max_length),
+            )
+        )
+
+    def clean(self):
+        cleaned_data = super().clean()
+        outcome = cleaned_data.get("outcome")
+        if not outcome:
+            return cleaned_data
+        outcome = DocumentReport.Resolution(outcome)
+        reason = (cleaned_data.get("reason") or "").strip()
+        cleaned_data["reason"] = reason
+
+        if outcome in DocumentReport.RESOLUTIONS_REQUIRING_REASON and not reason:
+            self.add_error(
+                "reason", moderation_texts.REASON_REQUIRED.format(outcome=outcome.label)
+            )
+        if (
+            outcome in DocumentReport.RESOLUTIONS_REQUIRING_CONFIRMATION
+            and not cleaned_data.get("confirm_remove")
+        ):
+            self.add_error("confirm_remove", moderation_texts.REMOVE_CONFIRM_REQUIRED)
         return cleaned_data
