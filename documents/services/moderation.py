@@ -147,7 +147,12 @@ def _close_open_reports(
     return decision
 
 
-def _notify_after_commit(decision: DocumentReportDecision) -> None:
+def _notify_after_commit(decision: DocumentReportDecision, *, document: Document | None = None) -> None:
+    """
+    Send the decision notifications once the transaction commits.
+    Pass `document` when the row will be gone by then (owner hard delete, UC12): the in-memory
+    instance is used instead of reloading it. Reporter ids are read now, while the reports still exist.
+    """
     reporter_ids = list(
         DocumentReport.objects.filter(decision=decision)
         .values_list("reporter_id", flat=True)
@@ -155,9 +160,9 @@ def _notify_after_commit(decision: DocumentReportDecision) -> None:
     )
 
     def _send():
-        decision.document = Document.all_objects.select_related("course", "uploader").get(
-            pk=decision.document_id
-        )
+        decision.document = document or Document.all_objects.select_related(
+            "course", "uploader"
+        ).get(pk=decision.document_id)
         notify_report_decision(decision, reporter_ids)
 
     transaction.on_commit(_send)
@@ -192,7 +197,8 @@ def resolve_reports(
 def close_reports_for_owner_deletion(*, document: Document, owner) -> DocumentReportDecision | None:
     """
     Hook for UC12: when the owner deletes their document, close its open reports and tell the reporters.
-    Returns None when there was nothing open to close.
+    Call it inside the deleting transaction, before `document.delete()`, with the same instance
+    (services/management.py: delete_document). Returns None when there was nothing open to close.
     """
     if document.uploader_id != owner.id:
         raise DocumentPermissionError(texts.NOT_DOCUMENT_OWNER)
@@ -206,7 +212,7 @@ def close_reports_for_owner_deletion(*, document: Document, owner) -> DocumentRe
                 outcome=Resolution.OWNER_DELETED,
                 reason="",
             )
-            _notify_after_commit(decision)
+            _notify_after_commit(decision, document=document)
     except DocumentServiceError:
         return None
     return decision

@@ -23,9 +23,9 @@ def meeting_index(request):
 
 
 @login_required
-def group_meetings(request, group_id):
+def group_meetings(request, team_id):
     group_access = get_group_access()
-    group = group_access.get_group_for_user(request.user, group_id)
+    group = group_access.get_group_for_user(request.user, team_id)
     if group is None or not can_access_group(request.user, group, group_access):
         return render(request, "meetings/403.html", status=403)
     return render(
@@ -37,17 +37,17 @@ def group_meetings(request, group_id):
 
 @login_required
 @require_http_methods(["GET", "POST"])
-def meeting_create(request, group_id):
+def meeting_create(request, team_id):
     group_access = get_group_access()
-    group = group_access.get_group_for_user(request.user, group_id)
+    group = group_access.get_group_for_user(request.user, team_id)
     if group is None or not can_access_group(request.user, group, group_access):
         return render(request, "meetings/403.html", status=403)
 
     form = MeetingForm(request.POST or None)
     if request.method == "POST" and form.is_valid():
-        meeting = create_meeting(group=group, actor=request.user, **form.cleaned_data)
-        messages.success(request, "บันทึกนัดหมายประชุมแล้ว")
-        return redirect("meetings:group", group_id=group_id)
+        create_meeting(group=group, actor=request.user, **form.cleaned_data)
+        messages.success(request, "บันทึกนัดหมายประชุมและแจ้งสมาชิกในกลุ่มแล้ว")
+        return redirect("meetings:group", team_id=group.pk)
     return render(request, "meetings/meeting_form.html", {"form": form, "group": group, "is_edit": False})
 
 
@@ -63,7 +63,7 @@ def meeting_edit(request, meeting_id):
     if request.method == "POST" and form.is_valid():
         changed = reschedule_meeting(meeting=meeting, actor=request.user, **form.cleaned_data)
         messages.success(request, "อัปเดตนัดหมายและแจ้งสมาชิกแล้ว" if changed else "ไม่มีข้อมูลที่เปลี่ยนแปลง")
-        return redirect("meetings:group", group_id=meeting.group_object_id)
+        return redirect("meetings:group", team_id=meeting.group_object_id)
     return render(
         request,
         "meetings/meeting_form.html",

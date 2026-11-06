@@ -104,6 +104,7 @@
           {% else %}
             <span class="help">แชทจะเปิดเมื่อมีสมาชิกเข้ากลุ่มเพิ่ม</span>
           {% endif %}
+          <a class="btn secondary" href="{% url 'meetings:group' team.id %}">นัดหมายประชุม</a>
           <form method="post" action="{% url 'courses:leave_team' course.id team.id %}"
                 onsubmit="return confirm('ยืนยันออกจากกลุ่มนี้หรือไม่?');">
             {% csrf_token %}
@@ -120,6 +121,22 @@
             {% if membership.user_id == user.id %}<span class="tag">คุณ</span>{% endif %}
           </span>
         {% endfor %}
+      </div>
+
+      <div class="team-meetings" aria-labelledby="team-meetings-heading">
+        <h3 id="team-meetings-heading">นัดหมายที่กำลังจะมาถึง</h3>
+        {% if upcoming_meetings %}
+          <ul>
+            {% for meeting in upcoming_meetings %}
+              <li>
+                <time datetime="{{ meeting.starts_at|date:'c' }}">{{ meeting.starts_at|date:"D d/m/Y H:i" }}</time>
+                · {{ meeting.title }}
+              </li>
+            {% endfor %}
+          </ul>
+        {% else %}
+          <p class="help">ยังไม่มีนัดหมาย สร้างนัดหมายได้ที่หน้า <a href="{% url 'meetings:group' team.id %}">นัดหมายประชุม</a></p>
+        {% endif %}
       </div>
     </section>
 

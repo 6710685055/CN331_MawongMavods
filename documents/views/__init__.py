@@ -9,6 +9,7 @@ from .library import (
     toggle_pin_view,
     upload_document_view,
 )
+from .management import delete_document_view, edit_document_view
 from .review import (
     replace_file_view,
     request_revision_view,
@@ -20,7 +21,9 @@ from .review import (
 __all__ = [
     "document_detail",
     "document_library",
+    "delete_document_view",
     "download_document",
+    "edit_document_view",
     "replace_file_view",
     "report_document_view",
     "report_review_view",

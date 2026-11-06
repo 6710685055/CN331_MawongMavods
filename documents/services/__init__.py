@@ -9,6 +9,7 @@ from .moderation import (
     get_reported_queue,
     resolve_reports,
 )
+from .management import delete_document, update_document_metadata
 from .review import (
     get_verification_queue,
     request_document_revision,
@@ -24,6 +25,7 @@ __all__ = [
     "get_report_review",
     "get_reported_queue",
     "get_verification_queue",
+    "delete_document",
     "list_course_documents",
     "replace_document_file",
     "report_document",
@@ -31,6 +33,7 @@ __all__ = [
     "resolve_reports",
     "revoke_document_verification",
     "toggle_document_pin",
+    "update_document_metadata",
     "upload_document",
     "verify_document",
     "vote_document",

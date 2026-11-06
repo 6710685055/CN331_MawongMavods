@@ -41,6 +41,16 @@ urlpatterns = [
         name="detail",
     ),
     path(
+        "courses/<int:course_id>/documents/<int:doc_id>/edit/",
+        views.edit_document_view,
+        name="edit",
+    ),
+    path(
+        "courses/<int:course_id>/documents/<int:doc_id>/delete/",
+        views.delete_document_view,
+        name="delete",
+    ),
+    path(
         "courses/<int:course_id>/documents/<int:doc_id>/download/",
         views.download_document,
         name="download",

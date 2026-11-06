@@ -20,8 +20,11 @@ def _document_detail_url(document: Document) -> str:
 
 
 def _document_url(document: Document) -> str:
-    """Detail page, or the course library once the document is removed (its detail page is a 404)."""
-    if document.is_removed:
+    """
+    Detail page, or the course library once the document is removed (UC14 soft delete) or deleted
+    by its owner (UC12 hard delete: Django sets pk to None). Either way the detail page is a 404.
+    """
+    if document.pk is None or document.is_removed:
         return reverse("documents:library", kwargs={"course_id": document.course_id})
     return _document_detail_url(document)
 

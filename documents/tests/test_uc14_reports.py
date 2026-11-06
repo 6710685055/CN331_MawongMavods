@@ -18,6 +18,7 @@ from ..services import (
     resolve_reports,
     upload_document,
     verify_document,
+    withdraw_report,
 )
 from .base import BaseDocumentTestCase, make_file
 
@@ -319,3 +320,51 @@ class UC14ReviewReportedDocumentsTests(BaseDocumentTestCase):
         self.assertEqual(notified, {self.student2.id, self.student3.id})
         # Nothing left to close
         self.assertIsNone(close_reports_for_owner_deletion(document=self.doc, owner=self.student))
+
+    # --- Owner deletes via US12 (hard delete) ------------------------------
+
+    def test_owner_delete_via_us12_notifies_reporters_and_links_to_library(self):
+        doc_id = self.doc.id
+        self.client.force_login(self.student)
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(self._url("delete"))
+
+        library_url = reverse("documents:library", args=[self.course.id])
+        self.assertRedirects(response, library_url)
+        self.assertFalse(Document.all_objects.filter(pk=doc_id).exists())
+
+        resolved = self._notifications(Notification.Type.DOCUMENT_REPORT_RESOLVED)
+        self.assertEqual(
+            sorted(resolved.values_list("recipient_id", flat=True)),
+            sorted([self.student2.id, self.student3.id]),
+        )
+        for notification in resolved:
+            # The detail page is a 404 now, so the link points to the course library.
+            self.assertEqual(notification.target_url, library_url)
+
+        # The owner acted themselves: no decision notification for them,
+        # and nothing they receive names the reporters.
+        self.assertFalse(
+            Notification.objects.filter(
+                recipient=self.student,
+                notification_type__in=[
+                    Notification.Type.DOCUMENT_REPORT_DISMISSED,
+                    Notification.Type.DOCUMENT_NEEDS_REVISION,
+                    Notification.Type.DOCUMENT_REMOVED,
+                    Notification.Type.DOCUMENT_REPORT_RESOLVED,
+                ],
+            ).exists()
+        )
+        for notification in Notification.objects.filter(recipient=self.student):
+            for reporter in (self.student2, self.student3):
+                self.assertNotIn(reporter.full_name, notification.title + notification.message)
+
+    def test_owner_delete_without_open_reports_sends_no_report_notifications(self):
+        withdraw_report(user=self.student3, document=self.doc_visible)
+        self.client.force_login(self.student2)
+        with self.captureOnCommitCallbacks(execute=True):
+            response = self.client.post(self._url("delete", doc=self.doc_visible))
+
+        self.assertRedirects(response, reverse("documents:library", args=[self.course.id]))
+        self.assertFalse(Document.all_objects.filter(pk=self.doc_visible.pk).exists())
+        self.assertFalse(self._notifications(Notification.Type.DOCUMENT_REPORT_RESOLVED).exists())

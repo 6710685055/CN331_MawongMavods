@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+{% block title %}แชทส่วนตัว {{ course.code }}{% endblock %}
+{% block content %}
+<style>
+  .pchat-list { list-style:none; margin:0; padding:0; }
+  .pchat-item { display:flex; align-items:center; gap:.75rem; padding:.7rem 0; border-bottom:1px solid var(--line); }
+  .pchat-item:last-child { border-bottom:0; }
+  .pchat-avatar { display:grid; place-items:center; width:38px; height:38px; border-radius:50%; background:#e8edff; color:var(--brand); font-weight:700; flex:0 0 auto; }
+  .pchat-info { flex:1; min-width:0; }
+  .pchat-info strong { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pchat-preview { margin:0; color:var(--muted); font-size:.85rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+  .pchat-item form { margin:0; }
+</style>
+
+<div class="card wide" style="margin-bottom:1.25rem;">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem;">
+    <div>
+      <h1 style="margin:0;">แชทส่วนตัว</h1>
+      <p class="help" style="margin:.35rem 0 0;">{{ course.code }} — {{ course.name }} · คุยกับนักศึกษาหรือ TA ในรายวิชาเดียวกันแบบส่วนตัว</p>
+    </div>
+    <a class="btn secondary" href="{% url 'courses:detail' course.id %}">← กลับหน้ารายวิชา</a>
+  </div>
+</div>
+
+<div class="card wide" style="margin-bottom:1.25rem;">
+  <h2 style="margin-top:0;">บทสนทนาของฉัน</h2>
+  {% if chats %}
+    <ul class="pchat-list">
+      {% for chat in chats %}
+        <li class="pchat-item">
+          <span class="pchat-avatar" aria-hidden="true">{{ chat.other_user.full_name|first|upper }}</span>
+          <div class="pchat-info">
+            <strong>{{ chat.other_user.full_name }}</strong>
+            <p class="pchat-preview">
+              {% if chat.last_message %}
+                {% if chat.last_message.sender_id == user.id %}คุณ: {% endif %}{{ chat.last_message.body|truncatechars:80 }}
+              {% else %}
+                ยังไม่มีข้อความ
+              {% endif %}
+            </p>
+          </div>
+          <a class="btn secondary" href="{% url 'courses:private_chat' course.id chat.id %}">เปิดแชท</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="empty-state">
+      <strong>ยังไม่มีบทสนทนา</strong>
+      <p class="help">เลือกเพื่อนจากรายชื่อด้านล่าง แล้วกด “ส่งข้อความ” เพื่อเริ่มแชท</p>
+    </div>
+  {% endif %}
+</div>
+
+<div class="card wide">
+  <h2 style="margin-top:0;">รายชื่อในรายวิชา</h2>
+  {% if classmates %}
+    <ul class="pchat-list">
+      {% for classmate in classmates %}
+        <li class="pchat-item">
+          <span class="pchat-avatar" aria-hidden="true">{{ classmate.full_name|first|upper }}</span>
+          <div class="pchat-info">
+            <strong>{{ classmate.full_name }}</strong>
+            <p class="pchat-preview">
+              {% if classmate.course_role == "ta" %}TA{% else %}นักศึกษา{% endif %} · {{ classmate.email }}
+              {% if classmate.is_blocked_by_me %} · <span class="tag badge-warn">บล็อกแล้ว</span>{% endif %}
+            </p>
+          </div>
+          {% if classmate.private_chat %}
+            <a class="btn secondary" href="{% url 'courses:private_chat' course.id classmate.private_chat.id %}">เปิดแชท</a>
+          {% else %}
+            <form method="post" action="{% url 'courses:start_private_chat' course.id classmate.id %}">
+              {% csrf_token %}
+              <button type="submit">ส่งข้อความ</button>
+            </form>
+          {% endif %}
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <div class="empty-state">
+      <strong>ยังไม่มีผู้ใช้อื่นในรายวิชานี้</strong>
+      <p class="help">เมื่อมีนักศึกษาหรือ TA ได้รับอนุมัติเข้ารายวิชา รายชื่อจะแสดงที่นี่</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

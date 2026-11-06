@@ -1,6 +1,7 @@
 from django.urls import path
 
 from . import group_views
+from . import private_chat_views
 from . import views
 
 app_name = "courses"
@@ -39,6 +40,37 @@ urlpatterns = [
         "<int:course_id>/groups/<int:team_id>/chat/attachments/<int:message_id>/",
         group_views.download_chat_attachment,
         name="download_chat_attachment",
+    ),
+    path("<int:course_id>/chats/", private_chat_views.private_chat_list, name="private_chats"),
+    path(
+        "<int:course_id>/chats/start/<int:user_id>/",
+        private_chat_views.start_private_chat,
+        name="start_private_chat",
+    ),
+    path(
+        "<int:course_id>/chats/<int:chat_id>/",
+        private_chat_views.private_chat,
+        name="private_chat",
+    ),
+    path(
+        "<int:course_id>/chats/<int:chat_id>/messages/",
+        private_chat_views.private_chat_history,
+        name="private_chat_history",
+    ),
+    path(
+        "<int:course_id>/chats/<int:chat_id>/block/",
+        private_chat_views.block_private_chat_user,
+        name="block_private_chat_user",
+    ),
+    path(
+        "<int:course_id>/chats/<int:chat_id>/unblock/",
+        private_chat_views.unblock_private_chat_user,
+        name="unblock_private_chat_user",
+    ),
+    path(
+        "<int:course_id>/chats/<int:chat_id>/messages/<int:message_id>/report/",
+        private_chat_views.report_private_message,
+        name="report_private_message",
     ),
     path("<int:course_id>/members/<int:enrollment_id>/remove/", views.remove_member, name="remove_member"),
     path("enrollment/<int:enrollment_id>/approve/", views.approve_enrollment, name="approve"),

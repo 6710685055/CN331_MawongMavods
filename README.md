@@ -10,10 +10,12 @@
 - **UC3 — Document Management:** อัปโหลด แชร์ ปักหมุด และจัดการเอกสารในรายวิชา
 - **UC4 — Document Verification:** ตรวจสอบ ยืนยัน และส่งเอกสารกลับเพื่อแก้ไข พร้อมระบบแจ้งเตือน
 - **UC7 — Registration & Login:** สมัครสมาชิก ยืนยันอีเมล เข้าสู่ระบบ รีเซ็ตรหัสผ่าน และลงทะเบียนรายวิชา
+- **UC8 — Private Chat:** แชทส่วนตัวกับนักศึกษา/TA ในรายวิชาเดียวกัน พร้อมแจ้งเตือน บล็อก รายงานข้อความ และการพิจารณารายงาน/คำเตือน/ระงับ 24 ชั่วโมงผ่าน Django Admin
 - **UC9 - Group Chatting Message:** การสนทนาระหว่างสมาชิกในกลุ่ม
 - **UC10 — Vote & Report Document:** โหวตคุณภาพเอกสาร (Upvote/Downvote) และ Report เอกสารที่ไม่เหมาะสม พร้อมซ่อนอัตโนมัติเมื่อถึงเกณฑ์
 - **UC14 — Review Reported Documents:** TA/อาจารย์ตรวจเอกสารที่ถูก Report แล้วปฏิเสธ Report, ส่งกลับให้แก้ไข หรือลบเอกสาร พร้อมแจ้งเตือนเจ้าของและผู้ Report
 - **UC11 — Leave Group:** สมาชิกออกจากกลุ่ม โอนหัวหน้ากลุ่ม และแจ้งเตือนสมาชิกที่เหลือ
+- **US-12 — Edit & Delete Documents:** เจ้าของเอกสารแก้ไขข้อมูลเอกสารและลบเอกสารพร้อมไฟล์ได้
 
 ---
 
@@ -35,9 +37,9 @@
 ```text
 CN331/
 ├── accounts/        # สมัครสมาชิก เข้าสู่ระบบ และยืนยันอีเมล
-├── courses/         # รายวิชา การลงทะเบียน กลุ่มงาน และแชทกลุ่ม
+├── courses/         # รายวิชา การลงทะเบียน กลุ่มงาน แชทกลุ่ม และแชทส่วนตัว
 ├── documents/       # อัปโหลดและจัดการเอกสาร
-├── meetings/       # นัดหมายประชุมและการแจ้งเตือน
+├── meetings/        # นัดหมายประชุมและการแจ้งเตือน
 ├── notifications/   # ระบบแจ้งเตือน
 ├── config/          # Django settings และ URL configuration
 ├── templates/       # HTML templates
@@ -380,7 +382,7 @@ python manage.py runserver
 | UC14-11 | เจ้าของไม่เห็นชื่อผู้ Report | `constants/moderation.py`, `report_review_view` (403 สำหรับเจ้าของ) | `test_reviewer_sees_reporter_names_but_owner_cannot` |
 | UC14-12 | ผู้ตรวจไม่เห็นและตัดสินเอกสารที่ตัวเองอัปโหลดไม่ได้ | `reported_documents(exclude_uploader=...)`, `CANNOT_MODERATE_OWN` | `test_queue_order_counts_reasons_and_excludes_own_uploads` |
 | UC14-13 | ผู้ตรวจสองคนพร้อมกัน: บันทึกครั้งเดียว และคนที่สองได้ "ดำเนินการแล้ว" | conditional UPDATE ใน `_close_open_reports` | `test_second_concurrent_decision_is_rejected_and_not_recorded` |
-| UC14-14 | เจ้าของลบเอกสารเองระหว่างรอ (UC12): ปิด Report และแจ้งผู้ Report | `close_reports_for_owner_deletion` | `test_owner_deletion_hook_closes_reports_and_notifies_reporters` |
+| UC14-14 | เจ้าของลบเอกสารเองระหว่างรอ (US12): ปิด Report และแจ้งผู้ Report (การลบเป็น hard delete จึงไม่เก็บประวัติการตัดสิน) | `close_reports_for_owner_deletion`, `services/management.py: delete_document` | `test_owner_deletion_hook_closes_reports_and_notifies_reporters`, `test_owner_delete_via_us12_notifies_reporters_and_links_to_library`, `test_owner_delete_without_open_reports_sends_no_report_notifications` |
 
 ---
 
@@ -447,6 +449,62 @@ python manage.py test courses.test_uc_group
 - [x] เมื่อสมาชิกออกจากกลุ่มตาม UC11 ให้เพิกถอนสิทธิ์หน้าแชท การดาวน์โหลดไฟล์ และ WebSocket ที่เชื่อมต่ออยู่ พร้อม regression tests
 - [ ] เมื่อผู้ดูแลรายวิชานำสมาชิกออก ให้เพิกถอนสิทธิ์แชท/ไฟล์แนบและ WebSocket ที่เชื่อมต่ออยู่ พร้อมเพิ่ม regression tests สำหรับ flow นั้น
 - [ ] ทดสอบการตั้งค่า Redis และการ broadcast เมื่อรันหลาย worker/instance; in-memory channel layer เหมาะกับการพัฒนาแบบ process เดียวเท่านั้น
+
+### 8.6 UC8 — Private Chat
+
+**User Story:** ในฐานะนักศึกษา/TA ฉันต้องการสนทนากับผู้ใช้คนอื่นแบบส่วนตัว เพื่อให้สามารถติดต่อหรือพูดคุยเรื่องที่ไม่ต้องการส่งในกลุ่มได้
+
+- ผู้ใช้ได้แก่นักศึกษาและ TA ที่ได้รับอนุมัติในรายวิชา (`Enrollment.Role.STUDENT` / `TA`) ผู้ที่รออนุมัติและอาจารย์ไม่อยู่ในรายชื่อ
+- ทางเข้า: หน้ารายวิชา → **💬 แชทส่วนตัว** → เลือกเพื่อนจากรายชื่อในรายวิชา → กด **ส่งข้อความ**
+- ห้องแชท (`PrivateChat`) ผูกกับรายวิชาและคู่ผู้ใช้ โดยเก็บคู่ผู้ใช้เรียงตาม id (`user_low < user_high`) และมี unique constraint ระดับฐานข้อมูล จึงไม่เกิดห้องซ้ำแม้ทั้งสองฝ่ายเปิดพร้อมกัน (กรณีชนกันระบบดึงห้องเดิมกลับมา)
+- ข้อความ (`PrivateChatMessage`) ถูกบันทึกเป็นประวัติ ส่งผ่าน WebSocket แบบเรียลไทม์ และยังส่งด้วยฟอร์ม POST ปกติได้เมื่อไม่ได้เชื่อมต่อ WebSocket
+- **ประวัติแชท:** หน้าแชทแสดงข้อความล่าสุด 100 ข้อความ (`PRIVATE_CHAT_PAGE_SIZE`) กด **โหลดข้อความเก่า** เพื่อโหลดทีละชุดผ่าน endpoint JSON ที่ใช้ cursor (`created_at`, `id`) ของข้อความเก่าสุดที่แสดงอยู่ จึงเรียงลำดับแน่นอนและไม่ซ้ำ แม้มีข้อความใหม่เข้ามาระหว่างโหลด ตำแหน่งเลื่อนคงอยู่ที่เดิม และแสดง “ไม่มีข้อความเก่ากว่านี้แล้ว” เมื่อโหลดครบ
+- ผู้รับได้รับ in-app notification ประเภท `private_chat_message` พร้อมลิงก์เข้าห้อง (ไม่ใส่เนื้อหาข้อความในแจ้งเตือน)
+- **Block (`UserBlock`):** เมื่อฝ่ายใดบล็อก ทั้งสองฝ่ายส่งข้อความถึงกันไม่ได้ทุกห้อง/ทุกรายวิชา จนกว่าผู้บล็อกจะกด **ยกเลิกบล็อก** (เฉพาะผู้บล็อกเท่านั้นที่ยกเลิกได้) ประวัติเดิมยังอ่านได้ หลัง block/unblock ทุกครั้ง server ส่ง event `block.state` ผ่าน WebSocket ให้ทั้งสองหน้าที่เปิดอยู่ โดยแต่ละการเชื่อมต่ออ่านสถานะจริงจากฐานข้อมูล (รวมกรณีต่างฝ่ายต่างบล็อก) และส่งอีกครั้งทุกครั้งที่เชื่อมต่อใหม่ ช่องส่งข้อความจึงเปิด/ปิดตามสถานะล่าสุดโดยไม่ต้องรีเฟรช ส่วนการส่งข้อความยังตรวจ block ฝั่ง server เสมอ
+- **Report (`PrivateMessageReport`):** ผู้รับรายงานข้อความของอีกฝ่ายได้ โดยเลือกเหตุผลและระบุรายละเอียดเพิ่มเติม ระบบบันทึกผู้รายงาน ผู้ถูกรายงาน รายวิชา สำเนาข้อความ เวลาที่ส่ง และ snapshot ข้อความใกล้เคียงไม่เกิน 3 ข้อความก่อน/หลัง (`REPORT_CONTEXT_SIZE`) รายงานใหม่มีสถานะ `pending` (รอตรวจสอบ) รายงานข้อความเดิมซ้ำไม่ได้ รายงานข้อความของตัวเองไม่ได้ และรายงานข้อความที่ถูกซ่อนแล้วไม่ได้
+- **การตรวจสิทธิ์ฝั่ง server:** ทุกการเปิดห้อง อ่านประวัติ ส่งข้อความ (ทั้ง HTTP และ WebSocket) block และ report ตรวจว่าเป็นคู่สนทนาของห้องนั้น และทั้งสองคนยังลงทะเบียนในรายวิชาของห้อง ผู้ไม่มีสิทธิ์ได้ 404 / WebSocket ถูกปิดด้วย code 4403 การเปลี่ยนสถานะทั้งหมดเป็น POST ที่มี CSRF token และแสดงข้อความด้วย template auto-escaping
+
+
+#### การพิจารณารายงานและบทลงโทษ (UC8 moderation)
+
+1. **คิวรายงาน:** Django Admin → *Private message reports* แสดงรายงานพร้อมตัวกรองสถานะ (รอตรวจสอบ / ยืนยันรายงาน / ปฏิเสธรายงาน) หน้าแต่ละรายงานแสดงหลักฐานและบริบทข้อความใกล้เคียง ซึ่งเห็นได้เฉพาะใน Admin
+2. **สิทธิ์:** อ่านคิวได้เมื่อเป็น staff และมี permission `courses.view_privatemessagereport` หรือ `courses.review_privatemessagereport`; ตัดสินรายงานและยกเลิกการระงับได้เฉพาะ staff ที่มี `courses.review_privatemessagereport` (superuser มีอยู่แล้ว) ตรวจทั้งใน Admin และใน service (`courses/private_chat_moderation.py`)
+3. **ตัดสิน:** เลือก “ยืนยันรายงาน” หรือ “ปฏิเสธรายงาน” พร้อมหมายเหตุ ระบบบันทึกผู้ตรวจ เวลา และหมายเหตุ รายงานที่ตัดสินแล้วเป็นแบบอ่านอย่างเดียว การ submit ซ้ำหรือสองคนกดพร้อมกันจะถูกปฏิเสธ (อัปเดตสถานะแบบ compare-and-set จาก `pending`)
+4. **ปฏิเสธ:** ข้อความแสดงตามปกติ ไม่นับเป็นเหตุการณ์ และแจ้งผลแก่ผู้รายงาน
+5. **ยืนยัน:** ข้อความถูกซ่อนจากหน้าแชทของทั้งสองฝ่าย (ตั้ง `hidden_at`, ไม่ลบแถว) หน้าที่เปิดอยู่จะลบข้อความออกผ่าน WebSocket event `message.hidden` หลักฐานยังอยู่ในรายงาน และใน `PrivateChatIncident` แจ้งผลแก่ผู้รายงาน และแจ้งผู้ส่งตามบทลงโทษ
+6. **การนับ:** หนึ่งข้อความเป็นหนึ่งเหตุการณ์ (`PrivateChatIncident`, unique ต่อข้อความ) แม้มีหลายรายงานหรือกดซ้ำ นับเฉพาะที่ยืนยันแล้ว ต่อผู้ส่งหนึ่งคน
+   - เหตุการณ์ที่ 1–3: ซ่อนข้อความและออกคำเตือน (แจ้งว่าเป็นครั้งที่เท่าไรจาก 3)
+   - เหตุการณ์ที่ 4 เป็นต้นไป: ซ่อนข้อความและสร้าง `PrivateChatSuspension` ระงับผู้ส่งจากการส่งข้อความถึงผู้ที่รายงาน (คู่สนทนาของข้อความนั้น) 24 ชั่วโมงนับจากเวลาที่ยืนยัน
+7. **ขอบเขตการระงับ:** มีผลเฉพาะการส่งข้อความส่วนตัวจากผู้ถูกระงับถึงคู่สนทนานั้น (ทุกห้องของคู่นี้) อ่านประวัติได้ตามปกติ อีกฝ่ายยังส่งหาได้ ไม่สร้างหรือแก้ `UserBlock` และไม่กระทบ group chat UC9
+8. **การบังคับใช้:** ทุกการส่งข้อความ (HTTP POST และ WebSocket) ตรวจ `starts_at <= now < ends_at` และ `lifted_at` จากฐานข้อมูล ไม่มีตัวจับเวลาใน process เมื่อเลยเวลา `ends_at` ก็ส่งได้ทันที หน้าแชทแสดงแถบแจ้งเวลาสิ้นสุด และ event `block.state` มี `suspended_until`
+9. **ยกเลิกการระงับก่อนกำหนด:** Django Admin → *Private chat suspensions* → เปิดรายการที่ยังมีผล กรอกเหตุผล แล้วบันทึก ระบบเก็บผู้ยกเลิก เวลา และเหตุผล แจ้งผู้ถูกระงับ และอัปเดตหน้าแชทที่เปิดอยู่
+10. **Audit trail:** `PrivateChatModerationLog` บันทึกการยืนยัน/ปฏิเสธ คำเตือน การระงับ และการยกเลิกระงับ (ผู้ดำเนินการ ผู้ได้รับผล หมายเหตุ เวลา) เปิดดูใน Admin แบบอ่านอย่างเดียว ลบไม่ได้
+11. **การแจ้งเตือน:** ใช้ระบบ Notification กลาง (`send_notification`) ประเภท `private_report_result` (ถึงผู้รายงาน), `private_chat_warning`, `private_chat_suspended`, `private_chat_unsuspended` (ถึงผู้ถูกรายงาน) แจ้งเตือนถึงผู้ถูกรายงานไม่ระบุชื่อผู้รายงานหรือผู้ตรวจ และไม่มีลิงก์ไปยังห้อง แจ้งเตือนเป็น in-app ที่เห็นเมื่อโหลดหน้าใหม่ ยังไม่มี toast แบบ real-time (เป็นงานแยกของระบบ Notification ทั้งโปรเจกต์)
+
+ตั้งค่าผู้ตรวจ: สร้าง superuser หรือ staff แล้วให้ permission *“พิจารณารายงานข้อความส่วนตัวและยกเลิกการระงับ”* ใน Django Admin → Users
+
+> **ข้อควรทราบเรื่องฐานข้อมูลบน Render:** คำเตือน การระงับ และ audit trail เก็บในฐานข้อมูลเท่านั้น แต่ `config/settings.py` ตอนนี้ใช้ SQLite (`db.sqlite3`) เสมอ บน Render ไฟล์ระบบของ web service ไม่ถาวร (ข้อมูลหายเมื่อ deploy/restart) หากไม่ได้ต่อ Persistent Disk จึงควรย้ายไปใช้ฐานข้อมูลถาวร เช่น Render PostgreSQL ก่อนใช้งานจริง (ต้องเพิ่ม driver และอ่านค่า `DATABASE_URL` ใน settings ซึ่งไม่ได้อยู่ในขอบเขตงานนี้)
+
+| URL | ความสามารถ |
+|---|---|
+| `/courses/<course_id>/chats/` | รายการบทสนทนาและรายชื่อในรายวิชา |
+| `/courses/<course_id>/chats/start/<user_id>/` | (POST) เปิดห้องเดิมหรือสร้างห้องใหม่ |
+| `/courses/<course_id>/chats/<chat_id>/` | อ่านประวัติ / (POST) ส่งข้อความ |
+| `/courses/<course_id>/chats/<chat_id>/messages/?before=<message_id>` | (GET, JSON) โหลดข้อความเก่ากว่าข้อความที่ระบุทีละชุด |
+| `/courses/<course_id>/chats/<chat_id>/block/` | (POST) บล็อกคู่สนทนา |
+| `/courses/<course_id>/chats/<chat_id>/unblock/` | (POST) ยกเลิกบล็อก |
+| `/courses/<course_id>/chats/<chat_id>/messages/<message_id>/report/` | (POST) รายงานข้อความ |
+| `/ws/courses/<course_id>/chats/<chat_id>/` | WebSocket ส่งและรับข้อความแบบเรียลไทม์ |
+
+โค้ดหลัก: `courses/models.py`, `courses/private_chat_services.py`, `courses/private_chat_moderation.py`, `courses/admin.py`, `courses/private_chat_views.py`, `courses/consumers.py` (`PrivateChatConsumer`), `templates/courses/private_chat_list.html`, `templates/courses/private_chat.html`
+
+ทดสอบ UC8:
+
+```bash
+python manage.py test courses.test_uc_private_chat courses.test_uc_private_chat_moderation
+```
+
+ทดลองใช้งาน: สร้างผู้ใช้นักศึกษา 2 คนในรายวิชาเดียวกันและให้อาจารย์อนุมัติ (หรือเพิ่มผ่าน Django Admin) เข้าสู่ระบบด้วยคนละเบราว์เซอร์/หน้าต่างไม่ระบุตัวตน แล้วเปิด **แชทส่วนตัว** จากหน้ารายวิชา
 
 ## 9. การทดสอบระบบ
 
@@ -564,7 +622,7 @@ git commit -m "Resolve merge conflicts"
 
 ## 13. Development Notes
 
-README นี้สรุปแนวทางติดตั้ง การตั้งค่า การทดสอบ และความสามารถหลักของ UC1, US02, UC3, UC4 และ UC7
+README นี้สรุปแนวทางติดตั้ง การตั้งค่า การทดสอบ และความสามารถของ UC1, US02, UC3, UC4, UC7, UC8, UC9, UC11 และ UC12
 
 รายละเอียดการทำงานจริง เช่น URL, ชื่อฟังก์ชัน, สถานะเอกสาร, สิทธิ์ผู้ใช้ และ Acceptance Criteria ควรตรวจสอบเทียบกับ Source Code และข้อกำหนดของโปรเจกต์ก่อนส่งงานทุกครั้ง
 
@@ -572,21 +630,25 @@ README นี้สรุปแนวทางติดตั้ง การต
 
 ## US-02 — การนัดหมายประชุมกลุ่มและการแจ้งเตือน
 
-branch `issue-2-group-meeting-notification` เพิ่มความสามารถนัดหมายประชุมให้กับสมาชิกกลุ่มที่เข้าสู่ระบบ ผู้ใช้สามารถสร้างนัดหมาย ระบุหัวข้อ ลิงก์ วันและเวลา ดูนัดหมายที่กำลังจะมาถึงในพื้นที่กลุ่ม และแก้ไขหรือเลื่อนนัดหมายได้ เมื่อมีการเปลี่ยนนัดหมาย ระบบจะส่งการแจ้งเตือนภายในแอปให้สมาชิกกลุ่ม และสามารถส่งการแจ้งเตือนเตือนก่อนถึงเวลาประชุมได้
+สมาชิกกลุ่มทำงาน (Team) สร้างนัดหมาย ระบุหัวข้อ ลิงก์ วันและเวลา ดูนัดหมายที่กำลังจะมาถึงในพื้นที่กลุ่ม และแก้ไขหรือเลื่อนนัดหมายได้ ระบบส่งการแจ้งเตือนภายในแอปให้สมาชิกเมื่อสร้างและเปลี่ยนนัดหมาย (เริ่มใน branch `issue-2-group-meeting-notification` และเปลี่ยนมาใช้ Team ใน Issue #10)
 
 **User Story:** ในฐานะสมาชิกกลุ่ม ฉันต้องการสร้างและจัดการนัดหมายประชุมของกลุ่ม เพื่อให้สมาชิกทุกคนทราบวัน เวลา และลิงก์ประชุม
 
-### การเตรียมข้อมูลกลุ่มสำหรับทดลอง
+### กลุ่มของนัดหมาย
 
-ขณะนี้ US-01 ยังอยู่ระหว่างพัฒนา จึงใช้ Django `Group` เป็น adapter ชั่วคราวสำหรับสมาชิกกลุ่ม ให้เข้าสู่ระบบ Django Admin ที่ `/admin/` สร้าง Group และเพิ่มบัญชีผู้ใช้ทดสอบเป็นสมาชิก จากนั้นผู้ใช้เหล่านั้นจึงจะเห็นพื้นที่กลุ่มและนัดหมายได้ เมื่อนำโมเดลกลุ่มของ US-01 มารวม อาจต้องปรับ adapter ใน `meetings/group_access.py`
+นัดหมายผูกกับกลุ่มทำงาน (`courses.Team`) ผ่าน adapter `meetings.group_access.TeamAccess` ซึ่งเป็นค่าเริ่มต้นใน `config/settings.py` สมาชิกคือผู้ใช้ active ใน `TeamMembership` ที่ยังลงทะเบียนเป็น Student ในวิชาของกลุ่ม ทุกคนในกลุ่มสร้าง แก้ไข และเลื่อนนัดได้ ผู้ที่ไม่ใช่สมาชิกได้ 403 แม้เข้า URL ตรง ผู้ที่ออกจากกลุ่มหรือถูกถอนจากรายวิชาจะไม่เห็นนัดและไม่ได้รับแจ้งเตือนของกลุ่มนั้นอีก เข้าหน้านัดหมายได้จากปุ่ม **นัดหมายประชุม** ในหน้ากลุ่มของรายวิชา ซึ่งแสดงนัดที่กำลังจะมาถึงด้วย
+
+นัดเก่าที่ผูกกับ Django `Group` (ข้อมูลทดสอบก่อนเปลี่ยนมาใช้ Team) ไม่ถูกย้ายหรือลบ แต่ไม่แสดงในกลุ่มใดและคำสั่งเตือนจะข้ามไป ลิงก์ในแจ้งเตือนเก่าที่เป็น `/meetings/groups/<id>/` ใช้ไม่ได้แล้ว
+
+**การแจ้งเตือน:** สร้างนัด → แจ้งสมาชิกทุกคนยกเว้นผู้สร้าง · เลื่อนเวลา → แจ้งทุกคนยกเว้นผู้เลื่อน และเริ่มนับการเตือนใหม่ · แก้เฉพาะชื่อ/ลิงก์ → แจ้งทุกคนยกเว้นผู้แก้ โดยไม่รีเซ็ตการเตือน · เวลาในข้อความเป็นเวลาประเทศไทย
 
 ### หน้าของ US-02
 
 | หน้า | URL |
 |---|---|
 | รวมนัดหมายของผู้ใช้ | `/meetings/` |
-| พื้นที่นัดหมายของกลุ่ม | `/meetings/groups/<group_id>/` |
-| สร้างนัดหมาย | `/meetings/groups/<group_id>/create/` |
+| พื้นที่นัดหมายของกลุ่ม | `/meetings/teams/<team_id>/` |
+| สร้างนัดหมาย | `/meetings/teams/<team_id>/create/` |
 | แก้ไขหรือเลื่อนนัดหมาย | `/meetings/<meeting_id>/edit/` |
 
 ### เกณฑ์การยอมรับ (Acceptance Criteria) และตำแหน่งที่พัฒนา
@@ -595,10 +657,13 @@ branch `issue-2-group-meeting-notification` เพิ่มความสาม
 |---|---|
 | สมาชิกกลุ่มสร้างนัดหมายได้ โดยตรวจสอบสิทธิ์ | `meetings/views.py`, `meetings/permissions.py`, `meetings/group_access.py` |
 | กำหนดหัวข้อ ลิงก์ วันและเวลาได้ พร้อมตรวจ URL และเวลาที่ต้องเป็นอนาคต | `meetings/forms.py`, `meetings/models.py` |
-| แสดงนัดหมายที่กำลังจะมาถึง และปักนัดหมายถัดไปไว้ด้านบน | `meetings/selectors.py`, `templates/meetings/group_meetings.html` |
+| แสดงนัดหมายที่กำลังจะมาถึง และปักนัดหมายถัดไปไว้ด้านบน | `meetings/selectors.py`, `templates/meetings/group_meetings.html`, `templates/courses/group_dashboard.html` |
 | สมาชิกแก้ไขหรือเลื่อนนัดหมายได้ | `meetings/views.py`, `meetings/services.py`, `templates/meetings/meeting_form.html` |
-| แจ้งสมาชิกเมื่อมีการเปลี่ยนนัดหมาย | `meetings/services.py`, `notifications/services.py`, `notifications/models.py` |
-| แจ้งเตือนก่อนเวลาประชุม | `meetings/services.py`, `meetings/management/commands/send_meeting_reminders.py` |
+| แจ้งสมาชิกเมื่อสร้างหรือเปลี่ยนนัดหมาย | `meetings/services.py`, `notifications/services.py`, `notifications/models.py` |
+
+### ข้อจำกัดและงานที่แยกไว้
+
+- แจ้งเตือนเป็นแบบภายในแอป ผู้ใช้เห็นเมื่อเปิดหรือรีเฟรชหน้าเว็บ ระบบแจ้งเตือนแบบ real-time แยกเป็น issue ของระบบ Notification ส่วนกลาง
 
 ### คำสั่งเฉพาะสำหรับ US-02
 
@@ -618,3 +683,44 @@ python manage.py send_meeting_reminders
 คำสั่งเตือนต้องถูกเรียกตามกำหนดเวลา เช่น ตั้ง Windows Task Scheduler ให้รันทุกหนึ่งนาที Django ไม่ได้รันคำสั่งนี้ให้อัตโนมัติ
 
 ดูรายละเอียดการออกแบบเพิ่มเติมได้ที่ `docs/meeting_uc2.md`.
+
+---
+
+## US-12 — แก้ไขและลบเอกสาร
+
+**User Story:** ในฐานะเจ้าของเอกสาร ฉันต้องการแก้ไขหรือลบเอกสารของตนเอง เพื่อจัดการข้อมูลเอกสารให้ถูกต้องและเป็นปัจจุบัน
+
+### ขอบเขตและสิทธิ์
+
+- เจ้าของเอกสารที่ยังเป็นสมาชิกของรายวิชาแก้ไขชื่อ ประเภท ปีการศึกษา ภาคการศึกษา บทที่เกี่ยวข้อง และคำอธิบายได้
+- การเปลี่ยนประเภทเอกสารจะตั้งสถานะ Verify ใหม่ตามประเภท หากเปลี่ยนเป็นการบ้าน ต้องยืนยันว่าเลยกำหนดส่งแล้ว
+- เจ้าของเปลี่ยนไฟล์แนบเป็นเวอร์ชันใหม่ได้จากหน้าเอกสาร ระบบเพิ่มเลขเวอร์ชันและส่งเอกสารที่ตรวจได้กลับเข้าคิวรอตรวจ
+- เฉพาะเจ้าของเอกสารลบได้ การลบส่งด้วย `POST` หลังยืนยัน แล้วลบทั้งไฟล์และข้อมูลโหวต Report และประวัติการตรวจที่ผูกกับเอกสาร
+- หน้าเอกสารแสดงปุ่มแก้ไขและลบให้เจ้าของเท่านั้น ส่วนเซิร์ฟเวอร์ตรวจสิทธิ์ซ้ำทุกคำขอ
+
+### หน้าของ US-12
+
+| การทำงาน | URL | Method |
+|---|---|---|
+| แก้ไขข้อมูลเอกสาร | `/courses/<course_id>/documents/<doc_id>/edit/` | `GET`, `POST` |
+| เปลี่ยนไฟล์เป็นเวอร์ชันใหม่ | `/courses/<course_id>/documents/<doc_id>/replace-file/` | `POST` |
+| ลบเอกสาร | `/courses/<course_id>/documents/<doc_id>/delete/` | `POST` |
+
+ทุกการทำงานเริ่มจากหน้าเอกสาร `/courses/<course_id>/documents/<doc_id>/` โดยปุ่มแก้ไขและลบแสดงให้เจ้าของเอกสาร
+
+### Acceptance Criteria และตำแหน่งที่พัฒนา
+
+| เกณฑ์การยอมรับ | ตำแหน่งในโค้ด |
+|---|---|
+| เจ้าของแก้ไขข้อมูลที่อนุญาตได้ พร้อมตรวจข้อมูลบังคับและปีการศึกษา | `documents/forms.py`, `documents/services/management.py`, `documents/views/management.py`, `templates/documents/edit.html` |
+| ป้องกันสมาชิกคนอื่นหรือผู้ที่ไม่ได้ลงทะเบียนแก้ไขและลบ | `documents/services/management.py`, `documents/views/management.py` |
+| เปลี่ยนไฟล์ เพิ่มเลขเวอร์ชัน และรีเซ็ตสถานะ Verify | `documents/services/versioning.py`, `documents/views/review.py` |
+| ยืนยันก่อนลบ ส่งคำขอลบด้วย POST และลบไฟล์หลังบันทึกฐานข้อมูล | `templates/documents/detail.html`, `documents/views/management.py`, `documents/services/management.py` |
+| ลบโหวต Report และประวัติการตรวจที่อ้างถึงเอกสาร | Foreign keys ใน `documents/models/feedback.py` และ `documents/models/review.py` ใช้ `on_delete=CASCADE` |
+
+รันชุดทดสอบ US-12 หรือชุดเอกสารทั้งหมดได้ด้วย:
+
+```bash
+python manage.py test documents.tests.test_us12_document_management
+python manage.py test documents
+```

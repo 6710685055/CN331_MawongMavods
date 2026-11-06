@@ -11,12 +11,18 @@ class Notification(models.Model):
         DOCUMENT_REPORT_DISMISSED = "doc_report_dismissed", "Report ต่อเอกสารถูกปฏิเสธ"
         DOCUMENT_REMOVED = "doc_removed", "เอกสารถูกลบจากการตรวจ Report"
         DOCUMENT_REPORT_RESOLVED = "doc_report_resolved", "Report ของคุณได้รับการดำเนินการแล้ว"
+        MEETING_CREATED = "meeting_created", "มีนัดหมายประชุมใหม่"
         MEETING_REMINDER = "meeting_reminder", "แจ้งเตือนก่อนประชุม"
         MEETING_UPDATED = "meeting_updated", "มีการเปลี่ยนแปลงนัดหมายประชุม"
         TEAM_INVITATION = "team_invitation", "คำเชิญเข้ากลุ่ม"
         TEAM_INVITATION_RESPONSE = "team_response", "การตอบรับคำเชิญเข้ากลุ่ม"
         TEAM_CHAT_MESSAGE = "team_chat_message", "ข้อความใหม่ในแชทกลุ่ม"
         TEAM_MEMBERSHIP = "team_membership", "การเปลี่ยนแปลงสมาชิกกลุ่ม"
+        PRIVATE_CHAT_MESSAGE = "private_chat_message", "ข้อความส่วนตัวใหม่"
+        PRIVATE_REPORT_RESULT = "private_report_result", "ผลการพิจารณารายงานข้อความ"
+        PRIVATE_CHAT_WARNING = "private_chat_warning", "คำเตือนการใช้แชทส่วนตัว"
+        PRIVATE_CHAT_SUSPENDED = "private_chat_suspended", "ระงับการส่งข้อความส่วนตัว"
+        PRIVATE_CHAT_UNSUSPENDED = "private_chat_unsuspended", "ยกเลิกการระงับข้อความส่วนตัว"
         GENERAL = "general", "ทั่วไป"
 
     recipient = models.ForeignKey(

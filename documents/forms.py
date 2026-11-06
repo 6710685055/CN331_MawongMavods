@@ -92,6 +92,59 @@ class DocumentUploadForm(forms.ModelForm):
         return cleaned_data
 
 
+class DocumentEditForm(forms.ModelForm):
+    """Owner-editable metadata for an existing document (US-12)."""
+
+    confirm_past_deadline = forms.BooleanField(
+        label="ฉันยืนยันว่าการบ้านชิ้นนี้เป็นงานที่หมดกำหนดส่งแล้ว",
+        required=False,
+        help_text="จำเป็นเมื่อต้องเปลี่ยนประเภทเอกสารเป็น 'การบ้าน'",
+    )
+
+    class Meta:
+        model = Document
+        fields = [
+            "title",
+            "doc_type",
+            "academic_year",
+            "semester",
+            "related_chapter",
+            "description",
+        ]
+        widgets = {"description": forms.Textarea(attrs={"rows": 4})}
+
+    def clean_title(self):
+        title = (self.cleaned_data.get("title") or "").strip()
+        if not title:
+            raise forms.ValidationError("กรุณากรอกชื่อเอกสาร")
+        return title
+
+    def clean_academic_year(self):
+        year = self.cleaned_data.get("academic_year")
+        if year is not None and (year < 2500 or year > 2700):
+            raise forms.ValidationError("กรุณาระบุปีการศึกษาเป็น พ.ศ. ที่ถูกต้อง (เช่น 2569)")
+        return year
+
+    def clean_related_chapter(self):
+        return (self.cleaned_data.get("related_chapter") or "").strip()
+
+    def clean_description(self):
+        return (self.cleaned_data.get("description") or "").strip()
+
+    def clean(self):
+        cleaned_data = super().clean()
+        if (
+            cleaned_data.get("doc_type") == Document.DocType.HOMEWORK
+            and self.instance.doc_type != Document.DocType.HOMEWORK
+            and not cleaned_data.get("confirm_past_deadline")
+        ):
+            self.add_error(
+                "confirm_past_deadline",
+                "กรุณายืนยันว่าการบ้านชิ้นนี้หมดกำหนดส่งแล้ว",
+            )
+        return cleaned_data
+
+
 class RequestRevisionForm(forms.Form):
     comment = forms.CharField(
         label="ความคิดเห็นสำหรับเจ้าของเอกสาร",

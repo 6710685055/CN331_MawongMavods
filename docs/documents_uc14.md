@@ -3,7 +3,7 @@
 - **ขอบเขต:** แอป `documents` (ส่วน UC14) และ `notifications` (ประเภท `doc_report_dismissed`, `doc_removed`, `doc_report_resolved`)
 - **อัปเดตล่าสุด:** 2026-11-02 (branch `us14-pp`)
 - **ต่อจาก:** UC10 (`docs/documents_uc10.md`) ซึ่งสร้าง `DocumentReport` และสถานะซ่อน
-- **ส่วนที่ยังไม่ทำ:** หน้าจอให้เจ้าของลบเอกสารเอง (UC12) แต่มี service `close_reports_for_owner_deletion()` รอไว้แล้ว
+- **เชื่อมกับ US12:** เมื่อเจ้าของลบเอกสารเอง `services/management.py: delete_document()` เรียก `close_reports_for_owner_deletion()` ภายใน transaction เดียวกันและก่อน `document.delete()` เพื่อปิด Report และแจ้งผู้ Report ทุกคน (ลิงก์ในแจ้งเตือนชี้ไปคลังเอกสารของวิชา) การลบของ US12 เป็น hard delete ดังนั้น `DocumentReportDecision` แบบ `owner_deleted` จะถูกลบพร้อมเอกสาร (CASCADE) แต่แจ้งเตือนยังอยู่ เพราะ `Notification` ไม่ได้ผูก FK กับเอกสาร
 
 ---
 
