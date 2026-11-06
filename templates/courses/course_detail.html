@@ -30,6 +30,7 @@
         <a class="btn secondary" href="{% url 'documents:upload' course.id %}">＋ อัปโหลดเอกสาร</a>
         {% if is_staff %}
           <a class="btn secondary" href="{% url 'documents:review_queue' course.id %}">📋 เอกสารรอตรวจ</a>
+          <a class="btn secondary" href="{% url 'documents:reported_queue' course.id %}">🚩 เอกสารที่ถูก Report</a>
         {% endif %}
         {% if enrollment.role == "student" %}
           <a class="btn secondary" href="{% url 'courses:groups' course.id %}">👥 ระบบจัดกลุ่ม</a>

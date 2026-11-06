@@ -1,0 +1,70 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}เอกสารที่ถูก Report — {{ course.code }}{% endblock %}
+{% block extra_head %}
+  <link rel="stylesheet" href="{% static 'documents/css/feedback.css' %}">
+{% endblock %}
+{% block content %}
+<div class="card wide">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.75rem; margin-bottom:1rem;">
+    <div>
+      <h1 style="margin:0;">🚩 เอกสารที่ถูก Report: {{ course.code }} {{ course.name }}</h1>
+      <p class="help" style="margin:.2rem 0 0;">
+        เรียงเอกสารที่ถูกซ่อนก่อน แล้วตามจำนวน Report (ไม่แสดงเอกสารที่คุณอัปโหลดเอง)
+      </p>
+    </div>
+    <a class="btn secondary" href="{% url 'documents:library' course.id %}">← กลับไปคลังเอกสาร</a>
+  </div>
+
+  {% if queue_documents %}
+    <table>
+      <thead>
+        <tr>
+          <th>สถานะ</th>
+          <th>เอกสาร</th>
+          <th>ผู้อัปโหลด</th>
+          <th>จำนวน Report</th>
+          <th>เหตุผล</th>
+          <th>Report ล่าสุด</th>
+          <th style="text-align:right;">การจัดการ</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for doc in queue_documents %}
+          <tr>
+            <td>
+              {% if doc.is_hidden %}
+                <span class="tag badge-warn">ซ่อนชั่วคราว</span>
+              {% else %}
+                <span class="tag">แสดงอยู่</span>
+              {% endif %}
+            </td>
+            <td>
+              <strong>{{ doc.title }}</strong> <span class="help">(v{{ doc.version }})</span>
+              <div class="help">{{ doc.get_doc_type_display }}</div>
+              {% if doc.has_active_verified_badge %}
+                <span class="tag badge-verified">✓ {{ doc.verified_badge_label }}</span>
+              {% endif %}
+            </td>
+            <td>{{ doc.uploader.full_name }}</td>
+            <td><strong>{{ doc.open_report_count }}</strong></td>
+            <td>
+              <ul class="reason-summary">
+                {% for label, total in doc.reason_summary %}
+                  <li>{{ label }} × {{ total }}</li>
+                {% endfor %}
+              </ul>
+            </td>
+            <td class="help">{{ doc.last_reported_at|date:"d/m/Y H:i" }}</td>
+            <td style="text-align:right; white-space:nowrap;">
+              <a class="btn" href="{% url 'documents:report_review' course.id doc.id %}">เปิดตรวจ</a>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  {% else %}
+    <p>ไม่มีเอกสารที่ถูก Report ค้างอยู่ในรายวิชานี้</p>
+  {% endif %}
+</div>
+{% endblock %}

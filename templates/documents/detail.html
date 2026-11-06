@@ -23,6 +23,9 @@
     </div>
     <div class="actions" style="margin:0;">
       <a class="btn" href="{% url 'documents:download' course.id document.id %}">ดาวน์โหลดไฟล์</a>
+      {% if can_moderate_reports and open_report_count %}
+        <a class="btn danger" href="{% url 'documents:report_review' course.id document.id %}">🚩 ตรวจ Report ({{ open_report_count }})</a>
+      {% endif %}
       {% if can_pin %}
         <form method="post" action="{% url 'documents:toggle_pin' course.id document.id %}" style="display:inline;">
           {% csrf_token %}
@@ -46,8 +49,8 @@
         · ผูกกับไฟล์เวอร์ชัน: v{{ document.verified_version }}
       </div>
     </div>
-  {% elif show_review_details and document.is_verifiable %}
-    {% if document.verify_status == "pending" %}
+  {% elif show_review_details %}
+    {% if document.verify_status == "pending" and document.is_verifiable %}
       <div class="panel" style="background:#fff8e6; border-color:#f5d38c;">
         <span class="tag badge-pending">สถานะ: รอตรวจ</span>
         <span class="help" style="margin-left:.5rem;">(เห็นเฉพาะเจ้าของเอกสาร, TA และอาจารย์ผู้สอนของวิชา)</span>

@@ -18,3 +18,12 @@
 .inline-form { display:inline; margin:0; }
 .tag.badge-reported { background:#fff8e6; color:var(--warn); border:1px solid #f5d38c; font-weight:600; }
 .hidden-banner { background:#fdeceb; border-color:#f5b5b0; display:flex; gap:.5rem; align-items:center; flex-wrap:wrap; }
+
+/* UC14: reported-documents queue and decision forms. */
+.reason-summary { margin:0; padding-left:1rem; }
+.decision-grid { display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:1rem; }
+.decision-form { margin-top:0; display:flex; flex-direction:column; }
+.decision-form .actions { margin-top:auto; padding-top:.75rem; }
+.decision-title { margin:0; font-size:1rem; }
+.confirm-check { display:flex; align-items:flex-start; gap:.5rem; font-weight:normal; margin:.75rem 0 0; }
+.confirm-check input[type="checkbox"] { flex:none; margin:.3rem 0 0; }

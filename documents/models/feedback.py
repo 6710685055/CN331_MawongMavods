@@ -65,6 +65,12 @@ class DocumentReport(models.Model):
         DISMISSED = "dismissed", "ปฏิเสธ Report"
         REVISION = "revision", "ส่งกลับให้แก้ไข"
         REMOVED = "removed", "ลบเอกสาร"
+        OWNER_DELETED = "owner_deleted", "เจ้าของลบเอกสาร"
+
+    # Reviewer choices in display order, and which of them need extra input (UC14).
+    REVIEWER_RESOLUTIONS = (Resolution.DISMISSED, Resolution.REVISION, Resolution.REMOVED)
+    RESOLUTIONS_REQUIRING_REASON = frozenset({Resolution.REVISION, Resolution.REMOVED})
+    RESOLUTIONS_REQUIRING_CONFIRMATION = frozenset({Resolution.REMOVED})
 
     document = models.ForeignKey(
         Document,
@@ -86,6 +92,14 @@ class DocumentReport(models.Model):
     )
     resolution = models.CharField(
         "ผลการตัดสิน", max_length=20, choices=Resolution.choices, blank=True
+    )
+    decision = models.ForeignKey(
+        "documents.DocumentReportDecision",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="reports",
+        verbose_name="การตัดสิน",
     )
     created_at = models.DateTimeField("วันเวลาที่ Report", auto_now_add=True)
     closed_at = models.DateTimeField("วันเวลาที่ปิด", null=True, blank=True)

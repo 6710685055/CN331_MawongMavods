@@ -133,6 +133,9 @@ DOCUMENT_ALLOWED_EXTENSIONS = (".pdf", ".docx", ".pptx", ".png", ".jpg")
 # Document Feedback Configuration (UC10)
 DOCUMENT_REPORT_HIDE_THRESHOLD = 5  # distinct reporters with an open report
 DOCUMENT_REPORT_DETAIL_MAX_LENGTH = 1000
+
+# Reported Document Review Configuration (UC14)
+DOCUMENT_REPORT_DECISION_REASON_MAX_LENGTH = 1000
 TEAM_CHAT_MAX_FILE_SIZE_BYTES = 10 * 1024 * 1024
 TEAM_CHAT_ALLOWED_EXTENSIONS = (".pdf", ".docx", ".pptx", ".png", ".jpg", ".jpeg")
 

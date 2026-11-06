@@ -1,0 +1,31 @@
+{# UC14 reviewer decisions. Context: course, document, decision_options, form (ResolveReportsForm). #}
+<div class="decision-grid">
+  {% for option in decision_options %}
+    <form method="post" action="{% url 'documents:resolve_reports' course.id document.id %}"
+          class="panel decision-form"
+          {% if option.requires_confirmation %}data-confirm-message="{{ option.confirm_prompt }}"{% endif %}>
+      {% csrf_token %}
+      <input type="hidden" name="{{ form.outcome.html_name }}" value="{{ option.value }}">
+      <h3 class="decision-title">{{ option.label }}</h3>
+      <p class="help">{{ option.help }}</p>
+
+      <label for="reason-{{ option.value }}">
+        {{ form.reason.label }}{% if option.requires_reason %} *{% else %} <span class="help">(ไม่บังคับ)</span>{% endif %}
+      </label>
+      <textarea id="reason-{{ option.value }}" name="{{ form.reason.html_name }}" rows="3"
+                maxlength="{{ form.reason.field.widget.attrs.maxlength }}"
+                {% if option.requires_reason %}required{% endif %}></textarea>
+
+      {% if option.requires_confirmation %}
+        <label class="confirm-check" for="confirm-{{ option.value }}">
+          <input type="checkbox" id="confirm-{{ option.value }}" name="{{ form.confirm_remove.html_name }}" required>
+          <span>{{ form.confirm_remove.label }}</span>
+        </label>
+      {% endif %}
+
+      <div class="actions">
+        <button type="submit" class="btn {{ option.style }}">{{ option.button }}</button>
+      </div>
+    </form>
+  {% endfor %}
+</div>

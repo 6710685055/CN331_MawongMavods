@@ -21,6 +21,21 @@ urlpatterns = [
         name="review_queue",
     ),
     path(
+        "courses/<int:course_id>/documents/reported-queue/",
+        views.reported_queue_view,
+        name="reported_queue",
+    ),
+    path(
+        "courses/<int:course_id>/documents/reported-queue/<int:doc_id>/",
+        views.report_review_view,
+        name="report_review",
+    ),
+    path(
+        "courses/<int:course_id>/documents/reported-queue/<int:doc_id>/resolve/",
+        views.resolve_reports_view,
+        name="resolve_reports",
+    ),
+    path(
         "courses/<int:course_id>/documents/<int:doc_id>/",
         views.document_detail,
         name="detail",

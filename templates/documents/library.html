@@ -16,6 +16,9 @@
         <a class="btn secondary" href="{% url 'documents:review_queue' course.id %}">
           เอกสารรอตรวจ ({{ pending_queue_count }})
         </a>
+        <a class="btn secondary" href="{% url 'documents:reported_queue' course.id %}">
+          🚩 เอกสารที่ถูก Report ({{ reported_queue_count }})
+        </a>
       {% endif %}
       <a class="btn" href="{% url 'documents:upload' course.id %}">+ อัปโหลดเอกสาร</a>
     </div>
@@ -89,8 +92,8 @@
                   ✓ {{ doc.verified_badge_label }}
                 </span>
                 <div class="help">โดย {{ doc.verified_by_name }} ({{ doc.verified_at|date:"d/m/Y" }})</div>
-              {% elif doc.show_review_details and doc.is_verifiable %}
-                {% if doc.verify_status == "pending" %}
+              {% elif doc.show_review_details %}
+                {% if doc.verify_status == "pending" and doc.is_verifiable %}
                   <span class="tag badge-pending">รอตรวจ</span>
                 {% elif doc.verify_status == "needs_revision" %}
                   <span class="tag badge-revision">ต้องแก้ไข</span>
