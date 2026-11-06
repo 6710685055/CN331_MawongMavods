@@ -2,45 +2,98 @@
 {% block title %}ค้นหารายวิชา{% endblock %}
 {% block content %}
 <div class="card wide">
-  <h1>🔍 ค้นหารายวิชา</h1>
-  <form method="get" class="row" role="search">
-    <input type="search" name="q" value="{{ q }}" placeholder="รหัสวิชาหรือชื่อวิชา เช่น CN331" aria-label="ค้นหารายวิชา">
-    <button type="submit">ค้นหา</button>
-  </form>
-  {% if courses %}
-  <table>
-    <thead>
-      <tr>
-        <th>รหัสวิชา</th>
-        <th>ชื่อวิชา</th>
-        <th style="text-align:right">ดำเนินการ</th>
-      </tr>
-    </thead>
-    <tbody>
-    {% for c in courses %}
-      <tr>
-        <td><strong>{{ c.code }}</strong></td>
-        <td>{{ c.name }}</td>
-        <td style="text-align:right">
-          {% if c.id in enrolled_ids %}
-            <span class="tag">ลงทะเบียนแล้ว</span>
-          {% else %}
-            <form method="post" action="{% url 'courses:enroll' c.id %}">
-              {% csrf_token %}
-              <input type="hidden" name="next" value="{{ request.get_full_path }}">
-              <button type="submit">ลงทะเบียนเรียน</button>
-            </form>
-          {% endif %}
-        </td>
-      </tr>
-    {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-    <p>{% if q %}ไม่พบรายวิชาที่ตรงกับ "{{ q }}" ลองค้นด้วยรหัสวิชาหรือคำอื่น{% else %}ยังไม่มีรายวิชาในระบบ{% endif %}</p>
-  {% endif %}
-  <div class="actions" style="margin-top:1rem;">
-    <a class="btn secondary" href="{% url 'courses:my' %}">← กลับหน้าวิชาของฉัน</a>
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.75rem; margin-bottom:1.25rem;">
+    <div>
+      <h1 style="margin:0;">
+        <i data-lucide="search" style="width:22px;height:22px;color:var(--brand);"></i>
+        ค้นหารายวิชา
+      </h1>
+      <p class="help" style="margin:.25rem 0 0;">เลือกรายวิชาที่ต้องการเพื่อลงทะเบียนเรียนในระบบ</p>
+    </div>
+    <a class="btn secondary" href="{% url 'courses:my' %}" style="border-radius:99px;">
+      <i data-lucide="arrow-left" style="width:15px;height:15px;"></i>
+      กลับหน้าวิชาของฉัน
+    </a>
   </div>
+
+  <form method="get" class="row" role="search" style="margin-bottom:1.5rem;">
+    <input type="search" name="q" value="{{ q }}" placeholder="ค้นหาด้วยรหัสวิชาหรือชื่อวิชา เช่น CN331, Database..." aria-label="ค้นหารายวิชา">
+    <button type="submit" style="border-radius:var(--radius-xs);">
+      <i data-lucide="search" style="width:15px;height:15px;"></i>
+      ค้นหา
+    </button>
+  </form>
+
+  {% if courses %}
+  <div class="course-grid">
+    {% for c in courses %}
+    <div class="poster-card">
+      {# Course Poster Media Banner #}
+      <div class="poster-media gradient-{{ forloop.counter0|divisibleby:5|yesno:'2,4' }}">
+        <span class="poster-tag">
+          {% if c.id in enrolled_ids %}
+            ลงทะเบียนแล้ว
+          {% else %}
+            เปิดรับลงทะเบียน
+          {% endif %}
+        </span>
+        <div class="poster-code-wrap">
+          <h2 class="poster-code">{{ c.code }}</h2>
+          <div class="poster-sub">{{ c.name|truncatechars:26 }}</div>
+        </div>
+        <div class="poster-watermark">{{ c.code|slice:":2" }}</div>
+      </div>
+
+      {# Card Details Body #}
+      <div class="poster-body">
+        <a class="poster-title" href="{% url 'courses:detail' c.id %}">
+          {{ c.code }} {{ c.name }}
+        </a>
+
+        <div class="poster-meta">
+          <div class="poster-meta-item">
+            <i data-lucide="user" style="width:13px;height:13px;"></i>
+            <span>ผู้สอน: {% if c.owner %}{{ c.owner.full_name }}{% else %}ไม่ระบุผู้สอน{% endif %}</span>
+          </div>
+          <div class="poster-meta-item">
+            <i data-lucide="info" style="width:13px;height:13px;"></i>
+            <span>
+              {% if c.id in enrolled_ids %}
+                <span class="tag badge-verified">ลงทะเบียนแล้ว</span>
+              {% else %}
+                <span class="tag">พร้อมลงทะเบียน</span>
+              {% endif %}
+            </span>
+          </div>
+        </div>
+
+        {# Action Buttons: Business AI Azul Negócios & Laranja Accent #}
+        {% if c.id in enrolled_ids %}
+          <button type="button" class="poster-btn-pill pill-primary-outline" disabled style="opacity:.85; cursor:not-allowed;">
+            <i data-lucide="check" style="width:14px;height:14px;"></i>
+            ลงทะเบียนแล้ว
+          </button>
+        {% else %}
+          <form method="post" action="{% url 'courses:enroll' c.id %}" style="width:100%; margin:0;">
+            {% csrf_token %}
+            <input type="hidden" name="next" value="{{ request.get_full_path }}">
+            <button type="submit" class="poster-btn-pill pill-accent-solid">
+              <i data-lucide="plus-circle" style="width:14px;height:14px;"></i>
+              ลงทะเบียนเรียน
+            </button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+    <div class="empty-state">
+      <i data-lucide="search-x" style="width:40px;height:40px;color:var(--text-dim);margin-bottom:.75rem;"></i>
+      <p style="color:var(--text-muted); margin:0;">
+        {% if q %}ไม่พบรายวิชาที่ตรงกับ "{{ q }}"<br>ลองค้นด้วยรหัสวิชาหรือคำอื่น{% else %}ยังไม่มีรายวิชาในระบบ{% endif %}
+      </p>
+    </div>
+  {% endif %}
 </div>
 {% endblock %}

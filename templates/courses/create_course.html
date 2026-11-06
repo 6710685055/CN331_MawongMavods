@@ -1,20 +1,39 @@
 {% extends "base.html" %}
 {% block title %}สร้างรายวิชาใหม่{% endblock %}
 {% block content %}
-<div class="card">
-  <h1>สร้างรายวิชาใหม่</h1>
-  <form method="post">
-    {% csrf_token %}
-    <label for="id_code">รหัสวิชา</label>
-    <input type="text" id="id_code" name="code" value="{{ code|default:'' }}" placeholder="เช่น CN331" required>
-
-    <label for="id_name">ชื่อวิชา</label>
-    <input type="text" id="id_name" name="name" value="{{ name|default:'' }}" placeholder="เช่น Software Engineering" required>
-
-    <div class="actions">
-      <button type="submit" class="btn success">สร้างรายวิชา</button>
-      <a class="btn secondary" href="{% url 'courses:my' %}">ยกเลิก</a>
+<div style="display:flex; justify-content:center; padding-top:1.5rem;">
+  <div class="card" style="width:100%; max-width:480px;">
+    <div style="text-align:center; margin-bottom:1.25rem;">
+      <div style="width:48px; height:48px; border-radius:12px; background:linear-gradient(135deg,#059669,#34d399); display:inline-grid; place-items:center; margin-bottom:.75rem;">
+        <i data-lucide="book-plus" style="width:22px;height:22px;color:#fff;"></i>
+      </div>
+      <h1 style="justify-content:center;">สร้างรายวิชาใหม่</h1>
     </div>
-  </form>
+    <form method="post">
+      {% csrf_token %}
+      <label for="id_code">
+        <i data-lucide="hash" style="width:13px;height:13px;vertical-align:middle;"></i>
+        รหัสวิชา
+      </label>
+      <input type="text" id="id_code" name="code" value="{{ code|default:'' }}" placeholder="เช่น CN331" required>
+
+      <label for="id_name">
+        <i data-lucide="type" style="width:13px;height:13px;vertical-align:middle;"></i>
+        ชื่อวิชา
+      </label>
+      <input type="text" id="id_name" name="name" value="{{ name|default:'' }}" placeholder="เช่น Software Engineering" required>
+
+      <div class="actions" style="margin-top:1.5rem;">
+        <button type="submit" class="btn success" style="flex:1;">
+          <i data-lucide="check" style="width:16px;height:16px;"></i>
+          สร้างรายวิชา
+        </button>
+        <a class="btn secondary" href="{% url 'courses:my' %}">
+          <i data-lucide="x" style="width:15px;height:15px;"></i>
+          ยกเลิก
+        </a>
+      </div>
+    </form>
+  </div>
 </div>
 {% endblock %}

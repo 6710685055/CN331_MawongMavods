@@ -2,12 +2,18 @@
 {% block title %}การแจ้งเตือน{% endblock %}
 {% block content %}
 <div class="card wide">
-  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.5rem; margin-bottom:1rem;">
-    <h1 style="margin:0;">การแจ้งเตือนของคุณ</h1>
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.5rem; margin-bottom:1.25rem;">
+    <h1 style="margin:0;">
+      <i data-lucide="bell" style="width:22px;height:22px;color:var(--brand);"></i>
+      การแจ้งเตือนของคุณ
+    </h1>
     {% if unread_notifications_count %}
       <form method="post" action="{% url 'notifications:mark_all_read' %}">
         {% csrf_token %}
-        <button type="submit" class="btn secondary">ทำเครื่องหมายว่าอ่านแล้วทั้งหมด</button>
+        <button type="submit" class="btn secondary" style="font-size:.82rem;">
+          <i data-lucide="check-check" style="width:14px;height:14px;"></i>
+          อ่านแล้วทั้งหมด
+        </button>
       </form>
     {% endif %}
   </div>
@@ -18,36 +24,45 @@
         <tr>
           <th>สถานะ</th>
           <th>รายละเอียด</th>
-          <th>เวลา</th>
+          <th class="hide-mobile">เวลา</th>
           <th></th>
         </tr>
       </thead>
       <tbody>
         {% for n in notifications %}
-          <tr {% if not n.is_read %}style="background:#f0f5ff;"{% endif %}>
+          <tr {% if not n.is_read %}style="background:rgba(99,102,241,.06);"{% endif %}>
             <td>
               {% if not n.is_read %}
-                <span class="tag badge-warn">ใหม่</span>
+                <span class="tag badge-new">
+                  <i data-lucide="sparkles" style="width:11px;height:11px;"></i>
+                  ใหม่
+                </span>
               {% else %}
                 <span class="tag">อ่านแล้ว</span>
               {% endif %}
             </td>
             <td>
-              <strong>{{ n.title }}</strong>
-              <div class="help" style="color:var(--ink); margin-top:.2rem;">{{ n.message }}</div>
+              <strong style="color:var(--text-bright);">{{ n.title }}</strong>
+              <div class="help" style="color:var(--text); margin-top:.2rem;">{{ n.message }}</div>
             </td>
-            <td class="help">{{ n.created_at|date:"d/m/Y H:i" }}</td>
+            <td class="hide-mobile help">{{ n.created_at|date:"d/m/Y H:i" }}</td>
             <td style="text-align:right;">
               {% if n.target_url %}
                 <form method="post" action="{% url 'notifications:mark_read' n.id %}" style="display:inline;">
                   {% csrf_token %}
                   <input type="hidden" name="next" value="{{ n.target_url }}">
-                  <button type="submit" class="link">เปิดดู</button>
+                  <button type="submit" class="link" style="font-size:.82rem;">
+                    <i data-lucide="external-link" style="width:13px;height:13px;"></i>
+                    เปิดดู
+                  </button>
                 </form>
               {% elif not n.is_read %}
                 <form method="post" action="{% url 'notifications:mark_read' n.id %}" style="display:inline;">
                   {% csrf_token %}
-                  <button type="submit" class="link">รับทราบ</button>
+                  <button type="submit" class="link" style="font-size:.82rem;">
+                    <i data-lucide="check" style="width:13px;height:13px;"></i>
+                    รับทราบ
+                  </button>
                 </form>
               {% endif %}
             </td>
@@ -56,7 +71,10 @@
       </tbody>
     </table>
   {% else %}
-    <p class="help">ยังไม่มีการแจ้งเตือน</p>
+    <div class="empty-state">
+      <i data-lucide="bell-off" style="width:40px;height:40px;color:var(--text-dim);margin-bottom:.75rem;"></i>
+      <p style="color:var(--text-muted); margin:0;">ยังไม่มีการแจ้งเตือน</p>
+    </div>
   {% endif %}
 </div>
 {% endblock %}

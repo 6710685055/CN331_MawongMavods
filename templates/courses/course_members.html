@@ -2,11 +2,23 @@
 {% block title %}จัดการสมาชิก — {{ course.code }}{% endblock %}
 {% block content %}
 <div class="card wide">
-  <h1>จัดการสมาชิก — {{ course.code }} {{ course.name }}</h1>
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.75rem; margin-bottom:1.25rem;">
+    <h1 style="margin:0;">
+      <i data-lucide="users" style="width:22px;height:22px;color:var(--brand);"></i>
+      จัดการสมาชิก — {{ course.code }}
+    </h1>
+    <a class="btn secondary" href="{% url 'courses:my' %}">
+      <i data-lucide="arrow-left" style="width:15px;height:15px;"></i>
+      กลับหน้าวิชาของฉัน
+    </a>
+  </div>
 
   {# ── Add member form ── #}
   <div class="panel">
-    <h2>เพิ่มสมาชิก</h2>
+    <h2 style="margin-top:0;">
+      <i data-lucide="user-plus" style="width:16px;height:16px;color:var(--ok);"></i>
+      เพิ่มสมาชิก
+    </h2>
     <form method="post" class="row">
       {% csrf_token %}
       <input type="email" name="email" placeholder="อีเมลผู้ใช้" required>
@@ -14,18 +26,24 @@
         <option value="student">นักศึกษา</option>
         <option value="ta">TA</option>
       </select>
-      <button type="submit">เพิ่ม</button>
+      <button type="submit">
+        <i data-lucide="plus" style="width:15px;height:15px;"></i>
+        เพิ่ม
+      </button>
     </form>
   </div>
 
   {# ── Current members list ── #}
-  <h2 style="margin-top:1.5rem;">สมาชิกปัจจุบัน</h2>
+  <h2 style="margin-top:1.5rem;">
+    <i data-lucide="list" style="width:16px;height:16px;color:var(--brand);"></i>
+    สมาชิกปัจจุบัน
+  </h2>
   {% if members %}
   <table>
     <thead>
       <tr>
         <th>ชื่อ</th>
-        <th>อีเมล</th>
+        <th class="hide-mobile">อีเมล</th>
         <th>บทบาท</th>
         <th>ดำเนินการ</th>
       </tr>
@@ -33,8 +51,8 @@
     <tbody>
     {% for m in members %}
       <tr>
-        <td>{{ m.user.full_name }}</td>
-        <td>{{ m.user.email }}</td>
+        <td style="font-weight:500;">{{ m.user.full_name }}</td>
+        <td class="hide-mobile" style="color:var(--text-muted);">{{ m.user.email }}</td>
         <td>
           {% if m.role == "ta_pending" or m.role == "stu_pending" %}
             <span class="tag badge-pending">{{ m.get_role_display }}</span>
@@ -48,10 +66,16 @@
           {% if m.user != user %}
             <form method="post" action="{% url 'courses:remove_member' course.id m.id %}" style="display:inline" onsubmit="return confirm('ลบ {{ m.user.full_name }} ออกจากรายวิชา?')">
               {% csrf_token %}
-              <button type="submit" class="btn danger">ลบออก</button>
+              <button type="submit" class="btn danger" style="font-size:.8rem; padding:.35rem .6rem;">
+                <i data-lucide="user-minus" style="width:13px;height:13px;"></i>
+                ลบออก
+              </button>
             </form>
           {% else %}
-            <span class="help">ตัวคุณเอง</span>
+            <span class="tag">
+              <i data-lucide="shield" style="width:12px;height:12px;"></i>
+              ตัวคุณเอง
+            </span>
           {% endif %}
         </td>
       </tr>
@@ -59,11 +83,10 @@
     </tbody>
   </table>
   {% else %}
-    <p>ยังไม่มีสมาชิกในรายวิชานี้</p>
+    <div class="empty-state">
+      <i data-lucide="users" style="width:40px;height:40px;color:var(--text-dim);margin-bottom:.75rem;"></i>
+      <p style="color:var(--text-muted); margin:0;">ยังไม่มีสมาชิกในรายวิชานี้</p>
+    </div>
   {% endif %}
-
-  <div class="actions" style="margin-top:1.5rem;">
-    <a class="btn secondary" href="{% url 'courses:my' %}">← กลับหน้าวิชาของฉัน</a>
-  </div>
 </div>
 {% endblock %}
