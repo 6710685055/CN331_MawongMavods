@@ -178,10 +178,16 @@
           </div>
         </div>
 
-        <a class="poster-btn-pill pill-primary-solid" href="{% url 'courses:detail' e.course.id %}">
+        <a class="poster-btn-pill pill-primary-solid" href="{% url 'courses:detail' e.course.id %}" style="margin-bottom:.45rem;">
           <i data-lucide="layout-grid" style="width:14px;height:14px;"></i>
           เข้าสู่ห้องเรียน
         </a>
+        {% if e.role != "ta_pending" %}
+          <a class="btn secondary" href="{% url 'courses:manage_unassigned_students' e.course.id %}" style="border-radius:99px; font-size:.78rem; padding:.35rem .6rem; width:100%; justify-content:center;">
+            <i data-lucide="user-check" style="width:13px;height:13px;"></i>
+            จัดกลุ่มนักศึกษา
+          </a>
+        {% endif %}
       </div>
     </div>
     {% endfor %}

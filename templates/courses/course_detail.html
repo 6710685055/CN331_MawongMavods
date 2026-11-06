@@ -49,6 +49,10 @@
             <i data-lucide="flag" style="width:14px;height:14px;"></i>
             เอกสารที่ถูก Report
           </a>
+          <a class="btn secondary" href="{% url 'courses:manage_unassigned_students' course.id %}" style="font-size:.82rem; padding:.45rem .75rem;">
+            <i data-lucide="user-check" style="width:14px;height:14px;"></i>
+            จัดกลุ่มนักศึกษา
+          </a>
         {% endif %}
         {% if enrollment.role == "student" %}
           <a class="btn secondary" href="{% url 'courses:groups' course.id %}" style="font-size:.82rem; padding:.45rem .75rem;">

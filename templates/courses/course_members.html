@@ -63,7 +63,26 @@
           {% endif %}
         </td>
         <td>
-          {% if m.user != user %}
+          {% if m.role == "ta_pending" or m.role == "stu_pending" %}
+            <div style="display:flex; gap:.4rem; align-items:center;">
+              <form method="post" action="{% url 'courses:approve' m.id %}" style="margin:0;">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.path }}">
+                <button type="submit" class="btn success" style="font-size:.8rem; padding:.35rem .65rem; border-radius:99px;">
+                  <i data-lucide="check" style="width:13px;height:13px;"></i>
+                  อนุมัติ
+                </button>
+              </form>
+              <form method="post" action="{% url 'courses:reject' m.id %}" style="margin:0;">
+                {% csrf_token %}
+                <input type="hidden" name="next" value="{{ request.path }}">
+                <button type="submit" class="btn danger" style="font-size:.8rem; padding:.35rem .65rem; border-radius:99px;">
+                  <i data-lucide="x" style="width:13px;height:13px;"></i>
+                  ปฏิเสธ
+                </button>
+              </form>
+            </div>
+          {% elif m.user != user %}
             <form method="post" action="{% url 'courses:remove_member' course.id m.id %}" style="display:inline" onsubmit="return confirm('ลบ {{ m.user.full_name }} ออกจากรายวิชา?')">
               {% csrf_token %}
               <button type="submit" class="btn danger" style="font-size:.8rem; padding:.35rem .6rem;">

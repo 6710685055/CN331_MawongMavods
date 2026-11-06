@@ -1,0 +1,277 @@
+{% extends "base.html" %}
+{% block title %}จัดการกลุ่มนักศึกษา — {{ course.code }}{% endblock %}
+{% block content %}
+
+{# ─────────── 1. Header & Navigation ─────────── #}
+<div class="card wide" style="margin-bottom:1.25rem;">
+  <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem;">
+    <div>
+      <div style="display:flex; align-items:center; gap:.6rem; flex-wrap:wrap;">
+        <h1 style="margin:0;">
+          <i data-lucide="users" style="width:24px;height:24px;color:var(--brand);"></i>
+          จัดการกลุ่มนักศึกษา — {{ course.code }}
+        </h1>
+        <span class="tag badge-pin" style="background:#EBF8FF; color:var(--primary); font-weight:600;">
+          ผู้ช่วยสอน (TA) / อาจารย์
+        </span>
+      </div>
+      <p class="help" style="margin:.4rem 0 0; font-size:.92rem;">
+        {{ course.name }} — ตรวจสอบและจัดนักศึกษาที่ยังไม่มีกลุ่มเข้ากลุ่ม เพื่อให้แน่ใจว่านักศึกษาทุกคนมีกลุ่ม
+      </p>
+    </div>
+    <div style="display:flex; gap:.5rem;">
+      <a class="btn secondary" href="{% url 'courses:detail' course.id %}">
+        <i data-lucide="arrow-left" style="width:15px;height:15px;"></i>
+        กลับหน้ารายวิชา
+      </a>
+    </div>
+  </div>
+
+  {# ── Stat Metric Cards ── #}
+  <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; margin-top:1.25rem;">
+    <div style="background:var(--neutral); border:1px solid var(--border); border-radius:var(--radius); padding:1rem; display:flex; align-items:center; gap:.85rem;">
+      <div style="width:42px; height:42px; border-radius:8px; background:rgba(0,161,224,0.12); display:flex; align-items:center; justify-content:center; color:var(--primary); flex-shrink:0;">
+        <i data-lucide="graduation-cap" style="width:22px;height:22px;"></i>
+      </div>
+      <div>
+        <div style="font-size:.78rem; color:var(--text-muted); font-weight:600; text-transform:uppercase;">นักศึกษาทั้งหมด</div>
+        <div style="font-size:1.45rem; font-weight:700; color:var(--text); font-family:'JetBrains Mono',monospace;">{{ total_students }} <span style="font-size:.85rem; font-weight:500;">คน</span></div>
+      </div>
+    </div>
+
+    <div style="background:var(--neutral); border:1px solid var(--border); border-radius:var(--radius); padding:1rem; display:flex; align-items:center; gap:.85rem;">
+      <div style="width:42px; height:42px; border-radius:8px; background:rgba(0,128,0,0.12); display:flex; align-items:center; justify-content:center; color:var(--success); flex-shrink:0;">
+        <i data-lucide="check-circle-2" style="width:22px;height:22px;"></i>
+      </div>
+      <div>
+        <div style="font-size:.78rem; color:var(--text-muted); font-weight:600; text-transform:uppercase;">มีกลุ่มแล้ว</div>
+        <div style="font-size:1.45rem; font-weight:700; color:var(--success); font-family:'JetBrains Mono',monospace;">{{ assigned_count }} <span style="font-size:.85rem; font-weight:500;">คน</span></div>
+      </div>
+    </div>
+
+    <div style="background:var(--neutral); border:1px solid var(--border); border-radius:var(--radius); padding:1rem; display:flex; align-items:center; gap:.85rem;">
+      <div style="width:42px; height:42px; border-radius:8px; background:rgba(255,165,0,0.15); display:flex; align-items:center; justify-content:center; color:var(--accent); flex-shrink:0;">
+        <i data-lucide="user-x" style="width:22px;height:22px;"></i>
+      </div>
+      <div>
+        <div style="font-size:.78rem; color:var(--text-muted); font-weight:600; text-transform:uppercase;">ยังไม่มีกลุ่ม</div>
+        <div style="font-size:1.45rem; font-weight:700; color:var(--accent); font-family:'JetBrains Mono',monospace;">{{ unassigned_count }} <span style="font-size:.85rem; font-weight:500;">คน</span></div>
+      </div>
+    </div>
+
+    <div style="background:var(--neutral); border:1px solid var(--border); border-radius:var(--radius); padding:1rem; display:flex; align-items:center; gap:.85rem;">
+      <div style="width:42px; height:42px; border-radius:8px; background:rgba(51,51,51,0.08); display:flex; align-items:center; justify-content:center; color:var(--tertiary); flex-shrink:0;">
+        <i data-lucide="layers" style="width:22px;height:22px;"></i>
+      </div>
+      <div>
+        <div style="font-size:.78rem; color:var(--text-muted); font-weight:600; text-transform:uppercase;">กลุ่มทั้งหมด</div>
+        <div style="font-size:1.45rem; font-weight:700; color:var(--text); font-family:'JetBrains Mono',monospace;">
+          {{ teams|length }} <span style="font-size:.85rem; font-weight:500; color:var(--text-muted);">(ว่าง {{ available_teams|length }})</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ─────────── 2. Unassigned Students Section ─────────── #}
+<div class="card wide" style="margin-bottom:1.5rem;">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.75rem; margin-bottom:1rem;">
+    <div>
+      <h2 style="margin:0; display:flex; align-items:center; gap:.5rem; font-size:1.15rem;">
+        <i data-lucide="user-alert" style="width:19px;height:19px;color:var(--accent);"></i>
+        นักศึกษาที่ยังไม่มีกลุ่ม ({{ unassigned_count }} คน)
+      </h2>
+      <p class="help" style="margin:.2rem 0 0;">สามารถเลือกกลุ่มที่มีที่ว่างเพื่อจัดเข้ากลุ่มทีละคน หรือจัดกลุ่มอัตโนมัติทั้งหมดได้ทันที</p>
+    </div>
+
+    {% if unassigned_students %}
+      <div style="display:flex; gap:.5rem; flex-wrap:wrap;">
+        <form method="post" action="{% url 'courses:ta_auto_assign' course.id %}" onsubmit="return confirm('ยืนยันให้ระบบจัดนักศึกษาที่ยังไม่มีกลุ่ม ({{ unassigned_count }} คน) เข้ากลุ่มโดยอัตโนมัติ?')">
+          {% csrf_token %}
+          <button type="submit" class="btn accent" style="font-size:.84rem; padding:.5rem .9rem; border-radius:var(--radius-xs);">
+            <i data-lucide="wand-2" style="width:14px;height:14px;"></i>
+            จัดกลุ่มอัตโนมัติทั้งหมด
+          </button>
+        </form>
+      </div>
+    {% endif %}
+  </div>
+
+  {% if unassigned_students %}
+    <form id="batch-create-team-form" method="post" action="{% url 'courses:ta_create_and_assign_team' course.id %}">
+      {% csrf_token %}
+      <div style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse;">
+          <thead>
+            <tr>
+              <th style="width:36px; text-align:center;">
+                <input type="checkbox" id="select-all-students" title="เลือกทั้งหมด" style="cursor:pointer;">
+              </th>
+              <th>นักศึกษา</th>
+              <th class="hide-mobile">อีเมล</th>
+              <th>สถานะ</th>
+              <th style="min-width:280px;">จัดเข้ากลุ่มที่มีอยู่</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for enrollment in unassigned_students %}
+              <tr style="border-bottom:1px solid var(--border);">
+                <td style="text-align:center;">
+                  <input type="checkbox" name="student_ids" value="{{ enrollment.user.id }}" class="student-checkbox" style="cursor:pointer;">
+                </td>
+                <td>
+                  <div style="font-weight:600; color:var(--text);">{{ enrollment.user.full_name }}</div>
+                  <div class="only-mobile" style="font-size:.78rem; color:var(--text-muted); font-family:'JetBrains Mono',monospace;">{{ enrollment.user.email }}</div>
+                </td>
+                <td class="hide-mobile" style="font-family:'JetBrains Mono',monospace; font-size:.85rem; color:var(--text-muted);">
+                  {{ enrollment.user.email }}
+                </td>
+                <td>
+                  <span class="tag badge-pending" style="font-size:.72rem;">ยังไม่มีกลุ่ม</span>
+                </td>
+                <td>
+                  {% if available_teams %}
+                    <form method="post" action="{% url 'courses:ta_assign_student' course.id %}" style="display:flex; align-items:center; gap:.4rem; margin:0;">
+                      {% csrf_token %}
+                      <input type="hidden" name="student_id" value="{{ enrollment.user.id }}">
+                      <select name="team_id" required style="padding:.35rem .6rem; font-size:.82rem; border-radius:var(--radius-xs); border:1px solid var(--border); background:var(--bg); flex:1; max-width:210px;">
+                        <option value="" disabled selected>-- เลือกกลุ่มเป้าหมาย --</option>
+                        {% for team in available_teams %}
+                          <option value="{{ team.id }}">
+                            {{ team.name }} (เหลือ {{ max_team_members|add:"-"|add:team.memberships.count }} ที่)
+                          </option>
+                        {% endfor %}
+                      </select>
+                      <button type="submit" class="btn success" style="padding:.35rem .65rem; font-size:.78rem; border-radius:var(--radius-xs); flex-shrink:0;">
+                        <i data-lucide="user-check" style="width:13px;height:13px;"></i>
+                        จัดเข้ากลุ่ม
+                      </button>
+                    </form>
+                  {% else %}
+                    <span style="font-size:.82rem; color:var(--text-dim);">ไม่มีกลุ่มที่มีที่ว่างเหลือ</span>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      {# ── Selected batch action panel ── #}
+      <div id="batch-action-panel" style="margin-top:1.25rem; padding:1rem; background:var(--neutral); border:1px solid var(--border); border-radius:var(--radius); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.75rem;">
+        <div style="display:flex; align-items:center; gap:.5rem;">
+          <i data-lucide="users" style="width:18px;height:18px;color:var(--primary);"></i>
+          <span style="font-size:.9rem; font-weight:600;">สร้างกลุ่มใหม่จากนักศึกษาที่เลือก</span>
+          <span id="selected-counter" class="tag badge-pin" style="font-family:'JetBrains Mono',monospace;">เลือก 0 คน</span>
+        </div>
+        <div style="display:flex; align-items:center; gap:.5rem; flex-wrap:wrap;">
+          <input type="text" name="name" placeholder="ตั้งชื่อกลุ่มใหม่ (เช่น Team Bravo)" maxlength="100" style="padding:.4rem .7rem; font-size:.85rem; border:1px solid var(--border); border-radius:var(--radius-xs); min-width:220px;">
+          <button type="submit" class="btn" style="padding:.4rem .85rem; font-size:.85rem; border-radius:var(--radius-xs);">
+            <i data-lucide="plus" style="width:14px;height:14px;"></i>
+            สร้างกลุ่มและจัดสมาชิก
+          </button>
+        </div>
+      </div>
+    </form>
+  {% else %}
+    <div style="text-align:center; padding:3rem 1.5rem; background:var(--neutral); border-radius:var(--radius); border:1px dashed var(--border);">
+      <div style="width:52px; height:52px; border-radius:50%; background:rgba(0,128,0,0.12); display:inline-flex; align-items:center; justify-content:center; color:var(--success); margin-bottom:.75rem;">
+        <i data-lucide="check-circle" style="width:28px;height:28px;"></i>
+      </div>
+      <h3 style="margin:0 0 .35rem; color:var(--text); font-size:1.1rem;">นักศึกษาทุกคนมีกลุ่มครบถ้วนแล้ว!</h3>
+      <p class="help" style="margin:0;">ยอดเยี่ยมมาก! ไม่มีนักศึกษาตกค้างที่ยังไม่มีกลุ่มในรายวิชานี้</p>
+    </div>
+  {% endif %}
+</div>
+
+{# ─────────── 3. All Teams in Course Overview ─────────── #}
+<div class="card wide">
+  <div style="margin-bottom:1rem;">
+    <h2 style="margin:0; display:flex; align-items:center; gap:.5rem; font-size:1.15rem;">
+      <i data-lucide="layout-grid" style="width:19px;height:19px;color:var(--primary);"></i>
+      สถานะกลุ่มทั้งหมดในรายวิชา ({{ teams|length }} กลุ่ม)
+    </h2>
+    <p class="help" style="margin:.2rem 0 0;">ตรวจสอบรายชื่อสมาชิก ความจุ และกลุ่มที่ยังสามารถรับสมาชิกเพิ่มได้ (สูงสุด {{ max_team_members }} คน/กลุ่ม)</p>
+  </div>
+
+  {% if teams %}
+    <div style="display:grid; grid-template-columns:repeat(auto-fill, minmax(320px, 1fr)); gap:1rem;">
+      {% for team in teams %}
+        {% with current_count=team.memberships.count %}
+        <div style="border:1px solid var(--border); border-radius:var(--radius); padding:1rem; background:var(--bg); display:flex; flex-direction:column; justify-content:space-between; box-shadow:0 1px 3px rgba(0,0,0,0.03);">
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:.5rem;">
+              <h3 style="margin:0; font-size:1.02rem; font-weight:700; color:var(--text);">
+                {{ team.name }}
+              </h3>
+              {% if current_count >= max_team_members %}
+                <span class="tag badge-verified" style="font-size:.7rem;">เต็มแล้ว ({{ current_count }}/{{ max_team_members }})</span>
+              {% else %}
+                <span class="tag badge-pin" style="background:rgba(0,161,224,0.12); color:var(--primary); font-size:.7rem; font-weight:600;">
+                  ว่างอีก {{ max_team_members|add:"-"|add:current_count }} ที่
+                </span>
+              {% endif %}
+            </div>
+
+            {# Progress capacity bar #}
+            <div style="height:6px; background:var(--neutral-border); border-radius:99px; overflow:hidden; margin-bottom:.85rem;">
+              <div style="height:100%; width:{% widthratio current_count max_team_members 100 %}%; background:{% if current_count >= max_team_members %}var(--success){% else %}var(--primary){% endif %};"></div>
+            </div>
+
+            <div style="font-size:.78rem; font-weight:600; color:var(--text-muted); text-transform:uppercase; margin-bottom:.4rem;">
+              สมาชิกในกลุ่ม ({{ current_count }} คน):
+            </div>
+
+            <ul style="margin:0; padding-left:1.15rem; font-size:.85rem; color:var(--text); line-height:1.6;">
+              {% for membership in team.memberships.all %}
+                <li>
+                  <strong>{{ membership.user.full_name }}</strong>
+                  {% if membership.user_id == team.created_by_id %}
+                    <span style="font-size:.7rem; color:var(--primary); font-weight:600;">(หัวหน้ากลุ่ม)</span>
+                  {% endif %}
+                </li>
+              {% empty %}
+                <li style="color:var(--text-dim); list-style:none; margin-left:-1.15rem;">ยังไม่มีสมาชิก</li>
+              {% endfor %}
+            </ul>
+          </div>
+        </div>
+        {% endwith %}
+      {% endfor %}
+    </div>
+  {% else %}
+    <div style="text-align:center; padding:2.5rem 1.5rem; background:var(--neutral); border-radius:var(--radius); border:1px dashed var(--border);">
+      <i data-lucide="users" style="width:36px;height:36px;color:var(--text-dim);margin-bottom:.5rem;"></i>
+      <p style="color:var(--text-muted); margin:0;">ยังไม่มีกลุ่มใดๆ ในรายวิชานี้</p>
+    </div>
+  {% endif %}
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', () => {
+    const selectAll = document.getElementById('select-all-students');
+    const checkboxes = document.querySelectorAll('.student-checkbox');
+    const counter = document.getElementById('selected-counter');
+
+    function updateCounter() {
+      const selected = Array.from(checkboxes).filter(cb => cb.checked).length;
+      if (counter) counter.textContent = `เลือก ${selected} คน`;
+    }
+
+    if (selectAll) {
+      selectAll.addEventListener('change', () => {
+        checkboxes.forEach(cb => { cb.checked = selectAll.checked; });
+        updateCounter();
+      });
+    }
+
+    checkboxes.forEach(cb => {
+      cb.addEventListener('change', () => {
+        updateCounter();
+        if (selectAll && !cb.checked) selectAll.checked = false;
+      });
+    });
+  });
+</script>
+
+{% endblock %}
