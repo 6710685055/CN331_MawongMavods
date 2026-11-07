@@ -12,7 +12,6 @@ services:
     plan: free
     buildCommand: bash build.sh
     startCommand: bash start.sh
-    healthCheckPath: /accounts/login/
     envVars:
       - key: PYTHON_VERSION
         value: 3.12.8

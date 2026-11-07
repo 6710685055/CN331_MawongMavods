@@ -78,7 +78,7 @@ MawongMavods เป็นพื้นที่กลางของนักศ�
 |---|---|
 | `BREVO_API_KEY` | API key จาก Brevo |
 | `DJANGO_DEFAULT_FROM_EMAIL` | ผู้ส่งที่ยืนยันใน Brevo แล้ว เช่น `Student Community <you@gmail.com>` |
-| `DJANGO_SUPERUSER_EMAIL` / `DJANGO_SUPERUSER_PASSWORD` | บัญชีผู้ดูแลระบบ ซึ่ง `build.sh` สร้างให้ เพราะ Free plan ไม่มี shell |
+| `DJANGO_SUPERUSER_EMAIL` / `DJANGO_SUPERUSER_PASSWORD` | บัญชีผู้ดูแลระบบ ซึ่ง `build.sh` สร้างให้ เพราะ Free plan ไม่มี shell รหัสผ่านต้องผ่าน password validator ของ Django ถ้าไม่ผ่าน build จะ fail |
 | `DJANGO_SUPERUSER_FIRST_NAME` / `DJANGO_SUPERUSER_LAST_NAME` | ชื่อ-นามสกุลของผู้ดูแลระบบ |
 
 5. รอ deploy เสร็จ แล้วนำ URL `https://<ชื่อ service>.onrender.com` มาใส่ในตารางด้านบน
@@ -95,13 +95,16 @@ MawongMavods เป็นพื้นที่กลางของนักศ�
 | `RENDER`, `RENDER_EXTERNAL_HOSTNAME` | Render ตั้งให้เอง settings ใช้ค่านี้เปิด HTTPS, secure cookie, `ALLOWED_HOSTS` และ `CSRF_TRUSTED_ORIGINS` |
 
 ขั้นตอนบน Render:
-- `build.sh`: ติดตั้ง dependencies → `collectstatic` → `migrate` → `seed_courses` → สร้าง superuser ถ้ายังไม่มี
-- `start.sh`: เริ่ม `run_meeting_reminders` เป็น background process แล้วรัน `daphne` ที่ `$PORT`
+- `build.sh`: ติดตั้ง dependencies → `collectstatic` → `migrate` → `seed_courses` → `ensure_superuser`
+  - `ensure_superuser` ข้ามไปถ้าไม่ได้ตั้ง `DJANGO_SUPERUSER_EMAIL` หรือมีบัญชีนี้อยู่แล้ว
+  - ทำให้ build fail ถ้าตัวแปร `DJANGO_SUPERUSER_*` ไม่ครบ หรือรหัสผ่านอ่อนเกินไป
+- `start.sh`: เริ่ม `run_meeting_reminders` เป็น background process แล้วรัน `daphne` ที่ `$PORT` ถ้า loop ตาย จะเริ่มใหม่เองหลัง 10 วินาที (ดูได้ในแท็บ **Logs**)
 
 ### 2.2 ข้อจำกัดของ Render Free plan
 
 - **ไฟล์อัปโหลดไม่ถาวร:** เอกสารและไฟล์แนบแชทเก็บใน `media/` บนดิสก์ของ instance ซึ่งจะหายทุกครั้งที่ deploy หรือ restart (Free plan ใส่ Persistent Disk ไม่ได้) ข้อมูลในฐานข้อมูลยังอยู่ แต่ลิงก์ดาวน์โหลดไฟล์เก่าจะใช้ไม่ได้
 - **Instance หลับ** หลังไม่มีคนใช้ 15 นาที คำขอแรกหลังจากนั้นจะช้าประมาณ 1 นาที และระหว่างหลับ reminder loop ไม่ทำงาน นัดที่เริ่มไปแล้วระหว่างนั้นจะไม่ได้รับแจ้งเตือนย้อนหลัง
+- **Reminder loop รันใน instance เดียวกับเว็บ:** ถ้า process ของ loop ตาย `start.sh` จะเริ่มใหม่เองหลัง 10 วินาที แต่ถ้าทั้ง instance ล่ม loop จะกลับมาพร้อมเว็บเท่านั้น ตรวจได้จากข้อความ `Meeting reminder loop started` ในแท็บ **Logs**
 - **PostgreSQL ฟรีหมดอายุใน 30 วัน** หลังสร้าง (ต่ออายุได้อีก 14 วันโดยอัปเกรด) พื้นที่ 1 GB และไม่มี backup ถ้าใกล้วันส่งงานให้สร้างใหม่หรืออัปเกรด
 - **Channel layer เป็น in-memory** ใช้ได้เพราะมี instance เดียว ถ้าเพิ่ม instance ต้องตั้ง `CHANNEL_REDIS_URL` (เช่น Render Key Value)
 
@@ -679,16 +682,16 @@ open htmlcov/index.html
 
 ### 5.3 สรุปผล Coverage
 
-วัดเมื่อ 2026-11-07 จาก branch `us14-pp`: **215 tests ผ่านทั้งหมด**
+วัดเมื่อ 2026-11-08 จาก branch `chore/render-deploy`: **223 tests ผ่านทั้งหมด**
 
 | แอป | Coverage |
 |---|---|
-| `accounts` | 95% |
+| `accounts` | 98% |
 | `courses` | 81% |
 | `documents` | 83% |
 | `meetings` | 97% |
 | `notifications` | 79% |
-| **รวม (TOTAL)** | **84%** (เกณฑ์ขั้นต่ำ 80%) |
+| **รวม (TOTAL)** | **85%** (เกณฑ์ขั้นต่ำ 80%) |
 
 ผลล่าสุดของแต่ละ commit ดูได้จาก GitHub Actions: หน้า job summary ของ workflow **CI** มีตาราง coverage และดาวน์โหลดรายงาน HTML/XML ได้จาก artifact `coverage-report`
 
