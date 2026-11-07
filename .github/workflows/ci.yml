@@ -37,6 +37,16 @@ jobs:
       - name: Enforce coverage threshold
         run: coverage report --fail-under=80
 
+      - name: Add coverage to job summary
+        if: always()
+        run: |
+          echo "## Test coverage" >> "$GITHUB_STEP_SUMMARY"
+          if [ -f .coverage ]; then
+            coverage report --format=markdown >> "$GITHUB_STEP_SUMMARY"
+          else
+            echo "Coverage data was not generated." >> "$GITHUB_STEP_SUMMARY"
+          fi
+
       - name: Write coverage XML
         if: always()
         run: coverage xml -o coverage.xml
