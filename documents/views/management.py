@@ -28,7 +28,9 @@ def edit_document_view(request, course_id, doc_id):
         )
     document = get_object_or_404(Document, pk=doc_id, course=course)
     if document.uploader_id != request.user.id:
-        return HttpResponseForbidden("เฉพาะเจ้าของเอกสารเท่านั้นที่สามารถแก้ไขเอกสารได้")
+        return HttpResponseForbidden(
+            "เฉพาะเจ้าของเอกสารเท่านั้นที่สามารถแก้ไขเอกสารได้"
+        )
 
     if request.method == "POST":
         form = DocumentEditForm(request.POST, instance=document)
@@ -46,8 +48,12 @@ def edit_document_view(request, course_id, doc_id):
                 return HttpResponseForbidden(str(exc))
             except DocumentServiceError as exc:
                 messages.error(request, str(exc))
-                return redirect("documents:edit", course_id=course.id, doc_id=document.id)
-            messages.success(request, f"แก้ไขข้อมูลเอกสาร '{document.title}' เรียบร้อยแล้ว")
+                return redirect(
+                    "documents:edit", course_id=course.id, doc_id=document.id
+                )
+            messages.success(
+                request, f"แก้ไขข้อมูลเอกสาร '{document.title}' เรียบร้อยแล้ว"
+            )
             return redirect("documents:detail", course_id=course.id, doc_id=document.id)
     else:
         form = DocumentEditForm(instance=document)

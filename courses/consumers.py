@@ -37,10 +37,14 @@ class TeamChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def receive_json(self, content, **kwargs):
         if not isinstance(content, dict):
-            await self.send_json({"type": "error", "message": "รูปแบบข้อความไม่ถูกต้อง"})
+            await self.send_json(
+                {"type": "error", "message": "รูปแบบข้อความไม่ถูกต้อง"}
+            )
             return
         if content.get("type") != "message.send":
-            await self.send_json({"type": "error", "message": "รูปแบบข้อความไม่ถูกต้อง"})
+            await self.send_json(
+                {"type": "error", "message": "รูปแบบข้อความไม่ถูกต้อง"}
+            )
             return
 
         try:
@@ -121,7 +125,9 @@ class PrivateChatConsumer(AsyncJsonWebsocketConsumer):
 
     async def receive_json(self, content, **kwargs):
         if not isinstance(content, dict) or content.get("type") != "message.send":
-            await self.send_json({"type": "error", "message": "รูปแบบข้อความไม่ถูกต้อง"})
+            await self.send_json(
+                {"type": "error", "message": "รูปแบบข้อความไม่ถูกต้อง"}
+            )
             return
 
         try:
@@ -151,7 +157,9 @@ class PrivateChatConsumer(AsyncJsonWebsocketConsumer):
         if not await self.has_access():
             await self.close(code=4403)
             return
-        await self.send_json({"type": "message.hidden", "message_id": event["message_id"]})
+        await self.send_json(
+            {"type": "message.hidden", "message_id": event["message_id"]}
+        )
 
     async def send_block_state(self):
         state = await self.get_block_state()

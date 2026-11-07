@@ -1,7 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
-from django.utils import timezone
 from django.views.decorators.http import require_http_methods
 
 from .forms import MeetingForm
@@ -48,21 +47,36 @@ def meeting_create(request, team_id):
         create_meeting(group=group, actor=request.user, **form.cleaned_data)
         messages.success(request, "บันทึกนัดหมายประชุมและแจ้งสมาชิกในกลุ่มแล้ว")
         return redirect("meetings:group", team_id=group.pk)
-    return render(request, "meetings/meeting_form.html", {"form": form, "group": group, "is_edit": False})
+    return render(
+        request,
+        "meetings/meeting_form.html",
+        {"form": form, "group": group, "is_edit": False},
+    )
 
 
 @login_required
 @require_http_methods(["GET", "POST"])
 def meeting_edit(request, meeting_id):
     group_access = get_group_access()
-    meeting = get_object_or_404(Meeting.objects.select_related("group_content_type"), pk=meeting_id)
+    meeting = get_object_or_404(
+        Meeting.objects.select_related("group_content_type"), pk=meeting_id
+    )
     if not can_access_meeting(request.user, meeting, group_access):
         return render(request, "meetings/403.html", status=403)
 
     form = MeetingForm(request.POST or None, instance=meeting)
     if request.method == "POST" and form.is_valid():
-        changed = reschedule_meeting(meeting=meeting, actor=request.user, **form.cleaned_data)
-        messages.success(request, "อัปเดตนัดหมายและแจ้งสมาชิกแล้ว" if changed else "ไม่มีข้อมูลที่เปลี่ยนแปลง")
+        changed = reschedule_meeting(
+            meeting=meeting, actor=request.user, **form.cleaned_data
+        )
+        messages.success(
+            request,
+            (
+                "อัปเดตนัดหมายและแจ้งสมาชิกแล้ว"
+                if changed
+                else "ไม่มีข้อมูลที่เปลี่ยนแปลง"
+            ),
+        )
         return redirect("meetings:group", team_id=meeting.group_object_id)
     return render(
         request,

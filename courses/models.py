@@ -2,7 +2,6 @@ from django.conf import settings
 from django.db import models
 from django.db.models import Q
 
-
 MAX_TEAM_MEMBERS = 5
 
 
@@ -36,13 +35,17 @@ class Enrollment(models.Model):
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name="enrollments"
     )
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="enrollments")
+    course = models.ForeignKey(
+        Course, on_delete=models.CASCADE, related_name="enrollments"
+    )
     role = models.CharField(max_length=12, choices=Role.choices)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["user", "course"], name="unique_user_course")
+            models.UniqueConstraint(
+                fields=["user", "course"], name="unique_user_course"
+            )
         ]
 
     def __str__(self):
@@ -77,7 +80,9 @@ class Team(models.Model):
 
 class TeamMembership(models.Model):
     team = models.ForeignKey(Team, on_delete=models.CASCADE, related_name="memberships")
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="team_memberships")
+    course = models.ForeignKey(
+        Course, on_delete=models.CASCADE, related_name="team_memberships"
+    )
     user = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -88,7 +93,9 @@ class TeamMembership(models.Model):
     class Meta:
         ordering = ["joined_at", "id"]
         constraints = [
-            models.UniqueConstraint(fields=["user", "course"], name="unique_user_team_course"),
+            models.UniqueConstraint(
+                fields=["user", "course"], name="unique_user_team_course"
+            ),
             models.UniqueConstraint(fields=["team", "user"], name="unique_team_user"),
         ]
 
@@ -114,7 +121,9 @@ class TeamInvitation(models.Model):
         on_delete=models.CASCADE,
         related_name="received_team_invitations",
     )
-    status = models.CharField(max_length=10, choices=Status.choices, default=Status.PENDING)
+    status = models.CharField(
+        max_length=10, choices=Status.choices, default=Status.PENDING
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     responded_at = models.DateTimeField(null=True, blank=True)
 
@@ -141,7 +150,9 @@ class TeamChat(models.Model):
 
 
 class TeamChatMessage(models.Model):
-    chat = models.ForeignKey(TeamChat, on_delete=models.CASCADE, related_name="messages")
+    chat = models.ForeignKey(
+        TeamChat, on_delete=models.CASCADE, related_name="messages"
+    )
     sender = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -169,7 +180,9 @@ class PrivateChat(models.Model):
     unique constraint blocks duplicate rooms even when both users open it at once.
     """
 
-    course = models.ForeignKey(Course, on_delete=models.CASCADE, related_name="private_chats")
+    course = models.ForeignKey(
+        Course, on_delete=models.CASCADE, related_name="private_chats"
+    )
     user_low = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -206,7 +219,9 @@ class PrivateChat(models.Model):
 
 
 class PrivateChatMessage(models.Model):
-    chat = models.ForeignKey(PrivateChat, on_delete=models.CASCADE, related_name="messages")
+    chat = models.ForeignKey(
+        PrivateChat, on_delete=models.CASCADE, related_name="messages"
+    )
     sender = models.ForeignKey(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
@@ -241,7 +256,9 @@ class UserBlock(models.Model):
 
     class Meta:
         constraints = [
-            models.UniqueConstraint(fields=["blocker", "blocked"], name="unique_user_block"),
+            models.UniqueConstraint(
+                fields=["blocker", "blocked"], name="unique_user_block"
+            ),
             models.CheckConstraint(
                 condition=~Q(blocker=models.F("blocked")),
                 name="user_block_not_self",
@@ -288,6 +305,7 @@ class PrivateMessageReport(models.Model):
         null=True,
         related_name="+",
     )
+
     class Status(models.TextChoices):
         PENDING = "pending", "รอตรวจสอบ"
         CONFIRMED = "confirmed", "ยืนยันรายงาน"
@@ -298,7 +316,9 @@ class PrivateMessageReport(models.Model):
     message_body = models.TextField("ข้อความที่ถูกรายงาน")
     message_sent_at = models.DateTimeField("เวลาที่ส่งข้อความ")
     # A few neighbouring messages copied at report time, shown only to moderators.
-    context_snapshot = models.JSONField("บริบทข้อความใกล้เคียง", default=list, blank=True)
+    context_snapshot = models.JSONField(
+        "บริบทข้อความใกล้เคียง", default=list, blank=True
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     status = models.CharField(
@@ -365,7 +385,9 @@ class PrivateChatIncident(models.Model):
         related_name="private_chat_incidents",
         verbose_name="ผู้ส่งข้อความ",
     )
-    course = models.ForeignKey(Course, on_delete=models.SET_NULL, null=True, related_name="+")
+    course = models.ForeignKey(
+        Course, on_delete=models.SET_NULL, null=True, related_name="+"
+    )
     message_body = models.TextField("ข้อความที่ยืนยัน")
     sequence = models.PositiveIntegerField("ครั้งที่")
     action = models.CharField("การดำเนินการ", max_length=20, choices=Action.choices)
@@ -381,7 +403,9 @@ class PrivateChatIncident(models.Model):
     class Meta:
         ordering = ["-confirmed_at", "-id"]
         constraints = [
-            models.UniqueConstraint(fields=["message"], name="unique_incident_per_message"),
+            models.UniqueConstraint(
+                fields=["message"], name="unique_incident_per_message"
+            ),
             models.UniqueConstraint(
                 fields=["offender", "sequence"], name="unique_incident_sequence"
             ),
@@ -461,13 +485,25 @@ class PrivateChatModerationLog(models.Model):
         verbose_name="ผู้ได้รับผล",
     )
     report = models.ForeignKey(
-        PrivateMessageReport, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+        PrivateMessageReport,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
     )
     incident = models.ForeignKey(
-        PrivateChatIncident, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+        PrivateChatIncident,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
     )
     suspension = models.ForeignKey(
-        PrivateChatSuspension, on_delete=models.SET_NULL, null=True, blank=True, related_name="+"
+        PrivateChatSuspension,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="+",
     )
     note = models.TextField("หมายเหตุ", blank=True)
     created_at = models.DateTimeField(auto_now_add=True)

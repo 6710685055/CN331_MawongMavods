@@ -15,7 +15,8 @@ class RegisterForm(forms.ModelForm):
 
     role = forms.ChoiceField(label="ประเภทบัญชี", choices=ROLE_CHOICES)
     password1 = forms.CharField(
-        label="รหัสผ่าน", widget=forms.PasswordInput(attrs={"autocomplete": "new-password"})
+        label="รหัสผ่าน",
+        widget=forms.PasswordInput(attrs={"autocomplete": "new-password"}),
     )
     password2 = forms.CharField(
         label="ยืนยันรหัสผ่าน",
@@ -35,7 +36,10 @@ class RegisterForm(forms.ModelForm):
     def clean_email(self):
         email = self.cleaned_data["email"].strip().lower()
         if User.objects.filter(email__iexact=email).exists():
-            raise ValidationError("อีเมลนี้ถูกใช้สมัครแล้ว กรุณาเข้าสู่ระบบหรือใช้อีเมลอื่น", code="duplicate")
+            raise ValidationError(
+                "อีเมลนี้ถูกใช้สมัครแล้ว กรุณาเข้าสู่ระบบหรือใช้อีเมลอื่น",
+                code="duplicate",
+            )
         return email
 
     def clean(self):

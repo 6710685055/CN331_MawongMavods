@@ -37,7 +37,8 @@ def validate_document_file(uploaded_file) -> None:
     allowed_exts = get_allowed_extensions()
     if not ext or ext not in allowed_exts:
         raise ValidationError(
-            f"ชนิดไฟล์ไม่รองรับ ({ext or 'ไม่มีนามสกุล'}) ระบบรองรับเฉพาะไฟล์ {get_allowed_extensions_display()} เท่านั้น"
+            f"ชนิดไฟล์ไม่รองรับ ({ext or 'ไม่มีนามสกุล'}) ระบบรองรับเฉพาะไฟล์ "
+            f"{get_allowed_extensions_display()} เท่านั้น"
         )
 
     size = getattr(uploaded_file, "size", 0) or 0

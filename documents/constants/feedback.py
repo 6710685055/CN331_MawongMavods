@@ -4,9 +4,13 @@ Templates with `{placeholders}` are filled with `.format(...)` by the caller.
 """
 
 # Permission errors
-NOT_COURSE_MEMBER = "เฉพาะผู้ที่ลงทะเบียนในรายวิชานี้เท่านั้นที่สามารถโหวตหรือ Report เอกสารได้"
+NOT_COURSE_MEMBER = (
+    "เฉพาะผู้ที่ลงทะเบียนในรายวิชานี้เท่านั้นที่สามารถโหวตหรือ Report เอกสารได้"
+)
 OWNER_CANNOT_INTERACT = "ไม่สามารถโหวตหรือ Report เอกสารของตนเองได้"
-DOCUMENT_HIDDEN_NO_INTERACT = "เอกสารนี้ถูกซ่อนชั่วคราวระหว่างรอการตรวจสอบ จึงยังโหวตหรือ Report ไม่ได้"
+DOCUMENT_HIDDEN_NO_INTERACT = (
+    "เอกสารนี้ถูกซ่อนชั่วคราวระหว่างรอการตรวจสอบ จึงยังโหวตหรือ Report ไม่ได้"
+)
 
 # Vote (icons keyed by DocumentVote.Value member name)
 VOTE_INVALID = "รูปแบบการโหวตไม่ถูกต้อง"
@@ -16,7 +20,7 @@ VOTE_MARKERS = {"UP": "▲", "DOWN": "▼"}
 # Report
 REPORT_REASON_REQUIRED = "กรุณาเลือกเหตุผลในการ Report"
 REPORT_REASON_INVALID = "เหตุผลในการ Report ไม่ถูกต้อง"
-REPORT_DETAIL_REQUIRED = "กรุณากรอกรายละเอียดเพิ่มเติมเมื่อเลือกเหตุผล \"{reason}\""
+REPORT_DETAIL_REQUIRED = 'กรุณากรอกรายละเอียดเพิ่มเติมเมื่อเลือกเหตุผล "{reason}"'
 REPORT_DETAIL_TOO_LONG = "รายละเอียดต้องมีความยาวไม่เกิน {max_length} ตัวอักษร"
 REPORT_DUPLICATE = "คุณเคย Report เอกสารนี้แล้ว และยังรอการตรวจสอบจาก TA/อาจารย์"
 REPORT_ALREADY_DISMISSED = (
@@ -34,6 +38,4 @@ HIDDEN_OWNER_MESSAGE = (
     "จึงถูกซ่อนชั่วคราวระหว่างรอ TA/อาจารย์ตรวจสอบ"
 )
 HIDDEN_STAFF_TITLE = "มีเอกสารถูกซ่อนจากการ Report ในวิชา {course_code}"
-HIDDEN_STAFF_MESSAGE = (
-    "เอกสาร '{title}' ถูก Report ถึงเกณฑ์ ({threshold} คน) และถูกซ่อนชั่วคราว กรุณาตรวจสอบ"
-)
+HIDDEN_STAFF_MESSAGE = "เอกสาร '{title}' ถูก Report ถึงเกณฑ์ ({threshold} คน) และถูกซ่อนชั่วคราว กรุณาตรวจสอบ"

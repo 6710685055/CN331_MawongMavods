@@ -147,7 +147,9 @@ def _close_open_reports(
     return decision
 
 
-def _notify_after_commit(decision: DocumentReportDecision, *, document: Document | None = None) -> None:
+def _notify_after_commit(
+    decision: DocumentReportDecision, *, document: Document | None = None
+) -> None:
     """
     Send the decision notifications once the transaction commits.
     Pass `document` when the row will be gone by then (owner hard delete, UC12): the in-memory
@@ -194,7 +196,9 @@ def resolve_reports(
     return decision
 
 
-def close_reports_for_owner_deletion(*, document: Document, owner) -> DocumentReportDecision | None:
+def close_reports_for_owner_deletion(
+    *, document: Document, owner
+) -> DocumentReportDecision | None:
     """
     Hook for UC12: when the owner deletes their document, close its open reports and tell the reporters.
     Call it inside the deleting transaction, before `document.delete()`, with the same instance

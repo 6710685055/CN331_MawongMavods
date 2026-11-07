@@ -33,7 +33,8 @@ def build_decision_options(document: Document) -> list[dict]:
             "help": texts.DECISION_HELP[outcome.name],
             "style": texts.DECISION_BUTTON_STYLES[outcome.name],
             "requires_reason": outcome in DocumentReport.RESOLUTIONS_REQUIRING_REASON,
-            "requires_confirmation": outcome in DocumentReport.RESOLUTIONS_REQUIRING_CONFIRMATION,
+            "requires_confirmation": outcome
+            in DocumentReport.RESOLUTIONS_REQUIRING_CONFIRMATION,
             "confirm_prompt": texts.REMOVE_CONFIRM_PROMPT.format(title=document.title),
         }
         for outcome in DocumentReport.REVIEWER_RESOLUTIONS
@@ -101,7 +102,9 @@ def resolve_reports_view(request, course_id, doc_id):
     if not form.is_valid():
         for errors in form.errors.values():
             messages.error(request, errors[0])
-        return redirect("documents:report_review", course_id=course.id, doc_id=document.id)
+        return redirect(
+            "documents:report_review", course_id=course.id, doc_id=document.id
+        )
 
     title = document.title
     try:
@@ -121,6 +124,8 @@ def resolve_reports_view(request, course_id, doc_id):
     outcome = Resolution(decision.outcome)
     messages.success(
         request,
-        texts.DECISION_DONE[outcome.name].format(title=title, count=decision.report_count),
+        texts.DECISION_DONE[outcome.name].format(
+            title=title, count=decision.report_count
+        ),
     )
     return redirect("documents:reported_queue", course_id=course.id)

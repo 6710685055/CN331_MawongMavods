@@ -47,7 +47,10 @@ class ReportReviewForm(forms.ModelForm):
         label="ผลการพิจารณา",
         choices=[
             ("", "— เลือกผลการพิจารณา —"),
-            (PrivateMessageReport.Status.CONFIRMED, "ยืนยันรายงาน (ซ่อนข้อความและดำเนินการกับผู้ส่ง)"),
+            (
+                PrivateMessageReport.Status.CONFIRMED,
+                "ยืนยันรายงาน (ซ่อนข้อความและดำเนินการกับผู้ส่ง)",
+            ),
             (PrivateMessageReport.Status.REJECTED, "ปฏิเสธรายงาน (ข้อความแสดงตามปกติ)"),
         ],
     )
@@ -59,9 +62,12 @@ class ReportReviewForm(forms.ModelForm):
     def clean(self):
         cleaned = super().clean()
         # Re-read the row: another moderator may have decided it after this page loaded.
-        if self.instance.pk and not PrivateMessageReport.objects.filter(
-            pk=self.instance.pk, status=PrivateMessageReport.Status.PENDING
-        ).exists():
+        if (
+            self.instance.pk
+            and not PrivateMessageReport.objects.filter(
+                pk=self.instance.pk, status=PrivateMessageReport.Status.PENDING
+            ).exists()
+        ):
             raise forms.ValidationError("รายงานนี้ได้รับการพิจารณาไปแล้ว")
         return cleaned
 
@@ -71,7 +77,14 @@ class PrivateMessageReportAdmin(admin.ModelAdmin):
     """Review queue. Reading needs view or review permission; deciding needs review permission."""
 
     form = ReportReviewForm
-    list_display = ("created_at", "status", "course", "reporter", "reported_user", "reason")
+    list_display = (
+        "created_at",
+        "status",
+        "course",
+        "reporter",
+        "reported_user",
+        "reason",
+    )
     list_filter = ("status", "reason", "course")
     search_fields = ("reporter__email", "reported_user__email", "message_body")
     evidence_fields = (
@@ -122,9 +135,13 @@ class PrivateMessageReportAdmin(admin.ModelAdmin):
                 "<li{}><strong>{}</strong> ({}): {}</li>",
                 (
                     (
-                        format_html(' style="{}"', "font-weight:bold;background:#fff3cd")
-                        if item.get("reported")
-                        else "",
+                        (
+                            format_html(
+                                ' style="{}"', "font-weight:bold;background:#fff3cd"
+                            )
+                            if item.get("reported")
+                            else ""
+                        ),
                         item.get("sender_name", ""),
                         item.get("sent_at", ""),
                         item.get("body", ""),
@@ -159,9 +176,12 @@ class LiftSuspensionForm(forms.ModelForm):
 
     def clean(self):
         cleaned = super().clean()
-        if self.instance.pk and not PrivateChatSuspension.objects.filter(
-            pk=self.instance.pk, lifted_at__isnull=True, ends_at__gt=timezone.now()
-        ).exists():
+        if (
+            self.instance.pk
+            and not PrivateChatSuspension.objects.filter(
+                pk=self.instance.pk, lifted_at__isnull=True, ends_at__gt=timezone.now()
+            ).exists()
+        ):
             raise forms.ValidationError("การระงับนี้สิ้นสุดหรือถูกยกเลิกไปแล้ว")
         return cleaned
 
@@ -171,10 +191,24 @@ class PrivateChatSuspensionAdmin(admin.ModelAdmin):
     """Saving the form with a reason lifts an active suspension early."""
 
     form = LiftSuspensionForm
-    list_display = ("user", "counterpart", "starts_at", "ends_at", "is_active_display", "lifted_at")
+    list_display = (
+        "user",
+        "counterpart",
+        "starts_at",
+        "ends_at",
+        "is_active_display",
+        "lifted_at",
+    )
     list_filter = ("lifted_at",)
     search_fields = ("user__email", "counterpart__email")
-    record_fields = ("incident", "user", "counterpart", "starts_at", "ends_at", "is_active_display")
+    record_fields = (
+        "incident",
+        "user",
+        "counterpart",
+        "starts_at",
+        "ends_at",
+        "is_active_display",
+    )
     lifted_fields = ("lifted_by", "lifted_at", "lift_reason")
 
     def has_add_permission(self, request):
@@ -233,7 +267,14 @@ class ReadOnlyModerationAdmin(admin.ModelAdmin):
 
 @admin.register(PrivateChatIncident)
 class PrivateChatIncidentAdmin(ReadOnlyModerationAdmin):
-    list_display = ("confirmed_at", "offender", "sequence", "action", "course", "confirmed_by")
+    list_display = (
+        "confirmed_at",
+        "offender",
+        "sequence",
+        "action",
+        "course",
+        "confirmed_by",
+    )
     list_filter = ("action", "course")
     search_fields = ("offender__email", "message_body")
 

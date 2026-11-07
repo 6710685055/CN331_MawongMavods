@@ -37,4 +37,7 @@ class DocumentReviewLog(models.Model):
         ordering = ["-created_at", "-id"]
 
     def __str__(self):
-        return f"{self.document.title} v{self.document_version} - {self.get_action_display()} by {self.reviewer_name_snapshot}"
+        return (
+            f"{self.document.title} v{self.document_version} - "
+            f"{self.get_action_display()} by {self.reviewer_name_snapshot}"
+        )

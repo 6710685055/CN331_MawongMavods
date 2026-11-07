@@ -90,7 +90,9 @@ def decide_report(*, report_id, reviewer, decision, note=""):
         now = timezone.now()
         claimed = PrivateMessageReport.objects.filter(
             pk=report_id, status=Status.PENDING
-        ).update(status=decision, reviewed_by=reviewer, reviewed_at=now, review_note=note)
+        ).update(
+            status=decision, reviewed_by=reviewer, reviewed_at=now, review_note=note
+        )
         if not claimed:
             raise PrivateChatError("รายงานนี้ได้รับการพิจารณาไปแล้ว")
         report = PrivateMessageReport.objects.select_related(
@@ -98,7 +100,13 @@ def decide_report(*, report_id, reviewer, decision, note=""):
         ).get(pk=report_id)
 
         if decision == Status.REJECTED:
-            _log(LogAction.REPORT_REJECTED, reviewer, report.reported_user, report=report, note=note)
+            _log(
+                LogAction.REPORT_REJECTED,
+                reviewer,
+                report.reported_user,
+                report=report,
+                note=note,
+            )
             _notify_reporter(report, confirmed=False)
             return report
 
@@ -152,11 +160,15 @@ def _get_or_create_incident(message, reviewer, now):
         existing = PrivateChatIncident.objects.filter(message=message).first()
         if existing:
             return existing
-        raise PrivateChatError("มีการยืนยันรายงานของผู้ใช้นี้พร้อมกัน กรุณาลองอีกครั้ง") from error
+        raise PrivateChatError(
+            "มีการยืนยันรายงานของผู้ใช้นี้พร้อมกัน กรุณาลองอีกครั้ง"
+        ) from error
 
     message.hidden_at = now
     message.save(update_fields=["hidden_at"])
-    _broadcast([message.chat_id], {"type": "chat.message_hidden", "message_id": message.id})
+    _broadcast(
+        [message.chat_id], {"type": "chat.message_hidden", "message_id": message.id}
+    )
 
     if action == PrivateChatIncident.Action.WARNING:
         _log(LogAction.WARNING_ISSUED, reviewer, offender, incident=incident)
@@ -170,7 +182,13 @@ def _get_or_create_incident(message, reviewer, now):
             starts_at=now,
             ends_at=now + SUSPENSION_DURATION,
         )
-        _log(LogAction.SUSPENDED, reviewer, offender, incident=incident, suspension=suspension)
+        _log(
+            LogAction.SUSPENDED,
+            reviewer,
+            offender,
+            incident=incident,
+            suspension=suspension,
+        )
         _notify_offender_suspended(suspension, message)
         _broadcast(_pair_chat_ids(offender, counterpart), {"type": "chat.block_state"})
     return incident
@@ -188,10 +206,16 @@ def lift_suspension(*, suspension_id, actor, reason):
         ).update(lifted_at=now, lifted_by=actor, lift_reason=reason)
         if not lifted:
             raise PrivateChatError("การระงับนี้สิ้นสุดหรือถูกยกเลิกไปแล้ว")
-        suspension = PrivateChatSuspension.objects.select_related("user", "counterpart").get(
-            pk=suspension_id
+        suspension = PrivateChatSuspension.objects.select_related(
+            "user", "counterpart"
+        ).get(pk=suspension_id)
+        _log(
+            LogAction.SUSPENSION_LIFTED,
+            actor,
+            suspension.user,
+            suspension=suspension,
+            note=reason,
         )
-        _log(LogAction.SUSPENSION_LIFTED, actor, suspension.user, suspension=suspension, note=reason)
         send_notification(
             recipient=suspension.user,
             title="ยกเลิกการระงับการส่งข้อความส่วนตัว",
@@ -199,7 +223,8 @@ def lift_suspension(*, suspension_id, actor, reason):
             notification_type=Notification.Type.PRIVATE_CHAT_UNSUSPENDED,
         )
         _broadcast(
-            _pair_chat_ids(suspension.user, suspension.counterpart), {"type": "chat.block_state"}
+            _pair_chat_ids(suspension.user, suspension.counterpart),
+            {"type": "chat.block_state"},
         )
         return suspension
 
@@ -229,7 +254,9 @@ def _notify_reporter(report, *, confirmed):
         message=text,
         notification_type=Notification.Type.PRIVATE_REPORT_RESULT,
         target_url=(
-            reverse("courses:private_chat", args=[message.chat.course_id, message.chat_id])
+            reverse(
+                "courses:private_chat", args=[message.chat.course_id, message.chat_id]
+            )
             if message
             else ""
         ),

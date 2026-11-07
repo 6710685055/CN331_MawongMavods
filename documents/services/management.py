@@ -37,7 +37,9 @@ def update_document_metadata(
         raise DocumentServiceError("กรุณากรอกชื่อเอกสาร")
     if metadata.get("doc_type") not in {value for value, _ in Document.DocType.choices}:
         raise DocumentServiceError("ประเภทเอกสารไม่ถูกต้อง")
-    if metadata.get("semester") not in {value for value, _ in Document.Semester.choices}:
+    if metadata.get("semester") not in {
+        value for value, _ in Document.Semester.choices
+    }:
         raise DocumentServiceError("ภาคการศึกษาไม่ถูกต้อง")
     year = metadata.get("academic_year")
     if year is None or year < 2500 or year > 2700:
@@ -70,7 +72,9 @@ def update_document_metadata(
         if document.doc_type != old_doc_type:
             document.clear_verification()
             document.latest_review_comment = ""
-            document.verify_status = Document.initial_verify_status_for_type(document.doc_type)
+            document.verify_status = Document.initial_verify_status_for_type(
+                document.doc_type
+            )
 
         document.save()
     return document

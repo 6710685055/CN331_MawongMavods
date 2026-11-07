@@ -36,11 +36,14 @@ from .permissions import is_course_staff
 
 
 def _student_enrollment(user, course):
-    return Enrollment.objects.filter(
-        user=user,
-        course=course,
-        role=Enrollment.Role.STUDENT,
-    ).exists() and user.role == User.Role.STUDENT
+    return (
+        Enrollment.objects.filter(
+            user=user,
+            course=course,
+            role=Enrollment.Role.STUDENT,
+        ).exists()
+        and user.role == User.Role.STUDENT
+    )
 
 
 @login_required
@@ -51,7 +54,9 @@ def group_dashboard(request, course_id):
             course.owner_id and course.owner_id == request.user.id
         ):
             return redirect("courses:manage_unassigned_students", course_id=course.id)
-        messages.error(request, "ระบบจัดกลุ่มเปิดให้เฉพาะนักศึกษาที่ได้รับอนุมัติในรายวิชานี้")
+        messages.error(
+            request, "ระบบจัดกลุ่มเปิดให้เฉพาะนักศึกษาที่ได้รับอนุมัติในรายวิชานี้"
+        )
         return redirect("courses:detail", course_id=course.id)
 
     memberships = list(
@@ -79,8 +84,9 @@ def group_dashboard(request, course_id):
         status=TeamInvitation.Status.PENDING,
     ).select_related("team", "inviter")
     sent_invitations = (
-        TeamInvitation.objects.filter(team=team, status=TeamInvitation.Status.PENDING)
-        .select_related("invitee")
+        TeamInvitation.objects.filter(
+            team=team, status=TeamInvitation.Status.PENDING
+        ).select_related("invitee")
         if team
         else TeamInvitation.objects.none()
     )
@@ -127,14 +133,20 @@ def group_dashboard(request, course_id):
 def create_course_team(request, course_id):
     course = get_object_or_404(Course, pk=course_id)
     if not _student_enrollment(request.user, course):
-        messages.error(request, "ระบบจัดกลุ่มเปิดให้เฉพาะนักศึกษาที่ได้รับอนุมัติในรายวิชานี้")
+        messages.error(
+            request, "ระบบจัดกลุ่มเปิดให้เฉพาะนักศึกษาที่ได้รับอนุมัติในรายวิชานี้"
+        )
         return redirect("courses:detail", course_id=course.id)
     try:
-        team = create_team(user=request.user, course=course, name=request.POST.get("name", ""))
+        team = create_team(
+            user=request.user, course=course, name=request.POST.get("name", "")
+        )
     except GroupError as error:
         messages.error(request, str(error))
     else:
-        messages.success(request, f"สร้างกลุ่ม {team.name} แล้ว เชิญเพื่อนที่ยังไม่มีกลุ่มได้เลย")
+        messages.success(
+            request, f"สร้างกลุ่ม {team.name} แล้ว เชิญเพื่อนที่ยังไม่มีกลุ่มได้เลย"
+        )
     return redirect("courses:groups", course_id=course.id)
 
 
@@ -184,7 +196,9 @@ def respond_to_team_invitation(request, course_id, invitation_id):
         elif result.status == TeamInvitation.Status.DECLINED:
             messages.info(request, f"ปฏิเสธคำเชิญเข้ากลุ่ม {result.team.name} แล้ว")
         elif result.status == TeamInvitation.Status.CANCELLED:
-            messages.info(request, "คำเชิญนี้ใช้ไม่ได้แล้ว เนื่องจากคุณมีกลุ่มแล้วหรือกลุ่มเต็ม")
+            messages.info(
+                request, "คำเชิญนี้ใช้ไม่ได้แล้ว เนื่องจากคุณมีกลุ่มแล้วหรือกลุ่มเต็ม"
+            )
     return redirect("courses:groups", course_id=course_id)
 
 
@@ -203,7 +217,10 @@ def leave_team(request, course_id, team_id):
         {"type": "team.member_removed", "user_id": request.user.id},
     )
     if result["dissolved"]:
-        messages.success(request, f"คุณออกจากกลุ่ม {result['team_name']} แล้ว และระบบยุบกลุ่มเนื่องจากไม่มีสมาชิกเหลือ")
+        messages.success(
+            request,
+            f"คุณออกจากกลุ่ม {result['team_name']} แล้ว และระบบยุบกลุ่มเนื่องจากไม่มีสมาชิกเหลือ",
+        )
     elif result["was_leader"]:
         messages.success(
             request,
@@ -247,7 +264,9 @@ def team_chat(request, course_id, team_id):
         return redirect("courses:team_chat", course_id=course_id, team_id=team_id)
 
     chat_messages = list(
-        chat.messages.select_related("sender", "chat__team").order_by("-created_at", "-id")[:100]
+        chat.messages.select_related("sender", "chat__team").order_by(
+            "-created_at", "-id"
+        )[:100]
     )
     team_memberships = list(
         TeamMembership.objects.filter(team=chat.team)
@@ -291,7 +310,9 @@ def manage_unassigned_students(request, course_id):
     course = get_object_or_404(Course, pk=course_id)
     is_owner = bool(course.owner_id and course.owner_id == request.user.id)
     if not (is_course_staff(request.user, course) or is_owner):
-        raise PermissionDenied("เฉพาะอาจารย์ผู้สอนหรือผู้ช่วยสอน (TA) เท่านั้นที่เข้าถึงหน้านี้ได้")
+        raise PermissionDenied(
+            "เฉพาะอาจารย์ผู้สอนหรือผู้ช่วยสอน (TA) เท่านั้นที่เข้าถึงหน้านี้ได้"
+        )
 
     student_enrollments = list(
         Enrollment.objects.filter(
@@ -311,7 +332,9 @@ def manage_unassigned_students(request, course_id):
         enrollment.team_membership = membership_by_user.get(enrollment.user_id)
 
     unassigned_students = [e for e in student_enrollments if e.team_membership is None]
-    assigned_students = [e for e in student_enrollments if e.team_membership is not None]
+    assigned_students = [
+        e for e in student_enrollments if e.team_membership is not None
+    ]
 
     teams = list(
         Team.objects.filter(course=course)
@@ -349,7 +372,9 @@ def ta_assign_student(request, course_id):
 
     try:
         assign_student_to_team(actor=request.user, team=team, student=student)
-        messages.success(request, f"จัด {student.full_name} เข้ากลุ่ม '{team.name}' เรียบร้อยแล้ว")
+        messages.success(
+            request, f"จัด {student.full_name} เข้ากลุ่ม '{team.name}' เรียบร้อยแล้ว"
+        )
     except GroupError as e:
         messages.error(request, str(e))
 
@@ -372,7 +397,8 @@ def ta_create_and_assign_team(request, course_id):
             students=students,
         )
         messages.success(
-            request, f"สร้างกลุ่ม '{team.name}' และจัดสมาชิก {len(students)} คนเรียบร้อยแล้ว"
+            request,
+            f"สร้างกลุ่ม '{team.name}' และจัดสมาชิก {len(students)} คนเรียบร้อยแล้ว",
         )
     except GroupError as e:
         messages.error(request, str(e))
@@ -387,7 +413,8 @@ def ta_auto_assign(request, course_id):
     try:
         count = auto_assign_unassigned_students(actor=request.user, course=course)
         messages.success(
-            request, f"จัดนักศึกษาที่ยังไม่มีกลุ่มเข้ากลุ่มอัตโนมัติสำเร็จทั้งหมด {count} คน"
+            request,
+            f"จัดนักศึกษาที่ยังไม่มีกลุ่มเข้ากลุ่มอัตโนมัติสำเร็จทั้งหมด {count} คน",
         )
     except GroupError as e:
         messages.error(request, str(e))

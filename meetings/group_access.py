@@ -57,12 +57,16 @@ class TeamAccess:
     def members(group):
         if not isinstance(group, Team):
             return get_user_model().objects.none()
-        return get_user_model().objects.filter(
-            team_memberships__team=group,
-            enrollments__course_id=group.course_id,
-            enrollments__role=Enrollment.Role.STUDENT,
-            is_active=True,
-        ).order_by("pk")
+        return (
+            get_user_model()
+            .objects.filter(
+                team_memberships__team=group,
+                enrollments__course_id=group.course_id,
+                enrollments__role=Enrollment.Role.STUDENT,
+                is_active=True,
+            )
+            .order_by("pk")
+        )
 
 
 class AuthGroupAccess:

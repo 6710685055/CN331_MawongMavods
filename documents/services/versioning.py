@@ -18,7 +18,9 @@ def replace_document_file(*, user, document: Document, new_file) -> Document:
     if not can_access_course_documents(user, document.course):
         raise DocumentPermissionError("คุณไม่ได้ลงทะเบียนในรายวิชานี้")
     if document.uploader_id != user.id:
-        raise DocumentPermissionError("เฉพาะเจ้าของเอกสารเท่านั้นที่สามารถอัปเดตไฟล์เอกสารได้")
+        raise DocumentPermissionError(
+            "เฉพาะเจ้าของเอกสารเท่านั้นที่สามารถอัปเดตไฟล์เอกสารได้"
+        )
 
     _validate_file_or_raise(new_file)
 

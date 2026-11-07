@@ -65,7 +65,9 @@ class US12DocumentManagementTests(BaseDocumentTestCase):
         self.assertEqual(updated.version, 1)
         self.assertEqual(updated.file.name, old_file_name)
 
-    def test_changing_document_type_resets_verification_and_requires_homework_confirmation(self):
+    def test_changing_document_type_resets_verification_and_requires_homework_confirmation(
+        self,
+    ):
         verify_document(reviewer=self.ta, document=self.document)
         self.document.refresh_from_db()
         self.assertTrue(self.document.has_active_verified_badge)
@@ -109,7 +111,9 @@ class US12DocumentManagementTests(BaseDocumentTestCase):
             self._metadata(doc_type=Document.DocType.HOMEWORK),
         )
         self.assertEqual(missing_confirmation.status_code, 200)
-        self.assertContains(missing_confirmation, "กรุณายืนยันว่าการบ้านชิ้นนี้หมดกำหนดส่งแล้ว")
+        self.assertContains(
+            missing_confirmation, "กรุณายืนยันว่าการบ้านชิ้นนี้หมดกำหนดส่งแล้ว"
+        )
         self.document.refresh_from_db()
         self.assertEqual(self.document.doc_type, Document.DocType.SUMMARY)
 
@@ -171,7 +175,9 @@ class US12DocumentManagementTests(BaseDocumentTestCase):
         with self.captureOnCommitCallbacks(execute=True):
             response = self.client.post(self._url("delete"))
 
-        self.assertRedirects(response, reverse("documents:library", args=[self.course.id]))
+        self.assertRedirects(
+            response, reverse("documents:library", args=[self.course.id])
+        )
         self.assertFalse(Document.objects.filter(pk=self.document.pk).exists())
         self.assertFalse(DocumentVote.objects.filter(pk=vote.pk).exists())
         self.assertFalse(DocumentReport.objects.filter(pk=report.pk).exists())

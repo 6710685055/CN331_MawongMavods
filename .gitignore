@@ -7,6 +7,10 @@ media/
 # Python-generated files
 __pycache__/
 *.py[cod]
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
 
 # Local environment variables
 .env

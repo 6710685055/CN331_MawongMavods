@@ -16,7 +16,9 @@ class Meeting(models.Model):
     group_object_id = models.PositiveBigIntegerField()
     group = GenericForeignKey("group_content_type", "group_object_id")
 
-    title = models.CharField("หัวข้อการประชุม", max_length=160, validators=[MinLengthValidator(3)])
+    title = models.CharField(
+        "หัวข้อการประชุม", max_length=160, validators=[MinLengthValidator(3)]
+    )
     meeting_url = models.URLField("ลิงก์ประชุม", max_length=500)
     starts_at = models.DateTimeField("วันและเวลาประชุม")
     created_by = models.ForeignKey(
@@ -27,7 +29,9 @@ class Meeting(models.Model):
     )
     created_at = models.DateTimeField("สร้างเมื่อ", auto_now_add=True)
     updated_at = models.DateTimeField("แก้ไขล่าสุด", auto_now=True)
-    reminder_sent_at = models.DateTimeField("ส่งแจ้งเตือนแล้วเมื่อ", null=True, blank=True)
+    reminder_sent_at = models.DateTimeField(
+        "ส่งแจ้งเตือนแล้วเมื่อ", null=True, blank=True
+    )
 
     class Meta:
         ordering = ["starts_at", "pk"]

@@ -27,7 +27,11 @@ def check_email(request):
 
 def verify_email(request, token):
     data = read_token(token)
-    user = User.objects.filter(pk=data["uid"], email=data["email"]).first() if data else None
+    user = (
+        User.objects.filter(pk=data["uid"], email=data["email"]).first()
+        if data
+        else None
+    )
     if user is None:
         return render(request, "accounts/verify_failed.html", status=400)
     if not user.email_verified:
@@ -47,7 +51,8 @@ def resend_verification(request):
             send_verification_email(request, user)
         # Same message either way, so this page can't be used to probe which emails exist.
         messages.info(
-            request, "ถ้าอีเมลนี้สมัครไว้และยังไม่ได้ยืนยัน เราได้ส่งลิงก์ยืนยันไปให้แล้ว"
+            request,
+            "ถ้าอีเมลนี้สมัครไว้และยังไม่ได้ยืนยัน เราได้ส่งลิงก์ยืนยันไปให้แล้ว",
         )
         return redirect("accounts:login")
     return render(request, "accounts/resend_verification.html", {"form": form})

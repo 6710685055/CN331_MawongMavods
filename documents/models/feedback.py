@@ -68,7 +68,11 @@ class DocumentReport(models.Model):
         OWNER_DELETED = "owner_deleted", "เจ้าของลบเอกสาร"
 
     # Reviewer choices in display order, and which of them need extra input (UC14).
-    REVIEWER_RESOLUTIONS = (Resolution.DISMISSED, Resolution.REVISION, Resolution.REMOVED)
+    REVIEWER_RESOLUTIONS = (
+        Resolution.DISMISSED,
+        Resolution.REVISION,
+        Resolution.REMOVED,
+    )
     RESOLUTIONS_REQUIRING_REASON = frozenset({Resolution.REVISION, Resolution.REMOVED})
     RESOLUTIONS_REQUIRING_CONFIRMATION = frozenset({Resolution.REMOVED})
 

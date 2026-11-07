@@ -35,14 +35,18 @@ class UC14ReviewReportedDocumentsTests(BaseDocumentTestCase):
         self.student4 = self._make_student("student4@example.com", "สมปอง")
 
         # Owner: student. Reported by two students -> hidden (threshold 2).
-        self.doc = self._upload(self.student, "ชีทสรุปที่ถูกซ่อน", Document.DocType.SUMMARY)
+        self.doc = self._upload(
+            self.student, "ชีทสรุปที่ถูกซ่อน", Document.DocType.SUMMARY
+        )
         report_document(user=self.student2, document=self.doc, reason=SPAM)
         report_document(
             user=self.student3, document=self.doc, reason=INCORRECT, detail="สูตรผิด"
         )
 
         # Reported once -> still visible.
-        self.doc_visible = self._upload(self.student2, "การบ้านที่ถูก Report", Document.DocType.HOMEWORK)
+        self.doc_visible = self._upload(
+            self.student2, "การบ้านที่ถูก Report", Document.DocType.HOMEWORK
+        )
         report_document(user=self.student3, document=self.doc_visible, reason=SPAM)
 
         # Uploaded by TA1 and reported.
@@ -62,7 +66,9 @@ class UC14ReviewReportedDocumentsTests(BaseDocumentTestCase):
             role=User.Role.STUDENT,
             email_verified=True,
         )
-        Enrollment.objects.create(user=user, course=self.course, role=Enrollment.Role.STUDENT)
+        Enrollment.objects.create(
+            user=user, course=self.course, role=Enrollment.Role.STUDENT
+        )
         return user
 
     def _upload(self, user, title, doc_type):
@@ -100,13 +106,17 @@ class UC14ReviewReportedDocumentsTests(BaseDocumentTestCase):
         for user in (self.student4, self.ta_pending, self.outsider):
             self.client.force_login(user)
             self.assertEqual(self.client.get(queue_url).status_code, 403)
-            self.assertEqual(self.client.get(self._url("report_review")).status_code, 403)
+            self.assertEqual(
+                self.client.get(self._url("report_review")).status_code, 403
+            )
             response = self.client.post(
                 self._url("resolve_reports"), {"outcome": Resolution.DISMISSED}
             )
             self.assertEqual(response.status_code, 403)
             with self.assertRaises(DocumentPermissionError):
-                resolve_reports(reviewer=user, document=self.doc, outcome=Resolution.DISMISSED)
+                resolve_reports(
+                    reviewer=user, document=self.doc, outcome=Resolution.DISMISSED
+                )
 
         self.assertEqual(DocumentReportDecision.objects.count(), 0)
 
@@ -118,16 +128,24 @@ class UC14ReviewReportedDocumentsTests(BaseDocumentTestCase):
         queue = list(get_reported_queue(reviewer=self.teacher, course=self.course))
         self.assertEqual(queue[0], self.doc)  # hidden first
         self.assertEqual(queue[0].open_report_count, 2)
-        self.assertEqual({d.id for d in queue}, {self.doc.id, self.doc_visible.id, self.doc_by_ta.id})
+        self.assertEqual(
+            {d.id for d in queue}, {self.doc.id, self.doc_visible.id, self.doc_by_ta.id}
+        )
 
         # TA1 does not see (and cannot judge) the document they uploaded
         ta1_queue = get_reported_queue(reviewer=self.ta, course=self.course)
         self.assertNotIn(self.doc_by_ta, ta1_queue)
-        with self.assertRaisesMessage(DocumentPermissionError, texts.CANNOT_MODERATE_OWN):
-            resolve_reports(reviewer=self.ta, document=self.doc_by_ta, outcome=Resolution.DISMISSED)
+        with self.assertRaisesMessage(
+            DocumentPermissionError, texts.CANNOT_MODERATE_OWN
+        ):
+            resolve_reports(
+                reviewer=self.ta, document=self.doc_by_ta, outcome=Resolution.DISMISSED
+            )
 
         self.client.force_login(self.teacher)
-        page = self.client.get(reverse("documents:reported_queue", args=[self.course.id]))
+        page = self.client.get(
+            reverse("documents:reported_queue", args=[self.course.id])
+        )
         self.assertContains(page, DocumentReport.Reason.SPAM.label)
         self.assertContains(page, DocumentReport.Reason.INCORRECT.label)
         self.assertContains(page, "ซ่อนชั่วคราว")
@@ -157,22 +175,33 @@ class UC14ReviewReportedDocumentsTests(BaseDocumentTestCase):
         self.assertFalse(self.doc.is_hidden)
         self.assertTrue(self.doc.has_active_verified_badge)
         self.assertFalse(
-            DocumentReport.objects.filter(document=self.doc, status=DocumentReport.Status.OPEN).exists()
+            DocumentReport.objects.filter(
+                document=self.doc, status=DocumentReport.Status.OPEN
+            ).exists()
         )
         self.assertEqual(decision.report_count, 2)
         self.assertEqual(
-            set(DocumentReport.objects.filter(document=self.doc).values_list("resolution", flat=True)),
+            set(
+                DocumentReport.objects.filter(document=self.doc).values_list(
+                    "resolution", flat=True
+                )
+            ),
             {Resolution.DISMISSED},
         )
         # Dismissed reporters cannot re-report the same version (UC10 rule)
         with self.assertRaises(DocumentServiceError):
             report_document(user=self.student2, document=self.doc, reason=SPAM)
 
-    def test_revision_requires_reason_drops_badge_and_returns_to_pending_after_fix(self):
+    def test_revision_requires_reason_drops_badge_and_returns_to_pending_after_fix(
+        self,
+    ):
         with self.assertRaisesMessage(
-            DocumentServiceError, texts.REASON_REQUIRED.format(outcome=Resolution.REVISION.label)
+            DocumentServiceError,
+            texts.REASON_REQUIRED.format(outcome=Resolution.REVISION.label),
         ):
-            resolve_reports(reviewer=self.ta2, document=self.doc, outcome=Resolution.REVISION)
+            resolve_reports(
+                reviewer=self.ta2, document=self.doc, outcome=Resolution.REVISION
+            )
 
         Document.objects.filter(pk=self.doc.pk).update(is_hidden=False)
         verify_document(reviewer=self.teacher, document=self.doc)
@@ -184,12 +213,16 @@ class UC14ReviewReportedDocumentsTests(BaseDocumentTestCase):
         self.assertFalse(self.doc.is_hidden)
         self.assertEqual(self.doc.latest_review_comment, "แก้สูตรบทที่ 2")
 
-        replace_document_file(user=self.student, document=self.doc, new_file=make_file("fixed.pdf"))
+        replace_document_file(
+            user=self.student, document=self.doc, new_file=make_file("fixed.pdf")
+        )
         self.assertEqual(self.doc.verify_status, Document.VerifyStatus.PENDING)
 
     def test_revision_of_homework_resets_after_owner_replaces_file(self):
         self._resolve(Resolution.REVISION, doc=self.doc_visible, reason="ไฟล์ผิดบท")
-        self.assertEqual(self.doc_visible.verify_status, Document.VerifyStatus.NEEDS_REVISION)
+        self.assertEqual(
+            self.doc_visible.verify_status, Document.VerifyStatus.NEEDS_REVISION
+        )
 
         replace_document_file(
             user=self.student2, document=self.doc_visible, new_file=make_file("hw2.pdf")
@@ -198,10 +231,20 @@ class UC14ReviewReportedDocumentsTests(BaseDocumentTestCase):
 
     def test_remove_requires_reason_and_confirmation_and_hides_everywhere(self):
         with self.assertRaises(DocumentServiceError):
-            resolve_reports(reviewer=self.ta2, document=self.doc, outcome=Resolution.REMOVED, confirmed=True)
-        with self.assertRaisesMessage(DocumentServiceError, texts.REMOVE_CONFIRM_REQUIRED):
             resolve_reports(
-                reviewer=self.ta2, document=self.doc, outcome=Resolution.REMOVED, reason="ละเมิดลิขสิทธิ์"
+                reviewer=self.ta2,
+                document=self.doc,
+                outcome=Resolution.REMOVED,
+                confirmed=True,
+            )
+        with self.assertRaisesMessage(
+            DocumentServiceError, texts.REMOVE_CONFIRM_REQUIRED
+        ):
+            resolve_reports(
+                reviewer=self.ta2,
+                document=self.doc,
+                outcome=Resolution.REMOVED,
+                reason="ละเมิดลิขสิทธิ์",
             )
 
         # A Verified badge does not protect the document from removal
@@ -220,7 +263,9 @@ class UC14ReviewReportedDocumentsTests(BaseDocumentTestCase):
 
         for user in (self.student4, self.ta, self.teacher):
             self.client.force_login(user)
-            library = self.client.get(reverse("documents:library", args=[self.course.id]))
+            library = self.client.get(
+                reverse("documents:library", args=[self.course.id])
+            )
             self.assertNotContains(library, self.doc.title)
             self.assertEqual(self.client.get(self._url("detail")).status_code, 404)
             self.assertEqual(self.client.get(self._url("download")).status_code, 404)
@@ -237,7 +282,9 @@ class UC14ReviewReportedDocumentsTests(BaseDocumentTestCase):
             self._url("resolve_reports"),
             {"outcome": Resolution.REMOVED, "reason": "สแปม", "confirm_remove": "on"},
         )
-        self.assertRedirects(response, reverse("documents:reported_queue", args=[self.course.id]))
+        self.assertRedirects(
+            response, reverse("documents:reported_queue", args=[self.course.id])
+        )
         self.assertTrue(Document.all_objects.get(pk=self.doc.pk).is_removed)
 
     # --- Record keeping and notifications ---------------------------------
@@ -246,8 +293,12 @@ class UC14ReviewReportedDocumentsTests(BaseDocumentTestCase):
         decision = self._resolve(Resolution.REVISION, reason="เนื้อหาผิด")
 
         reports = DocumentReport.objects.filter(document=self.doc)
-        self.assertTrue(all(r.status == DocumentReport.Status.RESOLVED for r in reports))
-        self.assertTrue(all(r.decision_id == decision.id and r.closed_at for r in reports))
+        self.assertTrue(
+            all(r.status == DocumentReport.Status.RESOLVED for r in reports)
+        )
+        self.assertTrue(
+            all(r.decision_id == decision.id and r.closed_at for r in reports)
+        )
 
         self.assertEqual(decision.reviewer, self.ta2)
         self.assertEqual(decision.reviewer_name_snapshot, self.ta2.full_name)
@@ -258,12 +309,27 @@ class UC14ReviewReportedDocumentsTests(BaseDocumentTestCase):
 
     def test_owner_and_all_reporters_notified_for_every_outcome(self):
         cases = (
-            (self.doc, self.student, {"outcome": Resolution.REVISION, "reason": "แก้หน้า 3"},
-             Notification.Type.DOCUMENT_NEEDS_REVISION, {self.student2, self.student3}),
-            (self.doc_visible, self.student2, {"outcome": Resolution.DISMISSED},
-             Notification.Type.DOCUMENT_REPORT_DISMISSED, {self.student3}),
-            (self.doc_by_ta, self.ta, {"outcome": Resolution.REMOVED, "reason": "สแปม", "confirmed": True},
-             Notification.Type.DOCUMENT_REMOVED, {self.student}),
+            (
+                self.doc,
+                self.student,
+                {"outcome": Resolution.REVISION, "reason": "แก้หน้า 3"},
+                Notification.Type.DOCUMENT_NEEDS_REVISION,
+                {self.student2, self.student3},
+            ),
+            (
+                self.doc_visible,
+                self.student2,
+                {"outcome": Resolution.DISMISSED},
+                Notification.Type.DOCUMENT_REPORT_DISMISSED,
+                {self.student3},
+            ),
+            (
+                self.doc_by_ta,
+                self.ta,
+                {"outcome": Resolution.REMOVED, "reason": "สแปม", "confirmed": True},
+                Notification.Type.DOCUMENT_REMOVED,
+                {self.student},
+            ),
         )
         for doc, owner, kwargs, owner_type, reporters in cases:
             with self.subTest(outcome=kwargs["outcome"]):
@@ -274,11 +340,13 @@ class UC14ReviewReportedDocumentsTests(BaseDocumentTestCase):
                 if kwargs.get("reason"):
                     self.assertIn(kwargs["reason"], owner_note.message)
                 for reporter in reporters:
-                    self.assertNotIn(reporter.full_name, owner_note.title + owner_note.message)
+                    self.assertNotIn(
+                        reporter.full_name, owner_note.title + owner_note.message
+                    )
 
-                resolved = self._notifications(Notification.Type.DOCUMENT_REPORT_RESOLVED).filter(
-                    title__contains=doc.title
-                )
+                resolved = self._notifications(
+                    Notification.Type.DOCUMENT_REPORT_RESOLVED
+                ).filter(title__contains=doc.title)
                 self.assertEqual(set(n.recipient for n in resolved), reporters)
 
     def test_second_concurrent_decision_is_rejected_and_not_recorded(self):
@@ -286,9 +354,13 @@ class UC14ReviewReportedDocumentsTests(BaseDocumentTestCase):
         notes_before = Notification.objects.count()
 
         with self.assertRaisesMessage(DocumentServiceError, texts.ALREADY_HANDLED):
-            self._resolve(Resolution.REMOVED, reviewer=self.teacher, reason="x", confirmed=True)
+            self._resolve(
+                Resolution.REMOVED, reviewer=self.teacher, reason="x", confirmed=True
+            )
 
-        self.assertEqual(DocumentReportDecision.objects.filter(document=self.doc).count(), 1)
+        self.assertEqual(
+            DocumentReportDecision.objects.filter(document=self.doc).count(), 1
+        )
         self.assertEqual(Notification.objects.count(), notes_before)
         self.assertFalse(self.doc.is_removed)
 
@@ -306,11 +378,15 @@ class UC14ReviewReportedDocumentsTests(BaseDocumentTestCase):
             close_reports_for_owner_deletion(document=self.doc, owner=self.student2)
 
         with self.captureOnCommitCallbacks(execute=True):
-            decision = close_reports_for_owner_deletion(document=self.doc, owner=self.student)
+            decision = close_reports_for_owner_deletion(
+                document=self.doc, owner=self.student
+            )
 
         self.assertEqual(decision.outcome, Resolution.OWNER_DELETED)
         self.assertFalse(
-            DocumentReport.objects.filter(document=self.doc, status=DocumentReport.Status.OPEN).exists()
+            DocumentReport.objects.filter(
+                document=self.doc, status=DocumentReport.Status.OPEN
+            ).exists()
         )
         notified = set(
             self._notifications(Notification.Type.DOCUMENT_REPORT_RESOLVED).values_list(
@@ -319,7 +395,9 @@ class UC14ReviewReportedDocumentsTests(BaseDocumentTestCase):
         )
         self.assertEqual(notified, {self.student2.id, self.student3.id})
         # Nothing left to close
-        self.assertIsNone(close_reports_for_owner_deletion(document=self.doc, owner=self.student))
+        self.assertIsNone(
+            close_reports_for_owner_deletion(document=self.doc, owner=self.student)
+        )
 
     # --- Owner deletes via US12 (hard delete) ------------------------------
 
@@ -357,7 +435,9 @@ class UC14ReviewReportedDocumentsTests(BaseDocumentTestCase):
         )
         for notification in Notification.objects.filter(recipient=self.student):
             for reporter in (self.student2, self.student3):
-                self.assertNotIn(reporter.full_name, notification.title + notification.message)
+                self.assertNotIn(
+                    reporter.full_name, notification.title + notification.message
+                )
 
     def test_owner_delete_without_open_reports_sends_no_report_notifications(self):
         withdraw_report(user=self.student3, document=self.doc_visible)
@@ -365,6 +445,10 @@ class UC14ReviewReportedDocumentsTests(BaseDocumentTestCase):
         with self.captureOnCommitCallbacks(execute=True):
             response = self.client.post(self._url("delete", doc=self.doc_visible))
 
-        self.assertRedirects(response, reverse("documents:library", args=[self.course.id]))
+        self.assertRedirects(
+            response, reverse("documents:library", args=[self.course.id])
+        )
         self.assertFalse(Document.all_objects.filter(pk=self.doc_visible.pk).exists())
-        self.assertFalse(self._notifications(Notification.Type.DOCUMENT_REPORT_RESOLVED).exists())
+        self.assertFalse(
+            self._notifications(Notification.Type.DOCUMENT_REPORT_RESOLVED).exists()
+        )

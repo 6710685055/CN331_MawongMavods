@@ -35,7 +35,11 @@ urlpatterns = [
         group_views.ta_auto_assign,
         name="ta_auto_assign",
     ),
-    path("<int:course_id>/groups/create/", group_views.create_course_team, name="create_team"),
+    path(
+        "<int:course_id>/groups/create/",
+        group_views.create_course_team,
+        name="create_team",
+    ),
     path(
         "<int:course_id>/groups/<int:team_id>/invite/",
         group_views.invite_to_team,
@@ -61,7 +65,11 @@ urlpatterns = [
         group_views.download_chat_attachment,
         name="download_chat_attachment",
     ),
-    path("<int:course_id>/chats/", private_chat_views.private_chat_list, name="private_chats"),
+    path(
+        "<int:course_id>/chats/",
+        private_chat_views.private_chat_list,
+        name="private_chats",
+    ),
     path(
         "<int:course_id>/chats/start/<int:user_id>/",
         private_chat_views.start_private_chat,
@@ -92,7 +100,17 @@ urlpatterns = [
         private_chat_views.report_private_message,
         name="report_private_message",
     ),
-    path("<int:course_id>/members/<int:enrollment_id>/remove/", views.remove_member, name="remove_member"),
-    path("enrollment/<int:enrollment_id>/approve/", views.approve_enrollment, name="approve"),
-    path("enrollment/<int:enrollment_id>/reject/", views.reject_enrollment, name="reject"),
+    path(
+        "<int:course_id>/members/<int:enrollment_id>/remove/",
+        views.remove_member,
+        name="remove_member",
+    ),
+    path(
+        "enrollment/<int:enrollment_id>/approve/",
+        views.approve_enrollment,
+        name="approve",
+    ),
+    path(
+        "enrollment/<int:enrollment_id>/reject/", views.reject_enrollment, name="reject"
+    ),
 ]
