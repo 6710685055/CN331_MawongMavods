@@ -145,7 +145,9 @@ def get_or_create_private_chat(*, course, user, other):
     if other.pk == user.pk:
         raise PrivateChatError("ไม่สามารถเปิดแชทส่วนตัวกับตัวเองได้")
     if not is_chat_eligible(user, course):
-        raise PrivateChatError("แชทส่วนตัวเปิดให้เฉพาะนักศึกษาและ TA ที่ได้รับอนุมัติในรายวิชานี้")
+        raise PrivateChatError(
+            "แชทส่วนตัวเปิดให้เฉพาะนักศึกษาและ TA ที่ได้รับอนุมัติในรายวิชานี้"
+        )
     if not is_chat_eligible(other, course):
         raise PrivateChatError("ผู้ใช้นี้ไม่ได้ลงทะเบียนอยู่ในรายวิชาเดียวกับคุณ")
 
@@ -159,7 +161,9 @@ def get_or_create_private_chat(*, course, user, other):
             )
     except IntegrityError:
         # Another request created the same room between our lookup and insert.
-        chat = PrivateChat.objects.get(course=course, user_low=user_low, user_high=user_high)
+        chat = PrivateChat.objects.get(
+            course=course, user_low=user_low, user_high=user_high
+        )
         created = False
     return chat, created
 
@@ -170,7 +174,9 @@ def post_private_message(*, chat, sender, body):
         raise PrivateChatError("คุณไม่มีสิทธิ์ส่งข้อความในห้องแชทนี้")
     recipient = chat.other_participant(sender)
     if is_blocked_between(sender, recipient):
-        raise PrivateChatError("ไม่สามารถส่งข้อความได้ เนื่องจากมีการบล็อกระหว่างคุณกับผู้ใช้นี้")
+        raise PrivateChatError(
+            "ไม่สามารถส่งข้อความได้ เนื่องจากมีการบล็อกระหว่างคุณกับผู้ใช้นี้"
+        )
     suspension = active_suspension(sender, recipient)
     if suspension:
         raise PrivateChatError(suspension_message(suspension))

@@ -8,7 +8,6 @@ from accounts.models import User
 from courses.models import Course, Enrollment
 
 
-
 def make_file(filename="sheet.pdf", content=b"%PDF-1.4 sample content", size=None):
     f = SimpleUploadedFile(filename, content, content_type="application/pdf")
     if size is not None:

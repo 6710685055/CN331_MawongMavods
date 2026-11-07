@@ -11,15 +11,16 @@ from .models import Course, Enrollment
 from .permissions import get_enrollment, is_course_staff
 from .services import EnrollmentError, enroll
 
-
 # ──────────────────────────── Index / My courses ────────────────────────────
+
 
 @login_required
 def my_courses(request):
     """Role-aware index page showing courses the user is involved in."""
     enrollments = list(
-        Enrollment.objects.filter(user=request.user)
-        .select_related("course", "course__owner")
+        Enrollment.objects.filter(user=request.user).select_related(
+            "course", "course__owner"
+        )
     )
     for e in enrollments:
         e.is_staff_role = is_course_staff(request.user, e.course)
@@ -35,13 +36,18 @@ def my_courses(request):
             ).select_related("user", "course")
         )
 
-    return render(request, "courses/my_courses.html", {
-        "enrollments": enrollments,
-        "pending_enrollments": pending_enrollments,
-    })
+    return render(
+        request,
+        "courses/my_courses.html",
+        {
+            "enrollments": enrollments,
+            "pending_enrollments": pending_enrollments,
+        },
+    )
 
 
 # ──────────────────────────── Course search / browse ────────────────────────
+
 
 @login_required
 def course_list(request):
@@ -60,6 +66,7 @@ def course_list(request):
 
 
 # ──────────────────────────── Enroll (student self-register) ────────────────
+
 
 @login_required
 @require_POST
@@ -83,12 +90,15 @@ def enroll_course(request, course_id):
         else:
             messages.success(request, f"ลงทะเบียน {course.code} เรียบร้อยแล้ว")
     next_url = request.POST.get("next", "")
-    if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}
+    ):
         return redirect(next_url)
     return redirect("courses:list")
 
 
 # ──────────────────────────── Course detail (stub) ──────────────────────────
+
 
 @login_required
 def course_detail(request, course_id):
@@ -109,6 +119,7 @@ def course_detail(request, course_id):
 
 # ──────────────────────────── Teacher: create course ────────────────────────
 
+
 @login_required
 def create_course(request):
     if request.user.role != User.Role.TEACHER:
@@ -120,15 +131,21 @@ def create_course(request):
         name = request.POST.get("name", "").strip()
         if not code or not name:
             messages.error(request, "กรุณากรอกรหัสวิชาและชื่อวิชา")
-            return render(request, "courses/create_course.html", {"code": code, "name": name})
+            return render(
+                request, "courses/create_course.html", {"code": code, "name": name}
+            )
 
         if Course.objects.filter(code=code).exists():
             messages.error(request, f"รหัสวิชา {code} ถูกใช้ไปแล้ว")
-            return render(request, "courses/create_course.html", {"code": code, "name": name})
+            return render(
+                request, "courses/create_course.html", {"code": code, "name": name}
+            )
 
         course = Course.objects.create(code=code, name=name, owner=request.user)
         # Auto-enroll the teacher
-        Enrollment.objects.create(user=request.user, course=course, role=Enrollment.Role.TEACHER)
+        Enrollment.objects.create(
+            user=request.user, course=course, role=Enrollment.Role.TEACHER
+        )
         messages.success(request, f"สร้างรายวิชา {code} เรียบร้อยแล้ว")
         return redirect("courses:my")
 
@@ -136,6 +153,7 @@ def create_course(request):
 
 
 # ──────────────────────────── Teacher: delete course ────────────────────────
+
 
 @login_required
 @require_POST
@@ -153,6 +171,7 @@ def delete_course(request, course_id):
 
 # ──────────────────────────── Teacher: approve / reject enrollment ──────────
 
+
 @login_required
 @require_POST
 def approve_enrollment(request, enrollment_id):
@@ -168,16 +187,23 @@ def approve_enrollment(request, enrollment_id):
     if enrollment.role == Enrollment.Role.STUDENT_PENDING:
         enrollment.role = Enrollment.Role.STUDENT
         enrollment.save()
-        messages.success(request, f"อนุมัติ {enrollment.user.full_name} เป็นนักศึกษาในวิชา {course.code}")
+        messages.success(
+            request,
+            f"อนุมัติ {enrollment.user.full_name} เป็นนักศึกษาในวิชา {course.code}",
+        )
     elif enrollment.role == Enrollment.Role.TA_PENDING:
         enrollment.role = Enrollment.Role.TA
         enrollment.save()
-        messages.success(request, f"อนุมัติ {enrollment.user.full_name} เป็น TA ในวิชา {course.code}")
+        messages.success(
+            request, f"อนุมัติ {enrollment.user.full_name} เป็น TA ในวิชา {course.code}"
+        )
     else:
         messages.info(request, "ไม่มีคำขอที่ต้องอนุมัติ")
 
     next_url = request.POST.get("next", "")
-    if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}
+    ):
         return redirect(next_url)
     return redirect("courses:my")
 
@@ -199,12 +225,15 @@ def reject_enrollment(request, enrollment_id):
     messages.success(request, f"ปฏิเสธคำขอของ {user_name} ในวิชา {course.code}")
 
     next_url = request.POST.get("next", "")
-    if next_url and url_has_allowed_host_and_scheme(next_url, allowed_hosts={request.get_host()}):
+    if next_url and url_has_allowed_host_and_scheme(
+        next_url, allowed_hosts={request.get_host()}
+    ):
         return redirect(next_url)
     return redirect("courses:my")
 
 
 # ──────────────────────────── Teacher: manage members ───────────────────────
+
 
 @login_required
 def course_members(request, course_id):
@@ -235,13 +264,20 @@ def course_members(request, course_id):
             role = Enrollment.Role.STUDENT
 
         Enrollment.objects.create(user=target_user, course=course, role=role)
-        messages.success(request, f"เพิ่ม {target_user.full_name} เป็น {Enrollment.Role(role).label} ในวิชา {course.code}")
+        messages.success(
+            request,
+            f"เพิ่ม {target_user.full_name} เป็น {Enrollment.Role(role).label} ในวิชา {course.code}",
+        )
         return redirect("courses:members", course_id=course.id)
 
-    return render(request, "courses/course_members.html", {
-        "course": course,
-        "members": members,
-    })
+    return render(
+        request,
+        "courses/course_members.html",
+        {
+            "course": course,
+            "members": members,
+        },
+    )
 
 
 @login_required

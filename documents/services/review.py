@@ -168,7 +168,7 @@ def request_document_revision(
             title=f"เอกสาร '{document.title}' ถูกส่งกลับให้แก้ไข",
             message=(
                 f"ผู้ตรวจ ({reviewer_name} - {role_snapshot}) ได้ส่งกลับเอกสาร '{document.title}' "
-                f"ในวิชา {document.course.code} ให้แก้ไข พร้อมความคิดเห็น: \"{cleaned_comment}\""
+                f'ในวิชา {document.course.code} ให้แก้ไข พร้อมความคิดเห็น: "{cleaned_comment}"'
             ),
         )
 
@@ -183,7 +183,9 @@ def revoke_document_verification(
     """
     role_snapshot = _check_reviewer_permissions(reviewer, document)
     if not document.has_active_verified_badge:
-        raise DocumentServiceError("เอกสารนี้ยังไม่ได้รับการ Verify จึงไม่สามารถยกเลิกได้")
+        raise DocumentServiceError(
+            "เอกสารนี้ยังไม่ได้รับการ Verify จึงไม่สามารถยกเลิกได้"
+        )
 
     cleaned_reason = (reason or "").strip()
     if not cleaned_reason:
@@ -207,7 +209,7 @@ def revoke_document_verification(
             title=f"เอกสาร '{document.title}' ถูกยกเลิกการ Verify",
             message=(
                 f"ผู้ตรวจ ({reviewer_name} - {role_snapshot}) ได้ยกเลิกป้าย Verified ของเอกสาร '{document.title}' "
-                f"ในวิชา {document.course.code} และเปลี่ยนสถานะเป็นต้องแก้ไข เหตุผล: \"{cleaned_reason}\""
+                f'ในวิชา {document.course.code} และเปลี่ยนสถานะเป็นต้องแก้ไข เหตุผล: "{cleaned_reason}"'
             ),
         )
 

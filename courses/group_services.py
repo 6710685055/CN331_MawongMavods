@@ -97,7 +97,9 @@ def invite_students(*, inviter, team, invitee_ids):
     ).count()
     available_slots = MAX_TEAM_MEMBERS - team.memberships.count() - pending_count
     if len(candidates) > available_slots:
-        raise GroupError(f"กลุ่มเชิญสมาชิกเพิ่มได้อีกไม่เกิน {max(0, available_slots)} คน")
+        raise GroupError(
+            f"กลุ่มเชิญสมาชิกเพิ่มได้อีกไม่เกิน {max(0, available_slots)} คน"
+        )
 
     invitations = []
     for candidate in candidates:
@@ -195,9 +197,7 @@ def respond_to_invitation(*, invitation_id, user, accept):
 def leave_team(*, team_id, user):
     team = Team.objects.select_for_update().select_related("course").get(pk=team_id)
     membership = (
-        TeamMembership.objects.select_for_update()
-        .filter(team=team, user=user)
-        .first()
+        TeamMembership.objects.select_for_update().filter(team=team, user=user).first()
     )
     if membership is None:
         raise GroupError("คุณไม่ได้เป็นสมาชิกของกลุ่มนี้")
@@ -290,7 +290,9 @@ def post_chat_message(*, chat, sender, body, attachment=None):
         body=body,
         attachment=attachment,
     )
-    for membership in TeamMembership.objects.filter(team=chat.team).exclude(user=sender):
+    for membership in TeamMembership.objects.filter(team=chat.team).exclude(
+        user=sender
+    ):
         send_notification(
             recipient=membership.user,
             actor=sender,
@@ -313,19 +315,21 @@ def serialize_chat_message(message):
         "sender_is_leader": message.sender_id == message.chat.team.created_by_id,
         "body": message.body,
         "created_at": timezone.localtime(message.created_at).strftime("%d/%m/%Y %H:%M"),
-        "attachment_name": PurePosixPath(message.attachment.name).name
-        if message.attachment
-        else "",
-        "attachment_url": reverse(
-            "courses:download_chat_attachment",
-            args=[
-                message.chat.team.course_id,
-                message.chat.team_id,
-                message.id,
-            ],
-        )
-        if message.attachment
-        else "",
+        "attachment_name": (
+            PurePosixPath(message.attachment.name).name if message.attachment else ""
+        ),
+        "attachment_url": (
+            reverse(
+                "courses:download_chat_attachment",
+                args=[
+                    message.chat.team.course_id,
+                    message.chat.team_id,
+                    message.id,
+                ],
+            )
+            if message.attachment
+            else ""
+        ),
     }
 
 
@@ -334,7 +338,9 @@ def _check_staff_permission(actor, course):
 
     is_owner = bool(course.owner_id and course.owner_id == actor.id)
     if not (is_course_staff(actor, course) or is_owner):
-        raise GroupError("เฉพาะอาจารย์ผู้สอนหรือผู้ช่วยสอน (TA) เท่านั้นที่สามารถจัดการกลุ่มได้")
+        raise GroupError(
+            "เฉพาะอาจารย์ผู้สอนหรือผู้ช่วยสอน (TA) เท่านั้นที่สามารถจัดการกลุ่มได้"
+        )
 
 
 @transaction.atomic
@@ -352,7 +358,9 @@ def assign_student_to_team(*, actor, team, student):
 
     team = Team.objects.select_for_update().get(pk=team.pk)
     if team.memberships.count() >= MAX_TEAM_MEMBERS:
-        raise GroupError(f"กลุ่ม '{team.name}' เต็มแล้ว (จำกัดสมาชิกสูงสุด {MAX_TEAM_MEMBERS} คน)")
+        raise GroupError(
+            f"กลุ่ม '{team.name}' เต็มแล้ว (จำกัดสมาชิกสูงสุด {MAX_TEAM_MEMBERS} คน)"
+        )
 
     # Cancel any pending invitations to or from this student in this course
     TeamInvitation.objects.filter(
@@ -394,13 +402,17 @@ def ta_create_team_and_assign(*, actor, course, name, students):
         raise GroupError("กรุณาเลือกนักศึกษาอย่างน้อย 1 คน")
 
     if len(students) > MAX_TEAM_MEMBERS:
-        raise GroupError(f"กลุ่มหนึ่งสามารถมีสมาชิกได้สูงสุดไม่เกิน {MAX_TEAM_MEMBERS} คน")
+        raise GroupError(
+            f"กลุ่มหนึ่งสามารถมีสมาชิกได้สูงสุดไม่เกิน {MAX_TEAM_MEMBERS} คน"
+        )
 
     for student in students:
         if not Enrollment.objects.filter(
             user=student, course=course, role=Enrollment.Role.STUDENT
         ).exists():
-            raise GroupError(f"{student.full_name} ไม่ใช่นักศึกษาที่ได้รับการอนุมัติในรายวิชานี้")
+            raise GroupError(
+                f"{student.full_name} ไม่ใช่นักศึกษาที่ได้รับการอนุมัติในรายวิชานี้"
+            )
         if TeamMembership.objects.filter(user=student, course=course).exists():
             raise GroupError(f"{student.full_name} มีกลุ่มในรายวิชานี้แล้ว")
 
@@ -520,4 +532,3 @@ def auto_assign_unassigned_students(*, actor, course):
             TeamChat.objects.get_or_create(team=team)
 
     return total_assigned
-

@@ -85,7 +85,9 @@ def vote_document_view(request, course_id, doc_id):
         return _redirect_to_detail(request, document)
 
     try:
-        score, my_vote = vote_document(user=request.user, document=document, value=value)
+        score, my_vote = vote_document(
+            user=request.user, document=document, value=value
+        )
     except DocumentPermissionError as exc:
         if wants_json:
             return JsonResponse({"error": str(exc)}, status=403)

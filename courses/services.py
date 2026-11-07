@@ -15,7 +15,9 @@ def enroll(user, course):
 
     if user.role == User.Role.TEACHER:
         if user.teacher_status != User.TeacherStatus.APPROVED:
-            raise EnrollmentError("บัญชีอาจารย์ของคุณยังรออนุมัติจาก Admin จึงยังลงทะเบียนเป็นผู้สอนไม่ได้")
+            raise EnrollmentError(
+                "บัญชีอาจารย์ของคุณยังรออนุมัติจาก Admin จึงยังลงทะเบียนเป็นผู้สอนไม่ได้"
+            )
         role = Enrollment.Role.TEACHER
     elif user.role == User.Role.TA:
         # Enrolled, but no TA powers until the course's teacher approves (UC16).

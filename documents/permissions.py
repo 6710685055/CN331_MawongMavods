@@ -65,7 +65,9 @@ def can_view_document(user, document: Document) -> bool:
         return False
     if not document.is_hidden:
         return True
-    return document.uploader_id == user.id or can_see_hidden_documents(user, document.course)
+    return document.uploader_id == user.id or can_see_hidden_documents(
+        user, document.course
+    )
 
 
 def can_vote_or_report(user, document: Document) -> bool:

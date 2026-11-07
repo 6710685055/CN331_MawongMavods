@@ -76,7 +76,8 @@ class CourseViewTests(TestCase):
     def test_external_next_url_ignored(self):
         self.client.force_login(self.user)
         r = self.client.post(
-            reverse("courses:enroll", args=[self.c1.id]), {"next": "https://evil.example/"}
+            reverse("courses:enroll", args=[self.c1.id]),
+            {"next": "https://evil.example/"},
         )
         self.assertRedirects(r, reverse("courses:list"))
 

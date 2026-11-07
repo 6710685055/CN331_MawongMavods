@@ -9,7 +9,13 @@ from django.views.decorators.http import require_GET, require_POST
 
 from accounts.models import User
 
-from .models import Course, PrivateChat, PrivateChatMessage, PrivateMessageReport, UserBlock
+from .models import (
+    Course,
+    PrivateChat,
+    PrivateChatMessage,
+    PrivateMessageReport,
+    UserBlock,
+)
 from .private_chat_services import (
     PrivateChatError,
     block_state_for,
@@ -26,7 +32,9 @@ from .private_chat_services import (
     visible_messages,
 )
 
-NOT_ELIGIBLE_MESSAGE = "แชทส่วนตัวเปิดให้เฉพาะนักศึกษาและ TA ที่ได้รับอนุมัติในรายวิชานี้"
+NOT_ELIGIBLE_MESSAGE = (
+    "แชทส่วนตัวเปิดให้เฉพาะนักศึกษาและ TA ที่ได้รับอนุมัติในรายวิชานี้"
+)
 
 
 def _get_accessible_chat(user, course_id, chat_id):
@@ -85,15 +93,21 @@ def private_chat_list(request, course_id):
     chat_by_other_id = {}
     for chat in chats:
         chat.other_user = chat.other_participant(request.user)
-        chat.last_message = visible_messages(chat).order_by("-created_at", "-id").first()
+        chat.last_message = (
+            visible_messages(chat).order_by("-created_at", "-id").first()
+        )
         chat_by_other_id[chat.other_user.id] = chat
     chats.sort(
-        key=lambda chat: chat.last_message.created_at if chat.last_message else chat.created_at,
+        key=lambda chat: (
+            chat.last_message.created_at if chat.last_message else chat.created_at
+        ),
         reverse=True,
     )
 
     blocked_ids = set(
-        UserBlock.objects.filter(blocker=request.user).values_list("blocked_id", flat=True)
+        UserBlock.objects.filter(blocker=request.user).values_list(
+            "blocked_id", flat=True
+        )
     )
     classmates = list(chat_classmates(request.user, course))
     roles = dict(
@@ -117,7 +131,9 @@ def start_private_chat(request, course_id, user_id):
     course = get_object_or_404(Course, pk=course_id)
     other = get_object_or_404(User, pk=user_id)
     try:
-        chat, _created = get_or_create_private_chat(course=course, user=request.user, other=other)
+        chat, _created = get_or_create_private_chat(
+            course=course, user=request.user, other=other
+        )
     except PrivateChatError as error:
         messages.error(request, str(error))
         if is_chat_eligible(request.user, course):
@@ -142,7 +158,9 @@ def private_chat(request, course_id, chat_id):
             if _wants_json(request):
                 return JsonResponse({"error": str(error)}, status=400)
             messages.error(request, str(error))
-            return redirect("courses:private_chat", course_id=course_id, chat_id=chat.id)
+            return redirect(
+                "courses:private_chat", course_id=course_id, chat_id=chat.id
+            )
 
         serialized_message = serialize_private_message(chat_message)
         async_to_sync(get_channel_layer().group_send)(
@@ -179,10 +197,16 @@ def private_chat_history(request, course_id, chat_id):
     try:
         before_id = int(request.GET.get("before", ""))
     except ValueError:
-        return JsonResponse({"error": "ไม่สามารถโหลดข้อความเก่าได้ กรุณารีเฟรชหน้าแล้วลองอีกครั้ง"}, status=400)
+        return JsonResponse(
+            {"error": "ไม่สามารถโหลดข้อความเก่าได้ กรุณารีเฟรชหน้าแล้วลองอีกครั้ง"},
+            status=400,
+        )
     before = chat.messages.filter(pk=before_id).first()
     if before is None:
-        return JsonResponse({"error": "ไม่สามารถโหลดข้อความเก่าได้ กรุณารีเฟรชหน้าแล้วลองอีกครั้ง"}, status=400)
+        return JsonResponse(
+            {"error": "ไม่สามารถโหลดข้อความเก่าได้ กรุณารีเฟรชหน้าแล้วลองอีกครั้ง"},
+            status=400,
+        )
 
     chat_messages, has_more = message_page(chat, before=before)
     reported_ids = _reported_ids(request.user, chat_messages)
@@ -207,7 +231,9 @@ def block_private_chat_user(request, course_id, chat_id):
         messages.error(request, str(error))
     else:
         _broadcast_block_state(chat)
-        messages.success(request, f"บล็อก {other.full_name} แล้ว ทั้งสองฝ่ายจะส่งข้อความถึงกันไม่ได้")
+        messages.success(
+            request, f"บล็อก {other.full_name} แล้ว ทั้งสองฝ่ายจะส่งข้อความถึงกันไม่ได้"
+        )
     return redirect("courses:private_chat", course_id=course_id, chat_id=chat.id)
 
 

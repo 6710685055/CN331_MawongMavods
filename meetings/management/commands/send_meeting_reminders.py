@@ -8,4 +8,6 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         count = send_due_reminders()
-        self.stdout.write(self.style.SUCCESS(f"ส่งการแจ้งเตือนล่วงหน้าสำเร็จ {count} นัดหมาย"))
+        self.stdout.write(
+            self.style.SUCCESS(f"ส่งการแจ้งเตือนล่วงหน้าสำเร็จ {count} นัดหมาย")
+        )

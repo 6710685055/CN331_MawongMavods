@@ -11,7 +11,11 @@ from ..permissions import (
     can_pin_document,
     can_see_hidden_documents,
 )
-from .errors import DocumentPermissionError, DocumentServiceError, _validate_file_or_raise
+from .errors import (
+    DocumentPermissionError,
+    DocumentServiceError,
+    _validate_file_or_raise,
+)
 
 
 def list_course_documents(
@@ -82,7 +86,13 @@ def upload_document(
         )
 
     title = (title or "").strip()
-    if not title or not doc_type or not academic_year or not semester or not uploaded_file:
+    if (
+        not title
+        or not doc_type
+        or not academic_year
+        or not semester
+        or not uploaded_file
+    ):
         raise DocumentServiceError(
             "กรุณากรอกข้อมูลบังคับให้ครบถ้วน (ชื่อเอกสาร, ประเภท, ปีการศึกษา, เทอม และไฟล์แนบ)"
         )

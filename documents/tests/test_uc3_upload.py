@@ -203,9 +203,7 @@ class UC3UploadAndShareDocumentTests(BaseDocumentTestCase):
 
             self.client.force_login(non_staff)
             res = self.client.post(
-                reverse(
-                    "documents:toggle_pin", args=[self.course.id, unpinned_doc.id]
-                )
+                reverse("documents:toggle_pin", args=[self.course.id, unpinned_doc.id])
             )
             self.assertEqual(res.status_code, 403)
 

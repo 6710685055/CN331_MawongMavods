@@ -41,7 +41,9 @@ def make_reviewer(email):
     reviewer = make_user(email)
     reviewer.is_staff = True
     reviewer.save()
-    reviewer.user_permissions.add(Permission.objects.get(codename="review_privatemessagereport"))
+    reviewer.user_permissions.add(
+        Permission.objects.get(codename="review_privatemessagereport")
+    )
     return reviewer
 
 
@@ -65,16 +67,22 @@ class ModerationTestBase(PrivateChatTestBase):
         return report_message(message=message, reporter=reporter, reason="harassment")
 
     def confirm(self, report, note="ละเมิดกติกา"):
-        return decide_report(report_id=report.pk, reviewer=self.reviewer, decision=CONFIRMED, note=note)
+        return decide_report(
+            report_id=report.pk, reviewer=self.reviewer, decision=CONFIRMED, note=note
+        )
 
     def reject(self, report, note="ไม่พบการละเมิด"):
-        return decide_report(report_id=report.pk, reviewer=self.reviewer, decision=REJECTED, note=note)
+        return decide_report(
+            report_id=report.pk, reviewer=self.reviewer, decision=REJECTED, note=note
+        )
 
     def report_change_url(self, report):
         return reverse("admin:courses_privatemessagereport_change", args=[report.pk])
 
     def notifications(self, user, notification_type):
-        return Notification.objects.filter(recipient=user, notification_type=notification_type)
+        return Notification.objects.filter(
+            recipient=user, notification_type=notification_type
+        )
 
     def send_json(self, user, body="hello"):
         self.client.force_login(user)
@@ -87,12 +95,17 @@ class ReportQueueTests(ModerationTestBase):
     def test_new_report_starts_pending_with_evidence_and_context(self):
         for i in range(5):
             post_private_message(chat=self.chat, sender=self.bob, body=f"ก่อนหน้า {i}")
-        message = post_private_message(chat=self.chat, sender=self.alice, body="ข้อความที่ถูกรายงาน")
+        message = post_private_message(
+            chat=self.chat, sender=self.alice, body="ข้อความที่ถูกรายงาน"
+        )
         post_private_message(chat=self.chat, sender=self.bob, body="หลังจากนั้น")
 
         self.client.force_login(self.bob)
         response = self.client.post(
-            reverse("courses:report_private_message", args=[self.course.id, self.chat.id, message.id]),
+            reverse(
+                "courses:report_private_message",
+                args=[self.course.id, self.chat.id, message.id],
+            ),
             {"reason": "harassment", "details": "หยาบคาย"},
             follow=True,
         )
@@ -110,14 +123,27 @@ class ReportQueueTests(ModerationTestBase):
         self.assertIsNotNone(report.created_at)
         # Only three messages on each side are copied, not the whole room.
         bodies = [item["body"] for item in report.context_snapshot]
-        self.assertEqual(bodies, ["ก่อนหน้า 2", "ก่อนหน้า 3", "ก่อนหน้า 4", "ข้อความที่ถูกรายงาน", "หลังจากนั้น"])
-        self.assertEqual([item["reported"] for item in report.context_snapshot].count(True), 1)
+        self.assertEqual(
+            bodies,
+            [
+                "ก่อนหน้า 2",
+                "ก่อนหน้า 3",
+                "ก่อนหน้า 4",
+                "ข้อความที่ถูกรายงาน",
+                "หลังจากนั้น",
+            ],
+        )
+        self.assertEqual(
+            [item["reported"] for item in report.context_snapshot].count(True), 1
+        )
 
     def test_pending_report_appears_in_admin_queue_with_context(self):
         report = self.offending_report("<b>หลักฐาน</b>")
         self.client.force_login(self.reviewer)
 
-        queue = self.client.get(reverse("admin:courses_privatemessagereport_changelist"))
+        queue = self.client.get(
+            reverse("admin:courses_privatemessagereport_changelist")
+        )
         self.assertEqual(queue.status_code, 200)
         self.assertContains(queue, "รอตรวจสอบ")
 
@@ -136,14 +162,18 @@ class ReportQueueTests(ModerationTestBase):
         ]
         for url in urls:
             self.client.force_login(self.bob)
-            self.assertRedirects(self.client.get(url), f"{reverse('admin:login')}?next={url}")
+            self.assertRedirects(
+                self.client.get(url), f"{reverse('admin:login')}?next={url}"
+            )
             self.client.force_login(self.staff_without_permission)
             self.assertEqual(self.client.get(url).status_code, 403)
 
     def test_context_snapshot_is_not_shown_to_chat_participants(self):
         post_private_message(chat=self.chat, sender=self.bob, body="บริบทลับ")
         report = self.offending_report()
-        self.assertTrue(any(item["body"] == "บริบทลับ" for item in report.context_snapshot))
+        self.assertTrue(
+            any(item["body"] == "บริบทลับ" for item in report.context_snapshot)
+        )
         for user in (self.alice, self.bob):
             self.client.force_login(user)
             page = self.client.get(self.chat_url(self.chat))
@@ -177,20 +207,30 @@ class ReviewDecisionTests(ModerationTestBase):
             {"decision": CONFIRMED, "review_note": "ข้อความคุกคาม", "_save": "Save"},
         )
 
-        self.assertRedirects(response, reverse("admin:courses_privatemessagereport_changelist"))
+        self.assertRedirects(
+            response, reverse("admin:courses_privatemessagereport_changelist")
+        )
         report.refresh_from_db()
         self.assertEqual(report.status, CONFIRMED)
         self.assertEqual(report.reviewed_by, self.reviewer)
         self.assertGreaterEqual(report.reviewed_at, before)
         self.assertEqual(report.review_note, "ข้อความคุกคาม")
         self.assertIsNotNone(report.incident)
-        log = PrivateChatModerationLog.objects.get(action=PrivateChatModerationLog.Action.REPORT_CONFIRMED)
-        self.assertEqual((log.actor, log.target_user, log.note), (self.reviewer, self.alice, "ข้อความคุกคาม"))
+        log = PrivateChatModerationLog.objects.get(
+            action=PrivateChatModerationLog.Action.REPORT_CONFIRMED
+        )
+        self.assertEqual(
+            (log.actor, log.target_user, log.note),
+            (self.reviewer, self.alice, "ข้อความคุกคาม"),
+        )
 
     def test_admin_reject_records_reviewer_time_and_note(self):
         report = self.offending_report()
         self.client.force_login(self.reviewer)
-        self.client.post(self.report_change_url(report), {"decision": REJECTED, "review_note": "ล้อเล่นกัน"})
+        self.client.post(
+            self.report_change_url(report),
+            {"decision": REJECTED, "review_note": "ล้อเล่นกัน"},
+        )
 
         report.refresh_from_db()
         self.assertEqual(
@@ -207,7 +247,9 @@ class ReviewDecisionTests(ModerationTestBase):
     def test_admin_form_requires_a_decision(self):
         report = self.offending_report()
         self.client.force_login(self.reviewer)
-        response = self.client.post(self.report_change_url(report), {"review_note": "ยังไม่ตัดสิน"})
+        response = self.client.post(
+            self.report_change_url(report), {"review_note": "ยังไม่ตัดสิน"}
+        )
         self.assertEqual(response.status_code, 200)
         report.refresh_from_db()
         self.assertEqual(report.status, PrivateMessageReport.Status.PENDING)
@@ -222,7 +264,9 @@ class ReviewDecisionTests(ModerationTestBase):
             page = self.client.get(self.chat_url(self.chat))
             self.assertNotContains(page, "ข้อความต้องห้าม")
             self.assertContains(page, "ข้อความปกติ")
-            chat_list = self.client.get(reverse("courses:private_chats", args=[self.course.id]))
+            chat_list = self.client.get(
+                reverse("courses:private_chats", args=[self.course.id])
+            )
             self.assertNotContains(chat_list, "ข้อความต้องห้าม")
 
         message = PrivateChatMessage.objects.get(body="ข้อความต้องห้าม")
@@ -235,7 +279,9 @@ class ReviewDecisionTests(ModerationTestBase):
         newer = post_private_message(chat=self.chat, sender=self.bob, body="ใหม่")
         self.client.force_login(self.bob)
         data = self.client.get(
-            reverse("courses:private_chat_history", args=[self.course.id, self.chat.id]),
+            reverse(
+                "courses:private_chat_history", args=[self.course.id, self.chat.id]
+            ),
             {"before": newer.id},
         ).json()
         self.assertEqual([item["body"] for item in data["messages"]], ["ข้อความปกติ"])
@@ -252,11 +298,21 @@ class ReviewDecisionTests(ModerationTestBase):
         self.reject(report)
 
         self.client.force_login(self.bob)
-        self.assertContains(self.client.get(self.chat_url(self.chat)), "ข้อความที่ไม่ผิด")
-        self.assertIsNone(PrivateChatMessage.objects.get(body="ข้อความที่ไม่ผิด").hidden_at)
+        self.assertContains(
+            self.client.get(self.chat_url(self.chat)), "ข้อความที่ไม่ผิด"
+        )
+        self.assertIsNone(
+            PrivateChatMessage.objects.get(body="ข้อความที่ไม่ผิด").hidden_at
+        )
         self.assertFalse(PrivateChatIncident.objects.exists())
-        self.assertFalse(self.notifications(self.alice, Notification.Type.PRIVATE_CHAT_WARNING).exists())
-        result = self.notifications(self.bob, Notification.Type.PRIVATE_REPORT_RESULT).get()
+        self.assertFalse(
+            self.notifications(
+                self.alice, Notification.Type.PRIVATE_CHAT_WARNING
+            ).exists()
+        )
+        result = self.notifications(
+            self.bob, Notification.Type.PRIVATE_REPORT_RESULT
+        ).get()
         self.assertIn("ไม่พบการละเมิด", result.message)
 
     def test_decided_report_cannot_be_decided_again(self):
@@ -277,13 +333,20 @@ class ReviewDecisionTests(ModerationTestBase):
 
         self.assertEqual(second.status_code, 403)
         self.assertEqual(PrivateChatIncident.objects.count(), 1)
-        self.assertEqual(self.notifications(self.alice, Notification.Type.PRIVATE_CHAT_WARNING).count(), 1)
+        self.assertEqual(
+            self.notifications(
+                self.alice, Notification.Type.PRIVATE_CHAT_WARNING
+            ).count(),
+            1,
+        )
 
 
 class PenaltyLadderTests(ModerationTestBase):
     def confirm_incidents(self, count):
         # Reports are filed first: once suspended, the sender cannot post more messages.
-        reports = [self.offending_report(f"ผิดครั้งที่ {i}") for i in range(1, count + 1)]
+        reports = [
+            self.offending_report(f"ผิดครั้งที่ {i}") for i in range(1, count + 1)
+        ]
         return [self.confirm(report) for report in reports]
 
     def test_first_three_incidents_warn_and_fourth_suspends_for_24_hours(self):
@@ -291,33 +354,54 @@ class PenaltyLadderTests(ModerationTestBase):
 
         incidents = [report.incident for report in reports]
         self.assertEqual([incident.sequence for incident in incidents], [1, 2, 3])
-        self.assertTrue(all(i.action == PrivateChatIncident.Action.WARNING for i in incidents))
-        warnings = self.notifications(self.alice, Notification.Type.PRIVATE_CHAT_WARNING)
+        self.assertTrue(
+            all(i.action == PrivateChatIncident.Action.WARNING for i in incidents)
+        )
+        warnings = self.notifications(
+            self.alice, Notification.Type.PRIVATE_CHAT_WARNING
+        )
         self.assertEqual(warnings.count(), 3)
         self.assertFalse(PrivateChatSuspension.objects.exists())
         self.assertEqual(self.send_json(self.alice).status_code, 201)
 
         fourth = self.confirm(self.offending_report("ผิดครั้งที่ 4")).incident
-        self.assertEqual((fourth.sequence, fourth.action), (4, PrivateChatIncident.Action.SUSPENSION))
+        self.assertEqual(
+            (fourth.sequence, fourth.action), (4, PrivateChatIncident.Action.SUSPENSION)
+        )
         suspension = fourth.suspension
-        self.assertEqual((suspension.user, suspension.counterpart), (self.alice, self.bob))
+        self.assertEqual(
+            (suspension.user, suspension.counterpart), (self.alice, self.bob)
+        )
         self.assertEqual(suspension.starts_at, fourth.confirmed_at)
         self.assertEqual(suspension.ends_at - suspension.starts_at, timedelta(hours=24))
         self.assertEqual(SUSPENSION_DURATION, timedelta(hours=24))
-        self.assertEqual(self.notifications(self.alice, Notification.Type.PRIVATE_CHAT_SUSPENDED).count(), 1)
         self.assertEqual(
-            PrivateChatModerationLog.objects.filter(action=PrivateChatModerationLog.Action.SUSPENDED).count(), 1
+            self.notifications(
+                self.alice, Notification.Type.PRIVATE_CHAT_SUSPENDED
+            ).count(),
+            1,
+        )
+        self.assertEqual(
+            PrivateChatModerationLog.objects.filter(
+                action=PrivateChatModerationLog.Action.SUSPENDED
+            ).count(),
+            1,
         )
 
     def test_fifth_incident_suspends_again_and_is_logged(self):
         self.confirm_incidents(5)
         actions = list(
-            PrivateChatIncident.objects.order_by("sequence").values_list("action", flat=True)
+            PrivateChatIncident.objects.order_by("sequence").values_list(
+                "action", flat=True
+            )
         )
         self.assertEqual(actions, ["warning"] * 3 + ["suspension"] * 2)
         self.assertEqual(PrivateChatSuspension.objects.count(), 2)
         self.assertEqual(
-            PrivateChatModerationLog.objects.filter(action=PrivateChatModerationLog.Action.SUSPENDED).count(), 2
+            PrivateChatModerationLog.objects.filter(
+                action=PrivateChatModerationLog.Action.SUSPENDED
+            ).count(),
+            2,
         )
 
     def test_pending_and_rejected_reports_are_not_counted(self):
@@ -325,7 +409,10 @@ class PenaltyLadderTests(ModerationTestBase):
             self.reject(self.offending_report(f"ไม่ผิด {i}"))
         self.offending_report("ยังรอตรวจ")
         incident = self.confirm(self.offending_report("ผิดจริง")).incident
-        self.assertEqual((incident.sequence, incident.action), (1, PrivateChatIncident.Action.WARNING))
+        self.assertEqual(
+            (incident.sequence, incident.action),
+            (1, PrivateChatIncident.Action.WARNING),
+        )
 
     def test_several_reports_of_one_message_count_as_one_incident(self):
         first = self.offending_report()
@@ -346,17 +433,29 @@ class PenaltyLadderTests(ModerationTestBase):
         first.refresh_from_db()
         second.refresh_from_db()
         self.assertEqual(first.incident, second.incident)
-        self.assertEqual(self.notifications(self.alice, Notification.Type.PRIVATE_CHAT_WARNING).count(), 1)
+        self.assertEqual(
+            self.notifications(
+                self.alice, Notification.Type.PRIVATE_CHAT_WARNING
+            ).count(),
+            1,
+        )
         # Each reporter still hears the outcome of their own report.
         for reporter in (self.bob, self.ta):
-            self.assertEqual(self.notifications(reporter, Notification.Type.PRIVATE_REPORT_RESULT).count(), 1)
+            self.assertEqual(
+                self.notifications(
+                    reporter, Notification.Type.PRIVATE_REPORT_RESULT
+                ).count(),
+                1,
+            )
 
     def test_notifications_go_to_the_right_people_without_naming_the_reporter(self):
         reports = [self.offending_report(f"ผิด {i}") for i in range(4)]
         for report in reports:
             self.confirm(report)
 
-        to_reporter = self.notifications(self.bob, Notification.Type.PRIVATE_REPORT_RESULT)
+        to_reporter = self.notifications(
+            self.bob, Notification.Type.PRIVATE_REPORT_RESULT
+        )
         self.assertEqual(to_reporter.count(), 4)
         self.assertTrue(all("ยืนยัน" in n.message for n in to_reporter))
         offender_notes = Notification.objects.filter(
@@ -375,7 +474,8 @@ class PenaltyLadderTests(ModerationTestBase):
         # Nobody else is told about the decision.
         self.assertFalse(
             Notification.objects.filter(
-                notification_type__startswith="private_", recipient__in=[self.ta, self.reviewer]
+                notification_type__startswith="private_",
+                recipient__in=[self.ta, self.reviewer],
             ).exists()
         )
 
@@ -393,7 +493,11 @@ class SuspensionEnforcementTests(ModerationTestBase):
         self.assertIn("ระงับ", response.json()["error"])
         self.client.force_login(self.alice)
         self.client.post(self.chat_url(self.chat), {"body": "ฟอร์มปกติ"})
-        self.assertFalse(PrivateChatMessage.objects.filter(body__in=["ขอส่งหน่อย", "ฟอร์มปกติ"]).exists())
+        self.assertFalse(
+            PrivateChatMessage.objects.filter(
+                body__in=["ขอส่งหน่อย", "ฟอร์มปกติ"]
+            ).exists()
+        )
 
     def test_chat_page_shows_suspension_and_history_stays_readable(self):
         post_private_message(chat=self.chat, sender=self.bob, body="อ่านได้")
@@ -408,7 +512,9 @@ class SuspensionEnforcementTests(ModerationTestBase):
         # Bob (the reporter) can still message Alice.
         self.assertEqual(self.send_json(self.bob, "ถึงอลิซ").status_code, 201)
         # Alice can still message someone else.
-        other_chat, _ = get_or_create_private_chat(course=self.course, user=self.alice, other=self.ta)
+        other_chat, _ = get_or_create_private_chat(
+            course=self.course, user=self.alice, other=self.ta
+        )
         post_private_message(chat=other_chat, sender=self.alice, body="ถึง TA")
         self.assertFalse(UserBlock.objects.exists())
 
@@ -423,11 +529,15 @@ class SuspensionEnforcementTests(ModerationTestBase):
         with patch("django.utils.timezone.now", return_value=later):
             self.assertEqual(self.send_json(self.alice, "ครบเวลาแล้ว").status_code, 201)
             self.client.force_login(self.alice)
-            self.assertTrue(self.client.get(self.chat_url(self.chat)).context["can_send"])
+            self.assertTrue(
+                self.client.get(self.chat_url(self.chat)).context["can_send"]
+            )
 
     def test_admin_can_lift_suspension_early_with_reason(self):
         self.client.force_login(self.reviewer)
-        url = reverse("admin:courses_privatechatsuspension_change", args=[self.suspension.pk])
+        url = reverse(
+            "admin:courses_privatechatsuspension_change", args=[self.suspension.pk]
+        )
         self.assertEqual(self.client.get(url).status_code, 200)
 
         no_reason = self.client.post(url, {"lift_reason": "  "})
@@ -442,36 +552,64 @@ class SuspensionEnforcementTests(ModerationTestBase):
         self.assertEqual(self.suspension.lift_reason, "ตรวจสอบแล้วเป็นความเข้าใจผิด")
         self.assertEqual(self.send_json(self.alice, "กลับมาแล้ว").status_code, 201)
         self.assertEqual(
-            self.notifications(self.alice, Notification.Type.PRIVATE_CHAT_UNSUSPENDED).count(), 1
+            self.notifications(
+                self.alice, Notification.Type.PRIVATE_CHAT_UNSUSPENDED
+            ).count(),
+            1,
         )
-        log = PrivateChatModerationLog.objects.get(action=PrivateChatModerationLog.Action.SUSPENSION_LIFTED)
-        self.assertEqual((log.actor, log.suspension, log.target_user), (self.reviewer, self.suspension, self.alice))
+        log = PrivateChatModerationLog.objects.get(
+            action=PrivateChatModerationLog.Action.SUSPENSION_LIFTED
+        )
+        self.assertEqual(
+            (log.actor, log.suspension, log.target_user),
+            (self.reviewer, self.suspension, self.alice),
+        )
 
         # Lifting twice is refused and does not notify again.
         self.client.force_login(self.reviewer)
-        self.assertEqual(self.client.post(url, {"lift_reason": "อีกครั้ง"}).status_code, 403)
-        with self.assertRaisesMessage(PrivateChatError, "ถูกยกเลิกไปแล้ว"):
-            lift_suspension(suspension_id=self.suspension.pk, actor=self.reviewer, reason="อีกครั้ง")
         self.assertEqual(
-            self.notifications(self.alice, Notification.Type.PRIVATE_CHAT_UNSUSPENDED).count(), 1
+            self.client.post(url, {"lift_reason": "อีกครั้ง"}).status_code, 403
+        )
+        with self.assertRaisesMessage(PrivateChatError, "ถูกยกเลิกไปแล้ว"):
+            lift_suspension(
+                suspension_id=self.suspension.pk, actor=self.reviewer, reason="อีกครั้ง"
+            )
+        self.assertEqual(
+            self.notifications(
+                self.alice, Notification.Type.PRIVATE_CHAT_UNSUSPENDED
+            ).count(),
+            1,
         )
 
     def test_only_reviewers_can_lift_suspension(self):
         for user in (self.alice, self.bob, self.staff_without_permission):
             with self.assertRaises(PermissionDenied):
-                lift_suspension(suspension_id=self.suspension.pk, actor=user, reason="ขอยกเลิก")
+                lift_suspension(
+                    suspension_id=self.suspension.pk, actor=user, reason="ขอยกเลิก"
+                )
         self.client.force_login(self.staff_without_permission)
-        url = reverse("admin:courses_privatechatsuspension_change", args=[self.suspension.pk])
-        self.assertEqual(self.client.post(url, {"lift_reason": "ขอยกเลิก"}).status_code, 403)
+        url = reverse(
+            "admin:courses_privatechatsuspension_change", args=[self.suspension.pk]
+        )
+        self.assertEqual(
+            self.client.post(url, {"lift_reason": "ขอยกเลิก"}).status_code, 403
+        )
         self.suspension.refresh_from_db()
         self.assertIsNone(self.suspension.lifted_at)
 
     def test_audit_records_are_read_only_in_admin(self):
         self.client.force_login(self.reviewer)
         for name in ("privatechatincident", "privatechatmoderationlog"):
-            self.assertEqual(self.client.get(reverse(f"admin:courses_{name}_changelist")).status_code, 200)
+            self.assertEqual(
+                self.client.get(
+                    reverse(f"admin:courses_{name}_changelist")
+                ).status_code,
+                200,
+            )
         incident = PrivateChatIncident.objects.first()
-        delete_url = reverse("admin:courses_privatechatincident_delete", args=[incident.pk])
+        delete_url = reverse(
+            "admin:courses_privatechatincident_delete", args=[incident.pk]
+        )
         self.assertEqual(self.client.post(delete_url, {"post": "yes"}).status_code, 403)
         self.assertEqual(PrivateChatIncident.objects.count(), 4)
 
@@ -494,7 +632,9 @@ class ModerationWebsocketTests(TransactionTestCase):
             await self.report_and_confirm(message_id, bob, reviewer)
             for communicator in (alice_ws, bob_ws):
                 event = await communicator.receive_json_from()
-                self.assertEqual(event, {"type": "message.hidden", "message_id": message_id})
+                self.assertEqual(
+                    event, {"type": "message.hidden", "message_id": message_id}
+                )
 
         # The fourth confirmation also pushes the new send state to both pages.
         alice_state = await alice_ws.receive_json_from()
@@ -516,7 +656,9 @@ class ModerationWebsocketTests(TransactionTestCase):
         self.assertTrue((await alice_ws.receive_json_from())["can_send"])
         await bob_ws.receive_json_from()
         await alice_ws.send_json_to({"type": "message.send", "body": "กลับมาแล้ว"})
-        self.assertEqual((await bob_ws.receive_json_from())["message"]["body"], "กลับมาแล้ว")
+        self.assertEqual(
+            (await bob_ws.receive_json_from())["message"]["body"], "กลับมาแล้ว"
+        )
 
         await alice_ws.disconnect()
         await bob_ws.disconnect()
@@ -526,24 +668,31 @@ class ModerationWebsocketTests(TransactionTestCase):
             PrivateChatConsumer.as_asgi(), f"/ws/courses/{course_id}/chats/{chat_id}/"
         )
         communicator.scope.update(
-            user=user, url_route={"kwargs": {"course_id": course_id, "chat_id": chat_id}}
+            user=user,
+            url_route={"kwargs": {"course_id": course_id, "chat_id": chat_id}},
         )
         connected, _ = await communicator.connect()
         self.assertTrue(connected)
-        self.assertEqual((await communicator.receive_json_from())["type"], "block.state")
+        self.assertEqual(
+            (await communicator.receive_json_from())["type"], "block.state"
+        )
         return communicator
 
     @staticmethod
     @sync_to_async
     def report_and_confirm(message_id, reporter, reviewer):
-        message = PrivateChatMessage.objects.select_related("chat__course", "sender").get(pk=message_id)
+        message = PrivateChatMessage.objects.select_related(
+            "chat__course", "sender"
+        ).get(pk=message_id)
         report = report_message(message=message, reporter=reporter, reason="harassment")
         decide_report(report_id=report.pk, reviewer=reviewer, decision=CONFIRMED)
 
     @staticmethod
     def lift(reviewer):
         suspension = PrivateChatSuspension.objects.get()
-        lift_suspension(suspension_id=suspension.pk, actor=reviewer, reason="ยกเลิกเพื่อทดสอบ")
+        lift_suspension(
+            suspension_id=suspension.pk, actor=reviewer, reason="ยกเลิกเพื่อทดสอบ"
+        )
 
     @staticmethod
     @sync_to_async
@@ -552,7 +701,9 @@ class ModerationWebsocketTests(TransactionTestCase):
         alice = make_user("mod-alice@example.com")
         bob = make_user("mod-bob@example.com")
         for user in (alice, bob):
-            Enrollment.objects.create(user=user, course=course, role=Enrollment.Role.STUDENT)
+            Enrollment.objects.create(
+                user=user, course=course, role=Enrollment.Role.STUDENT
+            )
         reviewer = make_reviewer("mod-reviewer@example.com")
         chat, _ = get_or_create_private_chat(course=course, user=alice, other=bob)
         return course.id, chat.id, alice, bob, reviewer

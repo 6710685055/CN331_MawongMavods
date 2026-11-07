@@ -54,7 +54,7 @@ class ManageUnassignedStudentsTests(TestCase):
 
         # Create 6 students
         self.students = [
-            make_user(f"student{i}@example.com", first_name=f"Student", last_name=f"{i}")
+            make_user(f"student{i}@example.com", first_name="Student", last_name=str(i))
             for i in range(1, 7)
         ]
         for student in self.students:
@@ -214,12 +214,16 @@ class ManageUnassignedStudentsTests(TestCase):
             follow=True,
         )
         self.assertEqual(response.status_code, 200)
-        self.assertContains(response, "จัดนักศึกษาที่ยังไม่มีกลุ่มเข้ากลุ่มอัตโนมัติสำเร็จทั้งหมด 5 คน")
+        self.assertContains(
+            response, "จัดนักศึกษาที่ยังไม่มีกลุ่มเข้ากลุ่มอัตโนมัติสำเร็จทั้งหมด 5 คน"
+        )
 
         # Verify all 6 students now have a team in this course
         for student in self.students:
             self.assertTrue(
-                TeamMembership.objects.filter(user=student, course=self.course).exists(),
+                TeamMembership.objects.filter(
+                    user=student, course=self.course
+                ).exists(),
                 f"{student.email} should have a team",
             )
         # Verify team1 is now full (5 members)

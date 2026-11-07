@@ -94,7 +94,9 @@ def reschedule_meeting(*, meeting, actor, title, meeting_url, starts_at):
     if time_changed:
         message = f"{title} ถูกเลื่อนเป็นเวลา {format_meeting_time(starts_at)}"
     else:
-        message = f"{title} มีการแก้ไขรายละเอียด เวลาเดิม {format_meeting_time(starts_at)}"
+        message = (
+            f"{title} มีการแก้ไขรายละเอียด เวลาเดิม {format_meeting_time(starts_at)}"
+        )
     _notify_members(
         meeting.group,
         exclude=actor,
@@ -115,7 +117,9 @@ def send_due_reminders(*, now=None, reminder_minutes=None):
     linked to the active adapter's group model are processed.
     """
     now = now or timezone.now()
-    reminder_minutes = reminder_minutes or getattr(settings, "MEETING_REMINDER_MINUTES", 15)
+    reminder_minutes = reminder_minutes or getattr(
+        settings, "MEETING_REMINDER_MINUTES", 15
+    )
     window_end = now + timedelta(minutes=reminder_minutes)
     group_access = get_group_access()
     due = (

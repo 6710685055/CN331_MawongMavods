@@ -77,7 +77,9 @@ def request_revision_view(request, course_id, doc_id):
 
     form = RequestRevisionForm(request.POST)
     if not form.is_valid():
-        err_msg = form.errors.get("comment", ["กรุณากรอกความคิดเห็นก่อนส่งกลับให้แก้ไข"])[0]
+        err_msg = form.errors.get(
+            "comment", ["กรุณากรอกความคิดเห็นก่อนส่งกลับให้แก้ไข"]
+        )[0]
         messages.error(request, err_msg)
         return redirect("documents:detail", course_id=course.id, doc_id=document.id)
 
@@ -147,7 +149,9 @@ def replace_file_view(request, course_id, doc_id):
     document = get_object_or_404(Document, pk=doc_id, course=course)
 
     if document.uploader_id != request.user.id:
-        return HttpResponseForbidden("เฉพาะเจ้าของเอกสารเท่านั้นที่สามารถอัปเดตไฟล์เอกสารได้")
+        return HttpResponseForbidden(
+            "เฉพาะเจ้าของเอกสารเท่านั้นที่สามารถอัปเดตไฟล์เอกสารได้"
+        )
 
     form = ReplaceDocumentFileForm(request.POST, request.FILES)
     if not form.is_valid():

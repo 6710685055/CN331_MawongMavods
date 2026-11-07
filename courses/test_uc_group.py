@@ -113,10 +113,14 @@ class GroupFormationTests(TestCase):
             {"body": "Hello group"},
             follow=True,
         )
-        self.assertRedirects(response, reverse("courses:team_chat", args=[self.course.id, team.id]))
+        self.assertRedirects(
+            response, reverse("courses:team_chat", args=[self.course.id, team.id])
+        )
         self.assertContains(response, "ส่งข้อความแล้ว")
         self.assertTrue(
-            TeamChatMessage.objects.filter(chat=chat, sender=self.students[1], body="Hello group").exists()
+            TeamChatMessage.objects.filter(
+                chat=chat, sender=self.students[1], body="Hello group"
+            ).exists()
         )
         self.assertContains(response, "Hello group")
         self.assertTrue(
@@ -146,7 +150,9 @@ class GroupFormationTests(TestCase):
         invitation.refresh_from_db()
         self.assertEqual(invitation.status, TeamInvitation.Status.DECLINED)
         self.assertFalse(
-            TeamMembership.objects.filter(user=self.students[1], course=self.course).exists()
+            TeamMembership.objects.filter(
+                user=self.students[1], course=self.course
+            ).exists()
         )
         self.assertTrue(
             Notification.objects.filter(
@@ -214,7 +220,9 @@ class GroupFormationTests(TestCase):
 
         self.login_as(self.students[2])
         self.assertEqual(self.client.get(chat_url).status_code, 404)
-        self.assertEqual(self.client.post(chat_url, {"body": "Not a member"}).status_code, 404)
+        self.assertEqual(
+            self.client.post(chat_url, {"body": "Not a member"}).status_code, 404
+        )
         self.assertFalse(TeamChatMessage.objects.filter(chat=chat).exists())
 
     def test_blank_group_chat_message_is_not_saved(self):
@@ -239,7 +247,9 @@ class GroupFormationTests(TestCase):
     def test_leaving_as_team_creator_transfers_leadership_and_notifies_members(self):
         self.create_team()
         team = Team.objects.get(course=self.course)
-        TeamMembership.objects.create(team=team, course=self.course, user=self.students[1])
+        TeamMembership.objects.create(
+            team=team, course=self.course, user=self.students[1]
+        )
         self.login_as(self.students[0])
 
         response = self.client.post(
@@ -254,7 +264,9 @@ class GroupFormationTests(TestCase):
         team.refresh_from_db()
         self.assertEqual(team.created_by, self.students[1])
         self.assertFalse(
-            TeamMembership.objects.filter(user=self.students[0], course=self.course).exists()
+            TeamMembership.objects.filter(
+                user=self.students[0], course=self.course
+            ).exists()
         )
         self.assertTrue(
             Notification.objects.filter(
@@ -268,12 +280,16 @@ class GroupFormationTests(TestCase):
     def test_regular_member_can_leave_and_notifies_remaining_leader(self):
         self.create_team()
         team = Team.objects.get(course=self.course)
-        TeamMembership.objects.create(team=team, course=self.course, user=self.students[1])
+        TeamMembership.objects.create(
+            team=team, course=self.course, user=self.students[1]
+        )
         self.login_as(self.students[1])
 
         self.client.post(reverse("courses:leave_team", args=[self.course.id, team.id]))
 
-        self.assertTrue(Team.objects.filter(pk=team.id, created_by=self.students[0]).exists())
+        self.assertTrue(
+            Team.objects.filter(pk=team.id, created_by=self.students[0]).exists()
+        )
         self.assertFalse(
             TeamMembership.objects.filter(team=team, user=self.students[1]).exists()
         )
@@ -289,7 +305,9 @@ class GroupFormationTests(TestCase):
         self.create_team()
         team = Team.objects.get(course=self.course)
         chat = TeamChat.objects.create(team=team)
-        TeamChatMessage.objects.create(chat=chat, sender=self.students[0], body="Keep no history")
+        TeamChatMessage.objects.create(
+            chat=chat, sender=self.students[0], body="Keep no history"
+        )
         self.login_as(self.students[0])
 
         response = self.client.post(
@@ -302,7 +320,9 @@ class GroupFormationTests(TestCase):
         self.assertFalse(TeamChat.objects.filter(pk=chat.id).exists())
         self.assertFalse(TeamChatMessage.objects.filter(chat_id=chat.id).exists())
         self.assertFalse(
-            TeamMembership.objects.filter(user=self.students[0], course=self.course).exists()
+            TeamMembership.objects.filter(
+                user=self.students[0], course=self.course
+            ).exists()
         )
         self.assertContains(response, "ระบบยุบกลุ่ม")
 
@@ -325,7 +345,9 @@ class GroupFormationTests(TestCase):
     def test_chat_attachment_is_downloadable_only_to_team_members(self):
         self.create_team()
         team = Team.objects.get(course=self.course)
-        TeamMembership.objects.create(team=team, course=self.course, user=self.students[1])
+        TeamMembership.objects.create(
+            team=team, course=self.course, user=self.students[1]
+        )
         TeamChat.objects.create(team=team)
         self.login_as(self.students[1])
 
@@ -346,7 +368,9 @@ class GroupFormationTests(TestCase):
 
                 self.assertEqual(response.status_code, 201)
                 message = TeamChatMessage.objects.get(chat__team=team)
-                self.assertEqual(message.attachment.name.rsplit("/", 1)[-1], "meeting.pdf")
+                self.assertEqual(
+                    message.attachment.name.rsplit("/", 1)[-1], "meeting.pdf"
+                )
                 self.assertTrue(
                     Notification.objects.filter(
                         recipient=self.students[0],
@@ -358,7 +382,9 @@ class GroupFormationTests(TestCase):
                     args=[self.course.id, team.id, message.id],
                 )
                 downloaded = self.client.get(download_url)
-                self.assertEqual(b"".join(downloaded.streaming_content), b"meeting notes")
+                self.assertEqual(
+                    b"".join(downloaded.streaming_content), b"meeting notes"
+                )
 
         self.login_as(self.students[2])
         self.assertEqual(self.client.get(download_url).status_code, 404)
@@ -411,9 +437,13 @@ class TeamChatWebsocketTests(TransactionTestCase):
         def create():
             course = Course.objects.create(code="WS101", name="WebSockets")
             users = [make_student(f"socket{i}@example.com") for i in range(2)]
-            team = Team.objects.create(course=course, name="Realtime", created_by=users[0])
+            team = Team.objects.create(
+                course=course, name="Realtime", created_by=users[0]
+            )
             for user in users:
-                Enrollment.objects.create(user=user, course=course, role=Enrollment.Role.STUDENT)
+                Enrollment.objects.create(
+                    user=user, course=course, role=Enrollment.Role.STUDENT
+                )
                 TeamMembership.objects.create(team=team, course=course, user=user)
             TeamChat.objects.create(team=team)
             return course.id

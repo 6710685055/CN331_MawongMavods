@@ -58,13 +58,9 @@ class Document(models.Model):
         verbose_name="ผู้อัปโหลด",
     )
     title = models.CharField("ชื่อเอกสาร", max_length=255)
-    doc_type = models.CharField(
-        "ประเภทเอกสาร", max_length=20, choices=DocType.choices
-    )
+    doc_type = models.CharField("ประเภทเอกสาร", max_length=20, choices=DocType.choices)
     academic_year = models.PositiveSmallIntegerField("ปีการศึกษา (พ.ศ.)")
-    semester = models.CharField(
-        "ภาคการศึกษา", max_length=10, choices=Semester.choices
-    )
+    semester = models.CharField("ภาคการศึกษา", max_length=10, choices=Semester.choices)
     description = models.TextField("คำอธิบาย", blank=True)
     related_chapter = models.CharField("บทที่เกี่ยวข้อง", max_length=200, blank=True)
 
@@ -188,4 +184,3 @@ class Document(models.Model):
         if not self.has_active_verified_badge:
             return ""
         return f"Verified by {self.verified_by_role}"
-

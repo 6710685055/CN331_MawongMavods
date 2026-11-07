@@ -1,5 +1,3 @@
-from pathlib import Path
-
 from django import forms
 from django.core.validators import MaxLengthValidator
 from django.utils import timezone
@@ -64,19 +62,27 @@ class DocumentUploadForm(forms.ModelForm):
         self.fields["file"].help_text = (
             f"รองรับไฟล์ {get_allowed_extensions_display()} ขนาดไม่เกิน {get_max_file_size_mb()}MB"
         )
-        self.fields["related_chapter"].help_text = "ไม่บังคับ (เช่น บทที่ 1-3 หรือ Midterm)"
+        self.fields["related_chapter"].help_text = (
+            "ไม่บังคับ (เช่น บทที่ 1-3 หรือ Midterm)"
+        )
         self.fields["description"].help_text = "ไม่บังคับ"
 
         if can_pin_document(user, course):
-            self.fields["is_pinned"].label = "ปักหมุดเอกสารนี้ไว้บนสุดของคลังเอกสาร (Pin)"
-            self.fields["is_pinned"].help_text = "สำหรับ TA และอาจารย์ผู้สอน (ไม่บังคับ)"
+            self.fields["is_pinned"].label = (
+                "ปักหมุดเอกสารนี้ไว้บนสุดของคลังเอกสาร (Pin)"
+            )
+            self.fields["is_pinned"].help_text = (
+                "สำหรับ TA และอาจารย์ผู้สอน (ไม่บังคับ)"
+            )
         else:
             self.fields.pop("is_pinned", None)
 
     def clean_academic_year(self):
         year = self.cleaned_data.get("academic_year")
         if year is not None and (year < 2500 or year > 2700):
-            raise forms.ValidationError("กรุณาระบุปีการศึกษาเป็น พ.ศ. ที่ถูกต้อง (เช่น 2569)")
+            raise forms.ValidationError(
+                "กรุณาระบุปีการศึกษาเป็น พ.ศ. ที่ถูกต้อง (เช่น 2569)"
+            )
         return year
 
     def clean(self):
@@ -122,7 +128,9 @@ class DocumentEditForm(forms.ModelForm):
     def clean_academic_year(self):
         year = self.cleaned_data.get("academic_year")
         if year is not None and (year < 2500 or year > 2700):
-            raise forms.ValidationError("กรุณาระบุปีการศึกษาเป็น พ.ศ. ที่ถูกต้อง (เช่น 2569)")
+            raise forms.ValidationError(
+                "กรุณาระบุปีการศึกษาเป็น พ.ศ. ที่ถูกต้อง (เช่น 2569)"
+            )
         return year
 
     def clean_related_chapter(self):
@@ -196,7 +204,9 @@ class ReplaceDocumentFileForm(forms.Form):
         self.fields["file"].widget.attrs["accept"] = ",".join(get_allowed_extensions())
         self.fields["file"].help_text = (
             f"เมื่ออัปโหลดไฟล์ใหม่ ระบบจะเพิ่มเลขเวอร์ชัน ยกเลิกป้าย Verified เดิม (ถ้ามี) "
-            f"และส่งเอกสารกลับเข้าคิวรอตรวจอัตโนมัติ (รองรับ {get_allowed_extensions_display()} ไม่เกิน {get_max_file_size_mb()}MB)"
+            "และส่งเอกสารกลับเข้าคิวรอตรวจอัตโนมัติ "
+            f"(รองรับ {get_allowed_extensions_display()} "
+            f"ไม่เกิน {get_max_file_size_mb()}MB)"
         )
 
 
@@ -225,7 +235,9 @@ class ReportDocumentForm(forms.Form):
         self.fields["detail"].validators.append(
             MaxLengthValidator(
                 max_length,
-                message=feedback_texts.REPORT_DETAIL_TOO_LONG.format(max_length=max_length),
+                message=feedback_texts.REPORT_DETAIL_TOO_LONG.format(
+                    max_length=max_length
+                ),
             )
         )
         required_labels = ", ".join(
@@ -254,7 +266,8 @@ class ResolveReportsForm(forms.Form):
 
     outcome = forms.ChoiceField(
         choices=[
-            (outcome.value, outcome.label) for outcome in DocumentReport.REVIEWER_RESOLUTIONS
+            (outcome.value, outcome.label)
+            for outcome in DocumentReport.REVIEWER_RESOLUTIONS
         ],
         widget=forms.HiddenInput,
         error_messages={

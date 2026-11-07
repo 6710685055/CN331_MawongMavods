@@ -186,9 +186,7 @@ class UC4VerifyDocumentTests(BaseDocumentTestCase):
         for privileged_viewer in (self.student, self.ta, self.teacher):
             self.client.force_login(privileged_viewer)
             res = self.client.get(
-                reverse(
-                    "documents:detail", args=[self.course.id, self.doc_older.id]
-                )
+                reverse("documents:detail", args=[self.course.id, self.doc_older.id])
             )
             self.assertEqual(res.status_code, 200)
             self.assertContains(res, "ต้องแก้ไข")

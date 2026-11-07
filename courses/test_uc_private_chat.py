@@ -79,7 +79,9 @@ class PrivateChatTestBase(TestCase):
 class OpenPrivateChatTests(PrivateChatTestBase):
     def test_list_shows_classmates_with_send_button(self):
         self.client.force_login(self.alice)
-        response = self.client.get(reverse("courses:private_chats", args=[self.course.id]))
+        response = self.client.get(
+            reverse("courses:private_chats", args=[self.course.id])
+        )
         self.assertEqual(response.status_code, 200)
         self.assertTemplateUsed(response, "courses/private_chat_list.html")
         self.assertContains(response, self.bob.email)
@@ -94,18 +96,26 @@ class OpenPrivateChatTests(PrivateChatTestBase):
     def test_course_detail_links_to_private_chat_for_students(self):
         self.client.force_login(self.alice)
         response = self.client.get(reverse("courses:detail", args=[self.course.id]))
-        self.assertContains(response, reverse("courses:private_chats", args=[self.course.id]))
+        self.assertContains(
+            response, reverse("courses:private_chats", args=[self.course.id])
+        )
 
     def test_list_requires_login(self):
-        response = self.client.get(reverse("courses:private_chats", args=[self.course.id]))
+        response = self.client.get(
+            reverse("courses:private_chats", args=[self.course.id])
+        )
         self.assertEqual(response.status_code, 302)
         self.assertIn(reverse("accounts:login"), response.url)
 
     def test_non_eligible_user_cannot_open_list(self):
         for user in (self.outsider, self.pending, self.teacher):
             self.client.force_login(user)
-            response = self.client.get(reverse("courses:private_chats", args=[self.course.id]))
-            self.assertRedirects(response, reverse("courses:detail", args=[self.course.id]))
+            response = self.client.get(
+                reverse("courses:private_chats", args=[self.course.id])
+            )
+            self.assertRedirects(
+                response, reverse("courses:detail", args=[self.course.id])
+            )
 
     def test_start_chat_creates_room_once_and_reopens_existing(self):
         response = self.start_chat(self.alice, self.bob)
@@ -133,7 +143,9 @@ class OpenPrivateChatTests(PrivateChatTestBase):
 
     def test_cannot_start_chat_with_user_outside_course(self):
         response = self.start_chat(self.alice, self.outsider)
-        self.assertRedirects(response, reverse("courses:private_chats", args=[self.course.id]))
+        self.assertRedirects(
+            response, reverse("courses:private_chats", args=[self.course.id])
+        )
         self.assertFalse(PrivateChat.objects.exists())
 
     def test_cannot_start_chat_with_pending_or_teacher(self):
@@ -148,7 +160,9 @@ class OpenPrivateChatTests(PrivateChatTestBase):
 
     def test_cannot_start_chat_with_self(self):
         with self.assertRaises(PrivateChatError):
-            get_or_create_private_chat(course=self.course, user=self.alice, other=self.alice)
+            get_or_create_private_chat(
+                course=self.course, user=self.alice, other=self.alice
+            )
 
     def test_start_chat_requires_post(self):
         self.client.force_login(self.alice)
@@ -162,7 +176,9 @@ class OpenPrivateChatTests(PrivateChatTestBase):
         chat = self.make_chat()
         post_private_message(chat=chat, sender=self.bob, body="งานส่งวันไหน")
         self.client.force_login(self.alice)
-        response = self.client.get(reverse("courses:private_chats", args=[self.course.id]))
+        response = self.client.get(
+            reverse("courses:private_chats", args=[self.course.id])
+        )
         self.assertContains(response, "งานส่งวันไหน")
         self.assertContains(response, self.chat_url(chat))
 
@@ -194,7 +210,9 @@ class ChatListAccessTests(PrivateChatTestBase):
 
     def test_room_with_eligible_partner_is_listed(self):
         response = self.listed_chats()
-        self.assertEqual([chat.id for chat in response.context["chats"]], [self.chat.id])
+        self.assertEqual(
+            [chat.id for chat in response.context["chats"]], [self.chat.id]
+        )
         self.assertContains(response, self.chat_url(self.chat))
         self.assertContains(response, "ข้อความเก่าจากบ็อบ")
         self.assertEqual(self.client.get(self.chat_url(self.chat)).status_code, 200)
@@ -205,7 +223,9 @@ class ChatListAccessTests(PrivateChatTestBase):
 
     def test_room_is_hidden_when_partner_role_is_not_allowed(self):
         for role in (Enrollment.Role.TEACHER, Enrollment.Role.STUDENT_PENDING):
-            Enrollment.objects.filter(user=self.bob, course=self.course).update(role=role)
+            Enrollment.objects.filter(user=self.bob, course=self.course).update(
+                role=role
+            )
             self.assert_room_unlisted_but_kept()
 
     def test_room_is_hidden_when_partner_account_is_inactive(self):
@@ -214,8 +234,12 @@ class ChatListAccessTests(PrivateChatTestBase):
 
     def test_room_returns_when_partner_is_enrolled_again(self):
         Enrollment.objects.filter(user=self.bob, course=self.course).delete()
-        Enrollment.objects.create(user=self.bob, course=self.course, role=Enrollment.Role.TA)
-        self.assertEqual([chat.id for chat in self.listed_chats().context["chats"]], [self.chat.id])
+        Enrollment.objects.create(
+            user=self.bob, course=self.course, role=Enrollment.Role.TA
+        )
+        self.assertEqual(
+            [chat.id for chat in self.listed_chats().context["chats"]], [self.chat.id]
+        )
 
     def test_list_does_not_show_other_peoples_rooms(self):
         other = self.make_chat(self.bob, self.ta)
@@ -224,12 +248,16 @@ class ChatListAccessTests(PrivateChatTestBase):
 
     def test_removed_partner_still_cannot_open_room_or_history(self):
         Enrollment.objects.filter(user=self.bob, course=self.course).delete()
-        history_url = reverse("courses:private_chat_history", args=[self.course.id, self.chat.id])
+        history_url = reverse(
+            "courses:private_chat_history", args=[self.course.id, self.chat.id]
+        )
         last_id = self.chat.messages.get().id
         for user in (self.alice, self.bob):
             self.client.force_login(user)
             self.assertEqual(self.client.get(self.chat_url(self.chat)).status_code, 404)
-            self.assertEqual(self.client.get(history_url, {"before": last_id}).status_code, 404)
+            self.assertEqual(
+                self.client.get(history_url, {"before": last_id}).status_code, 404
+            )
 
     def test_list_checks_access_without_a_query_per_room(self):
         def count_queries():
@@ -240,7 +268,9 @@ class ChatListAccessTests(PrivateChatTestBase):
         self.client.force_login(self.alice)
         one_room = count_queries()
         for classmate in (make_user(f"mate{i}@example.com") for i in range(5)):
-            Enrollment.objects.create(user=classmate, course=self.course, role=Enrollment.Role.STUDENT)
+            Enrollment.objects.create(
+                user=classmate, course=self.course, role=Enrollment.Role.STUDENT
+            )
             self.make_chat(self.alice, classmate)
         # Partner access is filtered in the room query itself; each extra room only adds
         # the existing last-message lookup.
@@ -264,7 +294,9 @@ class DuplicateRoomTests(PrivateChatTestBase):
         existing = self.make_chat()
         # Simulate another request inserting the room between lookup and insert.
         with patch.object(
-            PrivateChat.objects, "get_or_create", side_effect=IntegrityError("duplicate")
+            PrivateChat.objects,
+            "get_or_create",
+            side_effect=IntegrityError("duplicate"),
         ):
             chat, created = get_or_create_private_chat(
                 course=self.course, user=self.bob, other=self.alice
@@ -339,7 +371,9 @@ class SendMessageTests(PrivateChatTestBase):
 
     def test_message_body_is_html_escaped(self):
         chat = self.make_chat()
-        post_private_message(chat=chat, sender=self.bob, body="<script>alert(1)</script>")
+        post_private_message(
+            chat=chat, sender=self.bob, body="<script>alert(1)</script>"
+        )
         self.client.force_login(self.alice)
         response = self.client.get(self.chat_url(chat))
         self.assertNotContains(response, "<script>alert(1)</script>")
@@ -386,12 +420,16 @@ class UnauthorizedAccessTests(PrivateChatTestBase):
         chat = self.make_chat()
         message = post_private_message(chat=chat, sender=self.alice, body="hello")
         self.client.force_login(self.ta)
-        block_url = reverse("courses:block_private_chat_user", args=[self.course.id, chat.id])
+        block_url = reverse(
+            "courses:block_private_chat_user", args=[self.course.id, chat.id]
+        )
         report_url = reverse(
             "courses:report_private_message", args=[self.course.id, chat.id, message.id]
         )
         self.assertEqual(self.client.post(block_url).status_code, 404)
-        self.assertEqual(self.client.post(report_url, {"reason": "spam"}).status_code, 404)
+        self.assertEqual(
+            self.client.post(report_url, {"reason": "spam"}).status_code, 404
+        )
         self.assertFalse(UserBlock.objects.exists())
         self.assertFalse(PrivateMessageReport.objects.exists())
 
@@ -407,11 +445,15 @@ class BlockTests(PrivateChatTestBase):
         chat = self.make_chat()
         response = self.block(chat, self.alice)
         self.assertRedirects(response, self.chat_url(chat))
-        self.assertTrue(UserBlock.objects.filter(blocker=self.alice, blocked=self.bob).exists())
+        self.assertTrue(
+            UserBlock.objects.filter(blocker=self.alice, blocked=self.bob).exists()
+        )
 
         for sender in (self.alice, self.bob):
             self.client.force_login(sender)
-            response = self.client.post(self.chat_url(chat), {"body": "hello"}, follow=True)
+            response = self.client.post(
+                self.chat_url(chat), {"body": "hello"}, follow=True
+            )
             self.assertContains(response, "มีการบล็อกระหว่างคุณกับผู้ใช้นี้")
         self.assertFalse(PrivateChatMessage.objects.exists())
         self.assertFalse(
@@ -437,8 +479,12 @@ class BlockTests(PrivateChatTestBase):
         chat = self.make_chat()
         self.block(chat, self.bob)
         for course in (self.other_course,):
-            Enrollment.objects.create(user=self.alice, course=course, role=Enrollment.Role.STUDENT)
-            Enrollment.objects.create(user=self.bob, course=course, role=Enrollment.Role.STUDENT)
+            Enrollment.objects.create(
+                user=self.alice, course=course, role=Enrollment.Role.STUDENT
+            )
+            Enrollment.objects.create(
+                user=self.bob, course=course, role=Enrollment.Role.STUDENT
+            )
         other_chat, _ = get_or_create_private_chat(
             course=self.other_course, user=self.alice, other=self.bob
         )
@@ -463,7 +509,9 @@ class BlockTests(PrivateChatTestBase):
         self.client.post(
             reverse("courses:unblock_private_chat_user", args=[self.course.id, chat.id])
         )
-        self.assertTrue(UserBlock.objects.filter(blocker=self.alice, blocked=self.bob).exists())
+        self.assertTrue(
+            UserBlock.objects.filter(blocker=self.alice, blocked=self.bob).exists()
+        )
 
     def test_block_is_idempotent_and_requires_post(self):
         chat = self.make_chat()
@@ -483,7 +531,9 @@ class BlockTests(PrivateChatTestBase):
 class ReportTests(PrivateChatTestBase):
     def setUp(self):
         self.chat = self.make_chat()
-        self.message = post_private_message(chat=self.chat, sender=self.bob, body="ข้อความไม่เหมาะสม")
+        self.message = post_private_message(
+            chat=self.chat, sender=self.bob, body="ข้อความไม่เหมาะสม"
+        )
         self.report_url = reverse(
             "courses:report_private_message",
             args=[self.course.id, self.chat.id, self.message.id],
@@ -492,7 +542,9 @@ class ReportTests(PrivateChatTestBase):
     def test_recipient_can_report_message_with_review_data(self):
         self.client.force_login(self.alice)
         response = self.client.post(
-            self.report_url, {"reason": "harassment", "details": "พูดจาไม่สุภาพ"}, follow=True
+            self.report_url,
+            {"reason": "harassment", "details": "พูดจาไม่สุภาพ"},
+            follow=True,
         )
         self.assertRedirects(response, self.chat_url(self.chat))
         self.assertContains(response, "ส่งรายงานข้อความแล้ว")
@@ -509,7 +561,9 @@ class ReportTests(PrivateChatTestBase):
         self.assertEqual(report.message_sent_at, self.message.created_at)
 
     def test_report_keeps_evidence_after_message_is_deleted(self):
-        report = report_message(message=self.message, reporter=self.alice, reason="spam")
+        report = report_message(
+            message=self.message, reporter=self.alice, reason="spam"
+        )
         self.message.delete()
         report.refresh_from_db()
         self.assertIsNone(report.message)
@@ -530,7 +584,10 @@ class ReportTests(PrivateChatTestBase):
     def test_report_details_length_is_limited(self):
         with self.assertRaises(PrivateChatError):
             report_message(
-                message=self.message, reporter=self.alice, reason="other", details="x" * 1001
+                message=self.message,
+                reporter=self.alice,
+                reason="other",
+                details="x" * 1001,
             )
 
     def test_duplicate_report_is_rejected(self):
@@ -605,7 +662,9 @@ class PrivateChatWebsocketTests(TransactionTestCase):
         bob = make_user("ws-bob@example.com")
         intruder = make_user("ws-intruder@example.com")
         for user in (alice, bob, intruder):
-            Enrollment.objects.create(user=user, course=course, role=Enrollment.Role.STUDENT)
+            Enrollment.objects.create(
+                user=user, course=course, role=Enrollment.Role.STUDENT
+            )
         chat, _ = get_or_create_private_chat(course=course, user=alice, other=bob)
         return course.id, chat.id, alice, bob, intruder
 
@@ -624,7 +683,9 @@ class HistoryPaginationTests(PrivateChatTestBase):
             for i in range(self.TOTAL)
         )
         # Many rows share one timestamp so ordering must fall back to the id.
-        PrivateChatMessage.objects.filter(chat=self.chat).update(created_at=timezone.now())
+        PrivateChatMessage.objects.filter(chat=self.chat).update(
+            created_at=timezone.now()
+        )
         self.all_ids = list(
             PrivateChatMessage.objects.filter(chat=self.chat)
             .order_by("created_at", "id")
@@ -680,9 +741,13 @@ class HistoryPaginationTests(PrivateChatTestBase):
         oldest_loaded = first.context["chat_messages"][0].id
         newest_loaded = first.context["chat_messages"][-1].id
         # A message arrives over WebSocket while the user is loading history.
-        new_message = post_private_message(chat=self.chat, sender=self.bob, body="ใหม่ล่าสุด")
+        new_message = post_private_message(
+            chat=self.chat, sender=self.bob, body="ใหม่ล่าสุด"
+        )
 
-        ids = [message["id"] for message in self.history(oldest_loaded).json()["messages"]]
+        ids = [
+            message["id"] for message in self.history(oldest_loaded).json()["messages"]
+        ]
         self.assertNotIn(new_message.id, ids)
         self.assertNotIn(newest_loaded, ids)
         oldest_index = self.all_ids.index(oldest_loaded)
@@ -690,7 +755,9 @@ class HistoryPaginationTests(PrivateChatTestBase):
 
     def test_last_page_reports_no_more_history(self):
         data = self.history(self.all_ids[5]).json()
-        self.assertEqual([message["id"] for message in data["messages"]], self.all_ids[:5])
+        self.assertEqual(
+            [message["id"] for message in data["messages"]], self.all_ids[:5]
+        )
         self.assertFalse(data["has_more"])
 
     def test_short_chat_shows_no_older_messages_state(self):
@@ -705,7 +772,9 @@ class HistoryPaginationTests(PrivateChatTestBase):
         self.assertEqual(self.history("abc").status_code, 400)
         self.assertEqual(self.history("").status_code, 400)
         other_chat = self.make_chat(self.alice, self.ta)
-        foreign = post_private_message(chat=other_chat, sender=self.ta, body="other room")
+        foreign = post_private_message(
+            chat=other_chat, sender=self.ta, body="other room"
+        )
         response = self.history(foreign.id)
         self.assertEqual(response.status_code, 400)
         self.assertIn("error", response.json())
@@ -721,8 +790,12 @@ class HistoryPaginationTests(PrivateChatTestBase):
 
     def test_history_through_another_course_url_is_rejected(self):
         self.client.force_login(self.alice)
-        url = reverse("courses:private_chat_history", args=[self.other_course.id, self.chat.id])
-        self.assertEqual(self.client.get(url, {"before": self.all_ids[-1]}).status_code, 404)
+        url = reverse(
+            "courses:private_chat_history", args=[self.other_course.id, self.chat.id]
+        )
+        self.assertEqual(
+            self.client.get(url, {"before": self.all_ids[-1]}).status_code, 404
+        )
 
     def test_anonymous_user_cannot_load_history(self):
         response = self.client.get(self.history_url, {"before": self.all_ids[-1]})
@@ -745,19 +818,27 @@ class BlockStateWebsocketTests(TransactionTestCase):
         alice_state = await alice_ws.receive_json_from()
         bob_state = await bob_ws.receive_json_from()
         self.assertEqual(alice_state["type"], "block.state")
-        self.assertEqual((alice_state["can_send"], alice_state["blocked_by_me"]), (False, True))
-        self.assertEqual((bob_state["can_send"], bob_state["blocked_by_other"]), (False, True))
+        self.assertEqual(
+            (alice_state["can_send"], alice_state["blocked_by_me"]), (False, True)
+        )
+        self.assertEqual(
+            (bob_state["can_send"], bob_state["blocked_by_other"]), (False, True)
+        )
 
         # Neither side can send, even with a hand-crafted WebSocket event.
         for communicator in (alice_ws, bob_ws):
-            await communicator.send_json_to({"type": "message.send", "body": "blocked?"})
+            await communicator.send_json_to(
+                {"type": "message.send", "body": "blocked?"}
+            )
             self.assertEqual((await communicator.receive_json_from())["type"], "error")
 
         # Bob also blocks, then Alice unblocks: Bob's block is still there.
         await self.post_as(bob, "courses:block_private_chat_user", course_id, chat_id)
         await alice_ws.receive_json_from()
         await bob_ws.receive_json_from()
-        await self.post_as(alice, "courses:unblock_private_chat_user", course_id, chat_id)
+        await self.post_as(
+            alice, "courses:unblock_private_chat_user", course_id, chat_id
+        )
         alice_state = await alice_ws.receive_json_from()
         bob_state = await bob_ws.receive_json_from()
         self.assertFalse(alice_state["can_send"])
@@ -797,7 +878,8 @@ class BlockStateWebsocketTests(TransactionTestCase):
             PrivateChatConsumer.as_asgi(), f"/ws/courses/{course_id}/chats/{chat_id}/"
         )
         communicator.scope.update(
-            user=user, url_route={"kwargs": {"course_id": course_id, "chat_id": chat_id}}
+            user=user,
+            url_route={"kwargs": {"course_id": course_id, "chat_id": chat_id}},
         )
         connected, _ = await communicator.connect()
         self.assertTrue(connected)
@@ -821,6 +903,8 @@ class BlockStateWebsocketTests(TransactionTestCase):
         alice = make_user("bs-alice@example.com")
         bob = make_user("bs-bob@example.com")
         for user in (alice, bob):
-            Enrollment.objects.create(user=user, course=course, role=Enrollment.Role.STUDENT)
+            Enrollment.objects.create(
+                user=user, course=course, role=Enrollment.Role.STUDENT
+            )
         chat, _ = get_or_create_private_chat(course=course, user=alice, other=bob)
         return course.id, chat.id, alice, bob

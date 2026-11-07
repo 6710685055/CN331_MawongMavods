@@ -39,7 +39,9 @@ def _recalculate_vote_score(document: Document) -> int:
     return score
 
 
-def vote_document(*, user, document: Document, value) -> tuple[int, DocumentVote.Value | None]:
+def vote_document(
+    *, user, document: Document, value
+) -> tuple[int, DocumentVote.Value | None]:
     """
     Toggle the user's vote (UC10): same value again removes it, the other value switches it.
     Returns (net score, the user's vote after the change or None).
@@ -51,17 +53,23 @@ def vote_document(*, user, document: Document, value) -> tuple[int, DocumentVote
         raise DocumentServiceError(texts.VOTE_INVALID) from exc
 
     with transaction.atomic():
-        existing = DocumentVote.objects.select_for_update().filter(
-            document=document, user=user
-        ).first()
+        existing = (
+            DocumentVote.objects.select_for_update()
+            .filter(document=document, user=user)
+            .first()
+        )
         if existing is None:
             try:
                 with transaction.atomic():
-                    DocumentVote.objects.create(document=document, user=user, value=value)
+                    DocumentVote.objects.create(
+                        document=document, user=user, value=value
+                    )
                 my_vote = value
             except IntegrityError:
                 # A concurrent request created the vote first; treat this one as a change.
-                DocumentVote.objects.filter(document=document, user=user).update(value=value)
+                DocumentVote.objects.filter(document=document, user=user).update(
+                    value=value
+                )
                 my_vote = value
         elif existing.value == value:
             existing.delete()
@@ -85,11 +93,15 @@ def _clean_report_input(reason: str, detail: str) -> tuple[str, str]:
     detail = (detail or "").strip()
     if reason in DocumentReport.REASONS_REQUIRING_DETAIL and not detail:
         raise DocumentServiceError(
-            texts.REPORT_DETAIL_REQUIRED.format(reason=DocumentReport.Reason(reason).label)
+            texts.REPORT_DETAIL_REQUIRED.format(
+                reason=DocumentReport.Reason(reason).label
+            )
         )
     max_length = get_report_detail_max_length()
     if len(detail) > max_length:
-        raise DocumentServiceError(texts.REPORT_DETAIL_TOO_LONG.format(max_length=max_length))
+        raise DocumentServiceError(
+            texts.REPORT_DETAIL_TOO_LONG.format(max_length=max_length)
+        )
     return reason, detail
 
 
@@ -106,7 +118,9 @@ def _hide_if_threshold_reached(document: Document) -> bool:
     return bool(hidden)
 
 
-def report_document(*, user, document: Document, reason: str, detail: str = "") -> DocumentReport:
+def report_document(
+    *, user, document: Document, reason: str, detail: str = ""
+) -> DocumentReport:
     """
     Report a document to the course TAs/Teachers (UC10).
     One open report per user per document (also enforced by a DB constraint);
@@ -142,8 +156,10 @@ def withdraw_report(*, user, document: Document) -> None:
     A hidden document stays hidden for the reviewer unless no open reports remain.
     """
     with transaction.atomic():
-        withdrawn = open_reports(document).filter(reporter=user).update(
-            status=DocumentReport.Status.WITHDRAWN, closed_at=timezone.now()
+        withdrawn = (
+            open_reports(document)
+            .filter(reporter=user)
+            .update(status=DocumentReport.Status.WITHDRAWN, closed_at=timezone.now())
         )
         if not withdrawn:
             raise DocumentServiceError(texts.REPORT_NOTHING_TO_WITHDRAW)

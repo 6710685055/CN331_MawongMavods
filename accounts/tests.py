@@ -23,7 +23,9 @@ def register_payload(**over):
 
 class RegisterTests(TestCase):
     def test_register_any_email_creates_unverified_user_and_sends_mail(self):
-        r = self.client.post(reverse("accounts:register"), register_payload(email="a@gmail.com"))
+        r = self.client.post(
+            reverse("accounts:register"), register_payload(email="a@gmail.com")
+        )
         self.assertRedirects(r, reverse("accounts:check_email"))
         u = User.objects.get(email="a@gmail.com")
         self.assertFalse(u.email_verified)
@@ -33,16 +35,21 @@ class RegisterTests(TestCase):
 
     def test_duplicate_email_rejected_case_insensitive(self):
         User.objects.create_user("dup@example.com", PW)
-        r = self.client.post(reverse("accounts:register"), register_payload(email="DUP@example.com"))
+        r = self.client.post(
+            reverse("accounts:register"), register_payload(email="DUP@example.com")
+        )
         self.assertEqual(r.status_code, 200)
         self.assertEqual(User.objects.count(), 1)
         self.assertEqual(len(mail.outbox), 0)
 
     def test_password_mismatch_and_weak_rejected(self):
-        r = self.client.post(reverse("accounts:register"), register_payload(password2="different"))
+        r = self.client.post(
+            reverse("accounts:register"), register_payload(password2="different")
+        )
         self.assertEqual(r.status_code, 200)
         r = self.client.post(
-            reverse("accounts:register"), register_payload(password1="12345678", password2="12345678")
+            reverse("accounts:register"),
+            register_payload(password1="12345678", password2="12345678"),
         )
         self.assertEqual(r.status_code, 200)
         self.assertEqual(User.objects.count(), 0)
@@ -53,7 +60,9 @@ class RegisterTests(TestCase):
         self.assertEqual(u.teacher_status, "pending")
 
     def test_admin_role_cannot_be_self_selected(self):
-        r = self.client.post(reverse("accounts:register"), register_payload(role="admin"))
+        r = self.client.post(
+            reverse("accounts:register"), register_payload(role="admin")
+        )
         self.assertEqual(r.status_code, 200)
         self.assertEqual(User.objects.count(), 0)
 
@@ -65,7 +74,9 @@ class VerifyAndLoginTests(TestCase):
         )
 
     def login(self):
-        return self.client.post(reverse("accounts:login"), {"username": "u@example.com", "password": PW})
+        return self.client.post(
+            reverse("accounts:login"), {"username": "u@example.com", "password": PW}
+        )
 
     def test_cannot_login_before_verification(self):
         r = self.login()
@@ -73,7 +84,9 @@ class VerifyAndLoginTests(TestCase):
         self.assertNotIn("_auth_user_id", self.client.session)
 
     def test_verify_then_login(self):
-        r = self.client.get(reverse("accounts:verify_email", args=[make_token(self.user)]))
+        r = self.client.get(
+            reverse("accounts:verify_email", args=[make_token(self.user)])
+        )
         self.assertRedirects(r, reverse("accounts:login"))
         self.user.refresh_from_db()
         self.assertTrue(self.user.email_verified)
@@ -90,25 +103,35 @@ class VerifyAndLoginTests(TestCase):
     def test_wrong_password_rejected(self):
         self.user.email_verified = True
         self.user.save()
-        r = self.client.post(reverse("accounts:login"), {"username": "u@example.com", "password": "nope"})
+        r = self.client.post(
+            reverse("accounts:login"), {"username": "u@example.com", "password": "nope"}
+        )
         self.assertEqual(r.status_code, 200)
         self.assertNotIn("_auth_user_id", self.client.session)
 
     def test_resend_sends_only_for_unverified(self):
-        self.client.post(reverse("accounts:resend_verification"), {"email": "u@example.com"})
+        self.client.post(
+            reverse("accounts:resend_verification"), {"email": "u@example.com"}
+        )
         self.assertEqual(len(mail.outbox), 1)
-        self.client.post(reverse("accounts:resend_verification"), {"email": "nobody@example.com"})
+        self.client.post(
+            reverse("accounts:resend_verification"), {"email": "nobody@example.com"}
+        )
         self.assertEqual(len(mail.outbox), 1)
 
 
 class PasswordResetTests(TestCase):
     def test_reset_email_sent_to_existing_user(self):
         User.objects.create_user("r@example.com", PW, email_verified=True)
-        r = self.client.post(reverse("accounts:password_reset"), {"email": "r@example.com"})
+        r = self.client.post(
+            reverse("accounts:password_reset"), {"email": "r@example.com"}
+        )
         self.assertRedirects(r, reverse("accounts:password_reset_done"))
         self.assertEqual(len(mail.outbox), 1)
 
     def test_unknown_email_gets_same_response_but_no_mail(self):
-        r = self.client.post(reverse("accounts:password_reset"), {"email": "x@example.com"})
+        r = self.client.post(
+            reverse("accounts:password_reset"), {"email": "x@example.com"}
+        )
         self.assertRedirects(r, reverse("accounts:password_reset_done"))
         self.assertEqual(len(mail.outbox), 0)

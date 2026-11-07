@@ -56,8 +56,12 @@ def open_report_count(document: Document) -> int:
 
 def open_reports_with_reporters(document: Document):
     """Open reports including reporter identity. Only for course reviewers, never for the owner."""
-    return open_reports(document).select_related("reporter").order_by("created_at", "id")
+    return (
+        open_reports(document).select_related("reporter").order_by("created_at", "id")
+    )
 
 
 def decisions_for(document: Document):
-    return DocumentReportDecision.objects.filter(document=document).select_related("reviewer")
+    return DocumentReportDecision.objects.filter(document=document).select_related(
+        "reviewer"
+    )

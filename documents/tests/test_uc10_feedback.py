@@ -75,7 +75,9 @@ class UC10FeedbackTests(BaseDocumentTestCase):
             self._url("vote"), {"value": "up"}, HTTP_ACCEPT="application/json"
         )
         self.assertEqual(response.status_code, 403)
-        self.assertEqual(self.client.post(self._url("report"), {"reason": SPAM}).status_code, 403)
+        self.assertEqual(
+            self.client.post(self._url("report"), {"reason": SPAM}).status_code, 403
+        )
         self.assertFalse(DocumentVote.objects.exists())
         self.assertFalse(DocumentReport.objects.exists())
 
@@ -93,15 +95,23 @@ class UC10FeedbackTests(BaseDocumentTestCase):
     # --- Voting -----------------------------------------------------------
 
     def test_vote_toggle_switch_and_net_score(self):
-        self.assertEqual(vote_document(user=self.student2, document=self.doc, value=UP), (1, UP))
-        self.assertEqual(vote_document(user=self.student3, document=self.doc, value=DOWN), (0, DOWN))
+        self.assertEqual(
+            vote_document(user=self.student2, document=self.doc, value=UP), (1, UP)
+        )
+        self.assertEqual(
+            vote_document(user=self.student3, document=self.doc, value=DOWN), (0, DOWN)
+        )
 
         # Switching does not add a second vote
-        self.assertEqual(vote_document(user=self.student2, document=self.doc, value=DOWN), (-2, DOWN))
+        self.assertEqual(
+            vote_document(user=self.student2, document=self.doc, value=DOWN), (-2, DOWN)
+        )
         self.assertEqual(DocumentVote.objects.filter(document=self.doc).count(), 2)
 
         # Same button again cancels
-        self.assertEqual(vote_document(user=self.student2, document=self.doc, value=DOWN), (-1, None))
+        self.assertEqual(
+            vote_document(user=self.student2, document=self.doc, value=DOWN), (-1, None)
+        )
         self.assertEqual(self._refresh().vote_score, -1)
 
     def test_vote_endpoint_returns_json_and_shows_user_vote(self):
@@ -123,15 +133,21 @@ class UC10FeedbackTests(BaseDocumentTestCase):
     def test_duplicate_vote_blocked_by_database(self):
         DocumentVote.objects.create(document=self.doc, user=self.student2, value=UP)
         with self.assertRaises(IntegrityError), transaction.atomic():
-            DocumentVote.objects.create(document=self.doc, user=self.student2, value=DOWN)
+            DocumentVote.objects.create(
+                document=self.doc, user=self.student2, value=DOWN
+            )
 
     # --- Reporting --------------------------------------------------------
 
     def test_report_requires_reason_and_detail_for_other(self):
-        with self.assertRaisesMessage(DocumentServiceError, texts.REPORT_REASON_REQUIRED):
+        with self.assertRaisesMessage(
+            DocumentServiceError, texts.REPORT_REASON_REQUIRED
+        ):
             report_document(user=self.student2, document=self.doc, reason="")
         with self.assertRaises(DocumentServiceError):
-            report_document(user=self.student2, document=self.doc, reason=OTHER, detail="  ")
+            report_document(
+                user=self.student2, document=self.doc, reason=OTHER, detail="  "
+            )
 
         report = report_document(
             user=self.student2, document=self.doc, reason=OTHER, detail="ไฟล์เปิดไม่ได้"
@@ -171,7 +187,9 @@ class UC10FeedbackTests(BaseDocumentTestCase):
             DocumentReport.objects.get(reporter=self.student2).status,
             DocumentReport.Status.WITHDRAWN,
         )
-        with self.assertRaisesMessage(DocumentServiceError, texts.REPORT_NOTHING_TO_WITHDRAW):
+        with self.assertRaisesMessage(
+            DocumentServiceError, texts.REPORT_NOTHING_TO_WITHDRAW
+        ):
             withdraw_report(user=self.student2, document=self.doc)
 
         # Can report again after withdrawing
@@ -216,13 +234,17 @@ class UC10FeedbackTests(BaseDocumentTestCase):
         self.assertNotContains(library, self.doc.title)
         self.assertEqual(self.client.get(self._url("detail")).status_code, 404)
         self.assertEqual(self.client.get(self._url("download")).status_code, 404)
-        with self.assertRaisesMessage(DocumentPermissionError, texts.DOCUMENT_HIDDEN_NO_INTERACT):
+        with self.assertRaisesMessage(
+            DocumentPermissionError, texts.DOCUMENT_HIDDEN_NO_INTERACT
+        ):
             vote_document(user=self.student3, document=self.doc, value=UP)
 
         # Owner, TA and Teacher still see it
         for user in (self.student, self.ta, self.teacher):
             self.client.force_login(user)
-            library = self.client.get(reverse("documents:library", args=[self.course.id]))
+            library = self.client.get(
+                reverse("documents:library", args=[self.course.id])
+            )
             self.assertContains(library, self.doc.title)
             detail = self.client.get(self._url("detail"))
             self.assertEqual(detail.status_code, 200)
@@ -246,7 +268,9 @@ class UC10FeedbackTests(BaseDocumentTestCase):
     def test_reporter_redirected_to_library_when_their_report_hides_document(self):
         self.client.force_login(self.student2)
         response = self.client.post(self._url("report"), {"reason": SPAM})
-        self.assertRedirects(response, reverse("documents:library", args=[self.course.id]))
+        self.assertRedirects(
+            response, reverse("documents:library", args=[self.course.id])
+        )
 
     # --- Dismissed reports (resolution set by UC14) -------------------------
 
@@ -256,9 +280,13 @@ class UC10FeedbackTests(BaseDocumentTestCase):
             status=DocumentReport.Status.RESOLVED,
             resolution=DocumentReport.Resolution.DISMISSED,
         )
-        with self.assertRaisesMessage(DocumentServiceError, texts.REPORT_ALREADY_DISMISSED):
+        with self.assertRaisesMessage(
+            DocumentServiceError, texts.REPORT_ALREADY_DISMISSED
+        ):
             report_document(user=self.student2, document=self.doc, reason=SPAM)
 
-        replace_document_file(user=self.student, document=self.doc, new_file=make_file("ch1_v2.pdf"))
+        replace_document_file(
+            user=self.student, document=self.doc, new_file=make_file("ch1_v2.pdf")
+        )
         new_report = report_document(user=self.student2, document=self.doc, reason=SPAM)
         self.assertEqual(new_report.document_version, 2)

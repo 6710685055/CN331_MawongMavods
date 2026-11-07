@@ -16,5 +16,7 @@ class Command(BaseCommand):
 
     def handle(self, *args, **options):
         for code, name in SAMPLE:
-            _, created = Course.objects.get_or_create(code=code, defaults={"name": name})
+            _, created = Course.objects.get_or_create(
+                code=code, defaults={"name": name}
+            )
             self.stdout.write(f"{'created' if created else 'exists '} {code}")
