@@ -25,6 +25,11 @@ from .services import (
 
 PW = "Str0ng-pass-2026"
 
+# The reminder loop calls close_old_connections() around each pass. Inside a
+# TestCase transaction that really closes the connection on PostgreSQL and
+# breaks every later test, so the loop tests patch it out.
+REMINDER_COMMAND = "meetings.management.commands.run_meeting_reminders"
+
 
 def make_user(email, **extra):
     return User.objects.create_user(
@@ -487,7 +492,8 @@ class MeetingNotificationTests(MeetingTestBase):
         )
         self.assertFalse(Notification.objects.exists())
 
-    def test_reminder_loop_once_sends_due_reminders(self):
+    @mock.patch(f"{REMINDER_COMMAND}.close_old_connections")
+    def test_reminder_loop_once_sends_due_reminders(self, close_connections):
         self.make_meeting(
             actor=self.alice, starts_at=timezone.now() + timedelta(minutes=5)
         )
@@ -495,23 +501,28 @@ class MeetingNotificationTests(MeetingTestBase):
         self.assertEqual(
             self.notifications(Notification.Type.MEETING_REMINDER).count(), 3
         )
+        # Once before and once after the pass.
+        self.assertEqual(close_connections.call_count, 2)
 
-    def test_reminder_loop_survives_a_failing_pass(self):
+    @mock.patch(f"{REMINDER_COMMAND}.close_old_connections")
+    def test_reminder_loop_survives_a_failing_pass(self, close_connections):
         with (
             mock.patch(
-                "meetings.management.commands.run_meeting_reminders.send_due_reminders",
+                f"{REMINDER_COMMAND}.send_due_reminders",
                 side_effect=RuntimeError("database unavailable"),
             ),
             self.assertLogs("meetings.reminders", level="ERROR"),
         ):
             call_command("run_meeting_reminders", "--once", stdout=StringIO())
+        # The failed pass still releases its connection.
+        self.assertEqual(close_connections.call_count, 2)
 
-    def test_reminder_loop_sleeps_between_passes(self):
-        command = "meetings.management.commands.run_meeting_reminders"
+    @mock.patch(f"{REMINDER_COMMAND}.close_old_connections")
+    def test_reminder_loop_sleeps_between_passes(self, close_connections):
         with (
-            mock.patch(f"{command}.send_due_reminders", return_value=0),
+            mock.patch(f"{REMINDER_COMMAND}.send_due_reminders", return_value=0),
             mock.patch(
-                f"{command}.time.sleep", side_effect=[None, KeyboardInterrupt]
+                f"{REMINDER_COMMAND}.time.sleep", side_effect=[None, KeyboardInterrupt]
             ) as sleep,
         ):
             with self.assertRaises(KeyboardInterrupt):

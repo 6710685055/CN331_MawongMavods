@@ -61,7 +61,10 @@ class UC3UploadAndShareDocumentTests(BaseDocumentTestCase):
             reverse("documents:download", args=[self.course.id, doc.id])
         )
         self.assertEqual(res_ok_dl.status_code, 200)
-        res_ok_dl.close()
+        # Read the stream instead of calling close(): the test client then closes
+        # the file without firing close_old_connections, which would close the
+        # test transaction's connection on PostgreSQL.
+        self.assertTrue(b"".join(res_ok_dl.streaming_content))
 
     def test_file_type_and_size_validation(self):
         # Supported extensions: PDF, DOCX, PPTX, PNG, JPG
