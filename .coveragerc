@@ -12,6 +12,7 @@ omit =
     */test_*.py
     */admin.py
     */apps.py
+    */management/commands/seed_*.py
 
 [report]
 fail_under = 80

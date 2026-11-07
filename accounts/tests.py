@@ -3,10 +3,13 @@ from io import StringIO
 from unittest import mock
 
 from django.core import mail
+from django.core.exceptions import ImproperlyConfigured
 from django.core.management import call_command
 from django.core.management.base import CommandError
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
+
+from config.settings import build_default_storage_config
 
 from .models import User
 from .tokens import make_token
@@ -194,3 +197,40 @@ class EnsureSuperuserCommandTests(TestCase):
         with self.assertRaisesMessage(CommandError, "too weak"):
             self.run_command(env)
         self.assertFalse(User.objects.exists())
+
+
+class StorageConfigTests(SimpleTestCase):
+    def test_uses_filesystem_when_bucket_is_not_set(self):
+        cfg = build_default_storage_config({})
+        self.assertEqual(
+            cfg, {"BACKEND": "django.core.files.storage.FileSystemStorage"}
+        )
+
+    def test_uses_s3_when_bucket_is_configured(self):
+        cfg = build_default_storage_config(
+            {
+                "AWS_STORAGE_BUCKET_NAME": "cn331-media",
+                "AWS_ACCESS_KEY_ID": "AKIAEXAMPLE",
+                "AWS_SECRET_ACCESS_KEY": "secret-example",
+                "AWS_S3_REGION_NAME": "ap-southeast-1",
+            }
+        )
+        self.assertEqual(cfg["BACKEND"], "storages.backends.s3.S3Storage")
+        self.assertEqual(cfg["OPTIONS"]["bucket_name"], "cn331-media")
+        self.assertEqual(cfg["OPTIONS"]["region_name"], "ap-southeast-1")
+        self.assertFalse(cfg["OPTIONS"]["file_overwrite"])
+        self.assertEqual(cfg["OPTIONS"]["signature_version"], "s3v4")
+
+    def test_keeps_filesystem_during_test_runs(self):
+        cfg = build_default_storage_config(
+            {"AWS_STORAGE_BUCKET_NAME": "cn331-media"}, is_testing=True
+        )
+        self.assertEqual(
+            cfg, {"BACKEND": "django.core.files.storage.FileSystemStorage"}
+        )
+
+    def test_render_requires_aws_keys_when_bucket_is_set(self):
+        with self.assertRaisesMessage(ImproperlyConfigured, "AWS_ACCESS_KEY_ID"):
+            build_default_storage_config(
+                {"RENDER": "true", "AWS_STORAGE_BUCKET_NAME": "cn331-media"}
+            )

@@ -297,8 +297,12 @@ def download_chat_attachment(request, course_id, team_id, message_id):
     )
     if not message.attachment:
         raise Http404("ไม่พบไฟล์แนบ")
+    try:
+        file_handle = message.attachment.open("rb")
+    except FileNotFoundError as exc:
+        raise Http404("ไม่พบไฟล์แนบในระบบ") from exc
     return FileResponse(
-        message.attachment.open("rb"),
+        file_handle,
         as_attachment=True,
         filename=message.attachment.name.rsplit("/", 1)[-1],
         content_type="application/octet-stream",

@@ -386,6 +386,11 @@ class GroupFormationTests(TestCase):
                     b"".join(downloaded.streaming_content), b"meeting notes"
                 )
 
+        # After the temporary directory is gone, missing storage object returns 404.
+        with tempfile.TemporaryDirectory() as empty_media:
+            with override_settings(MEDIA_ROOT=empty_media):
+                self.assertEqual(self.client.get(download_url).status_code, 404)
+
         self.login_as(self.students[2])
         self.assertEqual(self.client.get(download_url).status_code, 404)
 
