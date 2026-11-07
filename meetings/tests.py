@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta, timezone as dt_timezone
 from io import StringIO
+from unittest import mock
 
 from django.contrib.auth.models import Group
 from django.contrib.contenttypes.models import ContentType
@@ -485,6 +486,38 @@ class MeetingNotificationTests(MeetingTestBase):
             send_due_reminders(now=meeting.starts_at - timedelta(minutes=5)), 0
         )
         self.assertFalse(Notification.objects.exists())
+
+    def test_reminder_loop_once_sends_due_reminders(self):
+        self.make_meeting(
+            actor=self.alice, starts_at=timezone.now() + timedelta(minutes=5)
+        )
+        call_command("run_meeting_reminders", "--once", stdout=StringIO())
+        self.assertEqual(
+            self.notifications(Notification.Type.MEETING_REMINDER).count(), 3
+        )
+
+    def test_reminder_loop_survives_a_failing_pass(self):
+        with (
+            mock.patch(
+                "meetings.management.commands.run_meeting_reminders.send_due_reminders",
+                side_effect=RuntimeError("database unavailable"),
+            ),
+            self.assertLogs("meetings.reminders", level="ERROR"),
+        ):
+            call_command("run_meeting_reminders", "--once", stdout=StringIO())
+
+    def test_reminder_loop_sleeps_between_passes(self):
+        command = "meetings.management.commands.run_meeting_reminders"
+        with (
+            mock.patch(f"{command}.send_due_reminders", return_value=0),
+            mock.patch(
+                f"{command}.time.sleep", side_effect=[None, KeyboardInterrupt]
+            ) as sleep,
+        ):
+            with self.assertRaises(KeyboardInterrupt):
+                call_command("run_meeting_reminders", "--interval", "30")
+        sleep.assert_called_with(30)
+        self.assertEqual(sleep.call_count, 2)
 
 
 class MigrationTests(TestCase):
