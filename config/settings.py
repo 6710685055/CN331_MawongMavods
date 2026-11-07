@@ -1,4 +1,5 @@
 import os
+import sys
 from pathlib import Path
 
 import dj_database_url
@@ -146,11 +147,46 @@ TIME_ZONE = "Asia/Bangkok"
 USE_I18N = True
 USE_TZ = True
 
-# Static Files (served by WhiteNoise)
+# Static Files (served by WhiteNoise) & Media Storage (local disk or AWS S3)
 STATIC_URL = "static/"
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+
+def build_default_storage_config(environ, *, is_testing: bool = False) -> dict:
+    """Use AWS S3 when AWS_STORAGE_BUCKET_NAME is set, local disk otherwise."""
+    bucket_name = environ.get("AWS_STORAGE_BUCKET_NAME", "").strip()
+    if not bucket_name or is_testing:
+        return {"BACKEND": "django.core.files.storage.FileSystemStorage"}
+
+    access_key = environ.get("AWS_ACCESS_KEY_ID", "").strip() or None
+    secret_key = environ.get("AWS_SECRET_ACCESS_KEY", "").strip() or None
+    if environ.get("RENDER") == "true" and (not access_key or not secret_key):
+        raise ImproperlyConfigured(
+            "AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY must be set when "
+            "AWS_STORAGE_BUCKET_NAME is configured on Render."
+        )
+
+    region_name = environ.get("AWS_S3_REGION_NAME", "").strip() or "ap-southeast-1"
+    endpoint_url = environ.get("AWS_S3_ENDPOINT_URL", "").strip() or None
+    return {
+        "BACKEND": "storages.backends.s3.S3Storage",
+        "OPTIONS": {
+            "access_key": access_key,
+            "secret_key": secret_key,
+            "bucket_name": bucket_name,
+            "region_name": region_name,
+            "endpoint_url": endpoint_url,
+            "file_overwrite": False,
+            "default_acl": None,
+            "querystring_auth": True,
+            "signature_version": "s3v4",
+        },
+    }
+
+
+IS_TESTING = "test" in sys.argv
 STORAGES = {
-    "default": {"BACKEND": "django.core.files.storage.FileSystemStorage"},
+    "default": build_default_storage_config(os.environ, is_testing=IS_TESTING),
     "staticfiles": {
         # The manifest storage needs collectstatic first, which build.sh runs on
         # Render. Local runs and tests keep the plain storage.
@@ -161,8 +197,7 @@ STORAGES = {
         ),
     },
 }
-# Uploaded files live on the local disk. Render's free plan has no persistent
-# disk, so uploads are lost on every redeploy or restart there.
+# Local fallback paths when AWS_STORAGE_BUCKET_NAME is not configured.
 MEDIA_URL = "media/"
 MEDIA_ROOT = BASE_DIR / "media"
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"

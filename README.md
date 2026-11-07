@@ -87,6 +87,8 @@ MawongMavods เป็นพื้นที่กลางของนักศ�
 | `DJANGO_DEFAULT_FROM_EMAIL` | ผู้ส่งที่ยืนยันใน Brevo แล้ว เช่น `Student Community <you@gmail.com>` |
 | `DJANGO_SUPERUSER_EMAIL` / `DJANGO_SUPERUSER_PASSWORD` | บัญชีผู้ดูแลระบบ ซึ่ง `build.sh` สร้างให้ เพราะ Free plan ไม่มี shell รหัสผ่านต้องผ่าน password validator ของ Django ถ้าไม่ผ่าน build จะ fail |
 | `DJANGO_SUPERUSER_FIRST_NAME` / `DJANGO_SUPERUSER_LAST_NAME` | ชื่อ-นามสกุลของผู้ดูแลระบบ |
+| `AWS_STORAGE_BUCKET_NAME` | (แนะนำ) ชื่อ S3 Bucket สำหรับเก็บไฟล์อัปโหลดถาวร ถ้าเว้นว่างจะเก็บลง `media/` ชั่วคราวในเครื่อง |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | IAM Access Key ที่มีสิทธิ์อ่าน/เขียน/ลบไฟล์ใน S3 Bucket ข้างต้น |
 
 5. รอ deploy เสร็จ แล้วนำ URL `https://<ชื่อ service>.onrender.com` มาใส่ในตารางด้านบน
 
@@ -98,6 +100,7 @@ MawongMavods เป็นพื้นที่กลางของนักศ�
 | `DJANGO_SECRET_KEY` | สุ่มให้ตอนสร้าง |
 | `DJANGO_DEBUG` | `0` |
 | `ENABLE_MEETING_REMINDER_LOOP` | `1` (รัน reminder loop คู่กับเว็บ) |
+| `AWS_S3_REGION_NAME` | `ap-southeast-1` (เปลี่ยนได้ถ้าสร้าง S3 Bucket ที่ Region อื่น) |
 | `PYTHON_VERSION` | `3.12.8` |
 | `RENDER`, `RENDER_EXTERNAL_HOSTNAME` | Render ตั้งให้เอง settings ใช้ค่านี้เปิด HTTPS, secure cookie, `ALLOWED_HOSTS` และ `CSRF_TRUSTED_ORIGINS` |
 
@@ -109,7 +112,7 @@ MawongMavods เป็นพื้นที่กลางของนักศ�
 
 ### 2.2 ข้อจำกัดของ Render Free plan
 
-- **ไฟล์อัปโหลดไม่ถาวร:** เอกสารและไฟล์แนบแชทเก็บใน `media/` บนดิสก์ของ instance ซึ่งจะหายทุกครั้งที่ deploy หรือ restart (Free plan ใส่ Persistent Disk ไม่ได้) ข้อมูลในฐานข้อมูลยังอยู่ แต่ลิงก์ดาวน์โหลดไฟล์เก่าจะใช้ไม่ได้
+- **พื้นที่เก็บไฟล์อัปโหลด (`media/`):** Render Free plan ไม่มี Persistent Disk จึงรองรับการเชื่อมต่อ **AWS S3** ผ่าน `AWS_STORAGE_BUCKET_NAME` เพื่อให้เอกสารและไฟล์แนบแชทอยู่ถาวรข้ามการ deploy/restart (ถ้าไม่ตั้งค่า S3 ระบบจะเก็บลง `media/` บนดิสก์ชั่วคราวของ instance ซึ่งจะหายเมื่อเครื่องหลับหรือเริ่มใหม่)
 - **Instance หลับ** หลังไม่มีคนใช้ 15 นาที คำขอแรกหลังจากนั้นจะช้าประมาณ 1 นาที และระหว่างหลับ reminder loop ไม่ทำงาน นัดที่เริ่มไปแล้วระหว่างนั้นจะไม่ได้รับแจ้งเตือนย้อนหลัง
 - **Reminder loop รันใน instance เดียวกับเว็บ:** ถ้า process ของ loop ตาย `start.sh` จะเริ่มใหม่เองหลัง 10 วินาที แต่ถ้าทั้ง instance ล่ม loop จะกลับมาพร้อมเว็บเท่านั้น ตรวจได้จากข้อความ `Meeting reminder loop started` ในแท็บ **Logs**
 - **PostgreSQL ฟรีหมดอายุใน 30 วัน** หลังสร้าง (ต่ออายุได้อีก 14 วันโดยอัปเกรด) พื้นที่ 1 GB และไม่มี backup ถ้าใกล้วันส่งงานให้สร้างใหม่หรืออัปเกรด
@@ -130,6 +133,7 @@ MawongMavods เป็นพื้นที่กลางของนักศ�
 | Database | SQLite ในเครื่อง / PostgreSQL บน Render (`dj-database-url`, `psycopg`) |
 | Email | Gmail SMTP ในเครื่อง / Brevo HTTPS API บน Render (`django-anymail`) |
 | Static files | WhiteNoise |
+| Media files | File system ในเครื่อง / AWS S3 บน Render (`django-storages`) |
 | Hosting | Render (Blueprint `render.yaml`) |
 | Environment Variables | python-dotenv |
 | Frontend | HTML, CSS, JavaScript และ Django Templates |
@@ -556,6 +560,9 @@ python -c "from django.core.management.utils import get_random_secret_key; print
 | `DATABASE_URL` | (production) PostgreSQL URL ถ้าไม่ตั้งจะใช้ `db.sqlite3` |
 | `BREVO_API_KEY` | (production) ถ้าตั้ง ระบบจะส่งอีเมลผ่าน Brevo API แทน Gmail SMTP |
 | `DJANGO_DEFAULT_FROM_EMAIL` | (ไม่บังคับ) ที่อยู่ผู้ส่ง ถ้าไม่ตั้งจะใช้ `EMAIL_HOST_USER` |
+| `AWS_STORAGE_BUCKET_NAME` | (production/ไม่บังคับ) ชื่อ S3 Bucket สำหรับเก็บไฟล์อัปโหลด ถ้าไม่ตั้งจะเก็บลง `media/` ในเครื่อง |
+| `AWS_S3_REGION_NAME` | Region ของ S3 Bucket (ค่าเริ่มต้น `ap-southeast-1`) |
+| `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | คีย์เชื่อมต่อ AWS S3 (จำเป็นบน Render เมื่อตั้ง `AWS_STORAGE_BUCKET_NAME`) |
 
 ค่าอีเมลอื่นกำหนดไว้ใน `config/settings.py`: `EMAIL_HOST=smtp.gmail.com`, `EMAIL_PORT=587`, `EMAIL_USE_TLS=True`
 
@@ -1068,7 +1075,7 @@ python manage.py test meetings
 
 ตั้งค่าผู้ตรวจ: สร้าง superuser หรือ staff แล้วให้ permission *“พิจารณารายงานข้อความส่วนตัวและยกเลิกการระงับ”* ใน Django Admin → Users
 
-> คำเตือน การระงับ และ audit trail เก็บในฐานข้อมูลเท่านั้น ดูข้อควรทราบเรื่อง SQLite บน Render ในหัวข้อ 2
+> คำเตือน การระงับ และ audit trail เก็บในฐานข้อมูลเท่านั้น ดูข้อจำกัดของฐานข้อมูลบน Render Free plan ในหัวข้อ 2.2
 
 #### 6.6.2 เส้นทางที่เกี่ยวข้อง
 
