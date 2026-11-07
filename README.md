@@ -13,7 +13,7 @@
 3. [Architecture](#3-architecture)
 4. [Local Setup](#4-local-setup)
 5. [Testing & Coverage](#5-testing--coverage)
-6. [Features — รายละเอียดแต่ละ Use Case](#6-features--รายละเอียดแต่ละ-use-case)
+6. [Features — รายละเอียดแต่ละฟีเจอร์](#6-features--รายละเอียดแต่ละฟีเจอร์)
 7. [Git Workflow สำหรับการทำงานร่วมกัน](#7-git-workflow-สำหรับการทำงานร่วมกัน)
 8. [ข้อควรระวัง](#8-ข้อควรระวัง)
 9. [เอกสารอ้างอิงภายในโปรเจกต์](#9-เอกสารอ้างอิงภายในโปรเจกต์)
@@ -42,17 +42,24 @@ MawongMavods เป็นพื้นที่กลางของนักศ�
 
 ### 1.3 ฟีเจอร์หลัก
 
-- **UC1 — Group Formation:** ค้นหาเพื่อนที่ยังไม่มีกลุ่ม ส่งและตอบรับคำเชิญ และแชทกลุ่ม
-- **US-02 — Group Meeting & Notification:** สร้างและจัดการนัดประชุมกลุ่ม พร้อมแจ้งเตือนสมาชิก
-- **UC3 — Document Management:** อัปโหลด แชร์ ปักหมุด และจัดการเอกสารในรายวิชา
-- **UC4 — Document Verification:** ตรวจสอบ ยืนยัน และส่งเอกสารกลับเพื่อแก้ไข พร้อมระบบแจ้งเตือน
-- **UC7 — Registration & Login:** สมัครสมาชิก ยืนยันอีเมล เข้าสู่ระบบ รีเซ็ตรหัสผ่าน และลงทะเบียนรายวิชา
-- **UC8 — Private Chat:** แชทส่วนตัวกับนักศึกษา/TA ในรายวิชาเดียวกัน พร้อมแจ้งเตือน บล็อก รายงานข้อความ และพิจารณารายงาน คำเตือน หรือระงับ 24 ชั่วโมงผ่าน Django Admin
-- **UC9 — Group Chatting Message:** สนทนาระหว่างสมาชิกในกลุ่ม
-- **UC10 — Vote & Report Document:** โหวตคุณภาพเอกสาร (Upvote/Downvote) และ Report เอกสารที่ไม่เหมาะสม พร้อมซ่อนอัตโนมัติเมื่อถึงเกณฑ์
-- **UC11 — Leave Group:** สมาชิกออกจากกลุ่ม โอนหัวหน้ากลุ่ม และแจ้งเตือนสมาชิกที่เหลือ
-- **US-12 — Edit & Delete Documents:** เจ้าของเอกสารแก้ไขข้อมูลเอกสาร และลบเอกสารพร้อมไฟล์ได้
-- **UC14 — Review Reported Documents:** TA/อาจารย์ตรวจเอกสารที่ถูก Report แล้วปฏิเสธ Report ส่งกลับให้แก้ไข หรือลบเอกสาร พร้อมแจ้งเตือนเจ้าของและผู้ Report
+**บัญชีผู้ใช้**
+- **สมัครสมาชิกและเข้าสู่ระบบ (Registration & Login):** สมัครสมาชิก ยืนยันอีเมล เข้าสู่ระบบ รีเซ็ตรหัสผ่าน และลงทะเบียนรายวิชา
+
+**กลุ่มโปรเจกต์**
+- **จัดตั้งกลุ่ม (Group Formation):** ค้นหาเพื่อนที่ยังไม่มีกลุ่ม ส่งและตอบรับคำเชิญ และแชทกลุ่ม
+- **แชทกลุ่ม (Group Chat):** สนทนาระหว่างสมาชิกในกลุ่ม
+- **ออกจากกลุ่ม (Leave Group):** สมาชิกออกจากกลุ่ม โอนหัวหน้ากลุ่ม และแจ้งเตือนสมาชิกที่เหลือ
+- **นัดประชุมกลุ่มและแจ้งเตือน (Group Meeting & Notification):** สร้างและจัดการนัดประชุมกลุ่ม พร้อมแจ้งเตือนสมาชิก
+
+**แชทส่วนตัว**
+- **แชทส่วนตัว (Private Chat):** แชทส่วนตัวกับนักศึกษา/TA ในรายวิชาเดียวกัน พร้อมแจ้งเตือน บล็อก รายงานข้อความ และพิจารณารายงาน คำเตือน หรือระงับ 24 ชั่วโมงผ่าน Django Admin
+
+**เอกสารรายวิชา**
+- **จัดการเอกสาร (Document Management):** อัปโหลด แชร์ ปักหมุด และจัดการเอกสารในรายวิชา
+- **ตรวจสอบเอกสาร (Document Verification):** ตรวจสอบ ยืนยัน และส่งเอกสารกลับเพื่อแก้ไข พร้อมระบบแจ้งเตือน
+- **โหวตและรายงานเอกสาร (Vote & Report Document):** โหวตคุณภาพเอกสาร (Upvote/Downvote) และ Report เอกสารที่ไม่เหมาะสม พร้อมซ่อนอัตโนมัติเมื่อถึงเกณฑ์
+- **พิจารณาเอกสารที่ถูกรายงาน (Review Reported Documents):** TA/อาจารย์ตรวจเอกสารที่ถูก Report แล้วปฏิเสธ Report ส่งกลับให้แก้ไข หรือลบเอกสาร พร้อมแจ้งเตือนเจ้าของและผู้ Report
+- **แก้ไขและลบเอกสาร (Edit & Delete Documents):** เจ้าของเอกสารแก้ไขข้อมูลเอกสาร และลบเอกสารพร้อมไฟล์ได้
 
 ---
 
@@ -260,7 +267,7 @@ erDiagram
     User ||--o{ Notification : "receives"
 ```
 
-#### 3.3.2 แชทส่วนตัวและการพิจารณารายงาน (UC8)
+#### 3.3.2 แชทส่วนตัวและการพิจารณารายงาน
 
 ```mermaid
 erDiagram
@@ -343,7 +350,7 @@ erDiagram
     PrivateMessageReport |o--o{ PrivateChatModerationLog : "logged"
 ```
 
-#### 3.3.3 เอกสาร (UC3, UC4, UC10, UC14, US-12)
+#### 3.3.3 เอกสาร: จัดการ ตรวจสอบ โหวต/รายงาน พิจารณารายงาน และแก้ไข/ลบ
 
 ```mermaid
 erDiagram
@@ -369,7 +376,7 @@ erDiagram
         int verified_by_id FK
         int verified_version
         bool is_hidden
-        datetime removed_at "soft delete (UC14)"
+        datetime removed_at "soft delete when a reviewer removes it"
         int removed_by_id FK
     }
     DocumentReviewLog {
@@ -437,7 +444,7 @@ CN331/
 ├── notifications/       # ระบบแจ้งเตือนในแอป
 ├── config/              # Django settings, URL, ASGI configuration
 ├── templates/           # HTML templates
-├── docs/                # เอกสารเทคนิคของแต่ละ Use Case
+├── docs/                # เอกสารเทคนิคของแต่ละฟีเจอร์
 ├── .github/workflows/   # GitHub Actions CI
 ├── media/               # ไฟล์ที่ผู้ใช้อัปโหลด
 ├── manage.py
@@ -588,7 +595,7 @@ python manage.py runserver
 | การแจ้งเตือน | http://127.0.0.1:8000/notifications/ |
 | Django Admin | http://127.0.0.1:8000/admin/ |
 
-### 4.8 ตั้งเวลาส่งแจ้งเตือนการประชุม (US-02)
+### 4.8 ตั้งเวลาส่งแจ้งเตือนการประชุม
 
 คำสั่ง `send_meeting_reminders` ส่งแจ้งเตือนให้การประชุมที่จะเริ่มภายใน 15 นาที (`MEETING_REMINDER_MINUTES`) Django ไม่ได้รันคำสั่งนี้ให้อัตโนมัติ ต้องตั้งให้ระบบปฏิบัติการเรียกทุก 1 นาที
 
@@ -695,25 +702,25 @@ open htmlcov/index.html
 
 ผลล่าสุดของแต่ละ commit ดูได้จาก GitHub Actions: หน้า job summary ของ workflow **CI** มีตาราง coverage และดาวน์โหลดรายงาน HTML/XML ได้จาก artifact `coverage-report`
 
-### 5.4 รันเทสเฉพาะแอปหรือเฉพาะ Use Case
+### 5.4 รันเทสเฉพาะแอปหรือเฉพาะฟีเจอร์
 
 ```bash
 python manage.py test                 # ทั้งหมด
 python manage.py test accounts        # เฉพาะแอป
 ```
 
-| Use Case | คำสั่ง |
+| ฟีเจอร์ | คำสั่ง |
 |---|---|
-| UC7 Registration & Enrollment | `python manage.py test accounts courses.tests` |
-| UC1 / UC9 / UC11 Group & Group Chat | `python manage.py test courses.test_uc_group` |
-| US-02 Meeting | `python manage.py test meetings` |
-| US-05 Unassigned Students | `python manage.py test courses.test_us05_unassigned_students` |
-| UC8 Private Chat | `python manage.py test courses.test_uc_private_chat courses.test_uc_private_chat_moderation` |
-| UC3 Upload | `python manage.py test documents.tests.test_uc3_upload` |
-| UC4 Verify | `python manage.py test documents.tests.test_uc4_verify` |
-| UC10 Vote & Report | `python manage.py test documents.tests.test_uc10_feedback` |
-| UC14 Review Reports | `python manage.py test documents.tests.test_uc14_reports` |
-| US-12 Edit & Delete | `python manage.py test documents.tests.test_us12_document_management` |
+| สมัครสมาชิก เข้าสู่ระบบ และลงทะเบียนรายวิชา (Registration & Enrollment) | `python manage.py test accounts courses.tests` |
+| จัดตั้งกลุ่ม แชทกลุ่ม และออกจากกลุ่ม (Group & Group Chat) | `python manage.py test courses.test_uc_group` |
+| นัดประชุมกลุ่มและแจ้งเตือน (Group Meeting) | `python manage.py test meetings` |
+| นักศึกษาที่ยังไม่มีกลุ่ม (Unassigned Students) | `python manage.py test courses.test_us05_unassigned_students` |
+| แชทส่วนตัว (Private Chat) | `python manage.py test courses.test_uc_private_chat courses.test_uc_private_chat_moderation` |
+| จัดการเอกสาร (Document Management) | `python manage.py test documents.tests.test_uc3_upload` |
+| ตรวจสอบเอกสาร (Document Verification) | `python manage.py test documents.tests.test_uc4_verify` |
+| โหวตและรายงานเอกสาร (Vote & Report Document) | `python manage.py test documents.tests.test_uc10_feedback` |
+| พิจารณาเอกสารที่ถูกรายงาน (Review Reported Documents) | `python manage.py test documents.tests.test_uc14_reports` |
+| แก้ไขและลบเอกสาร (Edit & Delete Documents) | `python manage.py test documents.tests.test_us12_document_management` |
 
 รันเทสเดียวได้ด้วยการระบุ class/method เช่น `python manage.py test accounts.tests.RegisterTests.test_teacher_starts_pending`
 
@@ -754,9 +761,9 @@ git diff --name-only --diff-filter=U
 
 ---
 
-## 6. Features — รายละเอียดแต่ละ Use Case
+## 6. Features — รายละเอียดแต่ละฟีเจอร์
 
-### 6.1 UC7 — Registration, Login & Course Enrollment
+### 6.1 สมัครสมาชิก เข้าสู่ระบบ และลงทะเบียนรายวิชา (Registration, Login & Course Enrollment)
 
 #### 6.1.1 ความสามารถหลัก
 
@@ -815,7 +822,7 @@ git diff --name-only --diff-filter=U
 
 ---
 
-### 6.2 UC1 — Group Formation, UC9 — Group Chat Messaging และ UC11 — Leave Group
+### 6.2 จัดตั้งกลุ่ม แชทกลุ่ม และออกจากกลุ่ม (Group Formation, Group Chat & Leave Group)
 
 #### 6.2.1 ความสามารถและกติกา
 
@@ -841,11 +848,11 @@ git diff --name-only --diff-filter=U
 
 ทางเข้าจากหน้าเว็บ: ไปที่ **วิชาของฉัน** แล้วกด **เปิดระบบจัดกลุ่ม** ในแถวของวิชาที่อาจารย์อนุมัติการลงทะเบียนแล้ว ถ้ายังรออนุมัติ ระบบจะแสดงสถานะรอและยังไม่ให้เข้าหน้าจัดกลุ่ม
 
-#### 6.2.3 UC9 — Group Chat
+#### 6.2.3 แชทกลุ่ม (Group Chat)
 
-UC9 ใช้ WebSocket ส่งข้อความทันที และส่ง in-app notification ให้สมาชิกคนอื่นในกลุ่ม ทุกข้อความผ่านการตรวจสมาชิก รวมถึงกรณีที่สมาชิกถูกนำออกจากกลุ่มระหว่างเปิดหน้าอยู่ ไฟล์แนบดาวน์โหลดได้เฉพาะสมาชิกที่ยังอยู่ในกลุ่ม และรับเฉพาะ PDF/DOCX/PPTX/PNG/JPG ขนาดสูงสุด 10 MB
+แชทกลุ่มใช้ WebSocket ส่งข้อความทันที และส่ง in-app notification ให้สมาชิกคนอื่นในกลุ่ม ทุกข้อความผ่านการตรวจสมาชิก รวมถึงกรณีที่สมาชิกถูกนำออกจากกลุ่มระหว่างเปิดหน้าอยู่ ไฟล์แนบดาวน์โหลดได้เฉพาะสมาชิกที่ยังอยู่ในกลุ่ม และรับเฉพาะ PDF/DOCX/PPTX/PNG/JPG ขนาดสูงสุด 10 MB
 
-#### 6.2.4 UC11 — Leave Group
+#### 6.2.4 ออกจากกลุ่ม (Leave Group)
 
 - สมาชิกกลุ่มกด **ออกจากกลุ่ม** ในหน้าระบบจัดกลุ่ม และยืนยันก่อนออก
 - ระบบเปลี่ยนสถานะสมาชิกเป็น “ยังไม่มีกลุ่ม” และแจ้งเตือนสมาชิกที่เหลือ
@@ -853,13 +860,13 @@ UC9 ใช้ WebSocket ส่งข้อความทันที และ�
 - หากสมาชิกคนสุดท้ายออก ระบบยุบกลุ่มและลบห้องแชท/ข้อความ พร้อมลบไฟล์แนบของห้องนั้น
 - เมื่อออกจากกลุ่ม ระบบเพิกถอนสิทธิ์ห้องแชททันที รวมถึง WebSocket ที่เชื่อมต่ออยู่
 
-#### 6.2.5 ทดสอบ UC1, UC9 และ UC11
+#### 6.2.5 ทดสอบการจัดตั้งกลุ่ม แชทกลุ่ม และการออกจากกลุ่ม
 
 ```bash
 python manage.py test courses.test_uc_group
 ```
 
-#### 6.2.6 งานต่อยอด UC9
+#### 6.2.6 งานต่อยอดแชทกลุ่ม
 
 สถานะปัจจุบันและรายการที่ควรทำต่อ:
 
@@ -869,13 +876,13 @@ python manage.py test courses.test_uc_group
 - [ ] สร้าง `TeamChat` พร้อมกับการสร้าง `Team` ตั้งแต่แรก แทนการสร้างเมื่อมีสมาชิกคนที่สองตอบรับคำเชิญ
 - [ ] ทำให้การแจ้งเตือนข้อความใหม่ส่งถึงสมาชิกที่ไม่ได้เปิดหน้าเว็บแบบทันที (เช่น WebSocket notification channel หรือ browser push notification); ปัจจุบันเป็น in-app notification ที่เห็นเมื่อเข้าหน้าแจ้งเตือน/โหลดหน้าใหม่
 - [ ] เพิ่มทางเข้าแชทเป็นแท็บหรือส่วนชัดเจนในหน้ากลุ่ม แทนปุ่ม “เปิดห้องแชทกลุ่ม”
-- [x] เมื่อสมาชิกออกจากกลุ่มตาม UC11 ให้เพิกถอนสิทธิ์หน้าแชท การดาวน์โหลดไฟล์ และ WebSocket ที่เชื่อมต่ออยู่ พร้อม regression tests
+- [x] เมื่อสมาชิกออกจากกลุ่มเอง ให้เพิกถอนสิทธิ์หน้าแชท การดาวน์โหลดไฟล์ และ WebSocket ที่เชื่อมต่ออยู่ พร้อม regression tests
 - [ ] เมื่อผู้ดูแลรายวิชานำสมาชิกออก ให้เพิกถอนสิทธิ์แชท/ไฟล์แนบและ WebSocket ที่เชื่อมต่ออยู่ พร้อมเพิ่ม regression tests สำหรับ flow นั้น
 - [ ] ทดสอบการตั้งค่า Redis และการ broadcast เมื่อรันหลาย worker/instance; in-memory channel layer เหมาะกับการพัฒนาแบบ process เดียวเท่านั้น
 
 ---
 
-### 6.3 US-02 — การนัดหมายประชุมกลุ่มและการแจ้งเตือน
+### 6.3 นัดประชุมกลุ่มและแจ้งเตือน (Group Meeting & Notification)
 
 สมาชิกกลุ่มทำงาน (Team) สร้างนัดหมาย ระบุหัวข้อ ลิงก์ วันและเวลา ดูนัดหมายที่กำลังจะมาถึงในพื้นที่กลุ่ม และแก้ไขหรือเลื่อนนัดหมายได้ ระบบส่งการแจ้งเตือนภายในแอปให้สมาชิกเมื่อสร้างและเปลี่ยนนัดหมาย (เริ่มใน branch `issue-2-group-meeting-notification` และเปลี่ยนมาใช้ Team ใน Issue #10)
 
@@ -894,7 +901,7 @@ python manage.py test courses.test_uc_group
 - แก้เฉพาะชื่อหรือลิงก์: แจ้งทุกคนยกเว้นผู้แก้ โดยไม่รีเซ็ตการเตือน
 - เวลาในข้อความเป็นเวลาประเทศไทย
 
-#### 6.3.2 หน้าของ US-02
+#### 6.3.2 หน้าของระบบนัดประชุม
 
 | หน้า | URL |
 |---|---|
@@ -926,7 +933,7 @@ python manage.py test meetings
 
 ---
 
-### 6.4 UC3 — Document Management
+### 6.4 จัดการเอกสาร (Document Management)
 
 #### 6.4.1 ความสามารถหลัก
 
@@ -970,7 +977,7 @@ python manage.py test meetings
 - ระบบควรตรวจสอบสิทธิ์ก่อนอนุญาตให้แก้ไขข้อมูลเอกสาร
 - ระบบควรป้องกันไม่ให้ผู้ใช้ที่ไม่มีสิทธิ์เข้าถึงเอกสารส่วนตัวหรือเอกสารที่ถูกจำกัดสิทธิ์
 
-#### 6.4.5 Acceptance Criteria — UC3
+#### 6.4.5 Acceptance Criteria
 
 | ID | เงื่อนไขการทดสอบ | ผลลัพธ์ที่คาดหวัง |
 |---|---|---|
@@ -984,7 +991,7 @@ python manage.py test meetings
 
 ---
 
-### 6.5 UC4 — Document Verification & Notifications
+### 6.5 ตรวจสอบเอกสารและแจ้งเตือน (Document Verification & Notifications)
 
 #### 6.5.1 ความสามารถหลัก
 
@@ -1015,7 +1022,7 @@ python manage.py test meetings
 
 การเปลี่ยนสถานะต้องเป็นไปตามสิทธิ์และเงื่อนไขที่กำหนดในระบบ
 
-#### 6.5.4 Acceptance Criteria — UC4
+#### 6.5.4 Acceptance Criteria
 
 | ID | เงื่อนไขการทดสอบ | ผลลัพธ์ที่คาดหวัง |
 |---|---|---|
@@ -1029,7 +1036,7 @@ python manage.py test meetings
 
 ---
 
-### 6.6 UC8 — Private Chat
+### 6.6 แชทส่วนตัว (Private Chat)
 
 **User Story:** ในฐานะนักศึกษา/TA ฉันต้องการสนทนากับผู้ใช้คนอื่นแบบส่วนตัว เพื่อให้สามารถติดต่อหรือพูดคุยเรื่องที่ไม่ต้องการส่งในกลุ่มได้
 
@@ -1043,7 +1050,7 @@ python manage.py test meetings
 - **Report (`PrivateMessageReport`):** ผู้รับรายงานข้อความของอีกฝ่ายได้ โดยเลือกเหตุผลและระบุรายละเอียดเพิ่มเติม ระบบบันทึกผู้รายงาน ผู้ถูกรายงาน รายวิชา สำเนาข้อความ เวลาที่ส่ง และ snapshot ข้อความใกล้เคียงไม่เกิน 3 ข้อความก่อน/หลัง (`REPORT_CONTEXT_SIZE`) รายงานใหม่มีสถานะ `pending` (รอตรวจสอบ) รายงานข้อความเดิมซ้ำไม่ได้ รายงานข้อความของตัวเองไม่ได้ และรายงานข้อความที่ถูกซ่อนแล้วไม่ได้
 - **การตรวจสิทธิ์ฝั่ง server:** ทุกการเปิดห้อง อ่านประวัติ ส่งข้อความ (ทั้ง HTTP และ WebSocket) block และ report ตรวจว่าเป็นคู่สนทนาของห้องนั้น และทั้งสองคนยังลงทะเบียนในรายวิชาของห้อง ผู้ไม่มีสิทธิ์ได้ 404 / WebSocket ถูกปิดด้วย code 4403 การเปลี่ยนสถานะทั้งหมดเป็น POST ที่มี CSRF token และแสดงข้อความด้วย template auto-escaping
 
-#### 6.6.1 การพิจารณารายงานและบทลงโทษ (UC8 moderation)
+#### 6.6.1 การพิจารณารายงานและบทลงโทษ
 
 1. **คิวรายงาน:** Django Admin → *Private message reports* แสดงรายงานพร้อมตัวกรองสถานะ (รอตรวจสอบ / ยืนยันรายงาน / ปฏิเสธรายงาน) หน้าแต่ละรายงานแสดงหลักฐานและบริบทข้อความใกล้เคียง ซึ่งเห็นได้เฉพาะใน Admin
 2. **สิทธิ์:** อ่านคิวได้เมื่อเป็น staff และมี permission `courses.view_privatemessagereport` หรือ `courses.review_privatemessagereport`; ตัดสินรายงานและยกเลิกการระงับได้เฉพาะ staff ที่มี `courses.review_privatemessagereport` (superuser มีอยู่แล้ว) ตรวจทั้งใน Admin และใน service (`courses/private_chat_moderation.py`)
@@ -1053,7 +1060,7 @@ python manage.py test meetings
 6. **การนับ:** หนึ่งข้อความเป็นหนึ่งเหตุการณ์ (`PrivateChatIncident`, unique ต่อข้อความ) แม้มีหลายรายงานหรือกดซ้ำ นับเฉพาะที่ยืนยันแล้ว ต่อผู้ส่งหนึ่งคน
    - เหตุการณ์ที่ 1–3: ซ่อนข้อความและออกคำเตือน (แจ้งว่าเป็นครั้งที่เท่าไรจาก 3)
    - เหตุการณ์ที่ 4 เป็นต้นไป: ซ่อนข้อความและสร้าง `PrivateChatSuspension` ระงับผู้ส่งจากการส่งข้อความถึงผู้ที่รายงาน (คู่สนทนาของข้อความนั้น) 24 ชั่วโมงนับจากเวลาที่ยืนยัน
-7. **ขอบเขตการระงับ:** มีผลเฉพาะการส่งข้อความส่วนตัวจากผู้ถูกระงับถึงคู่สนทนานั้น (ทุกห้องของคู่นี้) อ่านประวัติได้ตามปกติ อีกฝ่ายยังส่งหาได้ ไม่สร้างหรือแก้ `UserBlock` และไม่กระทบ group chat UC9
+7. **ขอบเขตการระงับ:** มีผลเฉพาะการส่งข้อความส่วนตัวจากผู้ถูกระงับถึงคู่สนทนานั้น (ทุกห้องของคู่นี้) อ่านประวัติได้ตามปกติ อีกฝ่ายยังส่งหาได้ ไม่สร้างหรือแก้ `UserBlock` และไม่กระทบแชทกลุ่ม
 8. **การบังคับใช้:** ทุกการส่งข้อความ (HTTP POST และ WebSocket) ตรวจ `starts_at <= now < ends_at` และ `lifted_at` จากฐานข้อมูล ไม่มีตัวจับเวลาใน process เมื่อเลยเวลา `ends_at` ก็ส่งได้ทันที หน้าแชทแสดงแถบแจ้งเวลาสิ้นสุด และ event `block.state` มี `suspended_until`
 9. **ยกเลิกการระงับก่อนกำหนด:** Django Admin → *Private chat suspensions* → เปิดรายการที่ยังมีผล กรอกเหตุผล แล้วบันทึก ระบบเก็บผู้ยกเลิก เวลา และเหตุผล แจ้งผู้ถูกระงับ และอัปเดตหน้าแชทที่เปิดอยู่
 10. **Audit trail:** `PrivateChatModerationLog` บันทึกการยืนยัน/ปฏิเสธ คำเตือน การระงับ และการยกเลิกระงับ (ผู้ดำเนินการ ผู้ได้รับผล หมายเหตุ เวลา) เปิดดูใน Admin แบบอ่านอย่างเดียว ลบไม่ได้
@@ -1078,7 +1085,7 @@ python manage.py test meetings
 
 โค้ดหลัก: `courses/models.py`, `courses/private_chat_services.py`, `courses/private_chat_moderation.py`, `courses/admin.py`, `courses/private_chat_views.py`, `courses/consumers.py` (`PrivateChatConsumer`), `templates/courses/private_chat_list.html`, `templates/courses/private_chat.html`
 
-#### 6.6.3 ทดสอบ UC8
+#### 6.6.3 ทดสอบแชทส่วนตัว
 
 ```bash
 python manage.py test courses.test_uc_private_chat courses.test_uc_private_chat_moderation
@@ -1088,7 +1095,7 @@ python manage.py test courses.test_uc_private_chat courses.test_uc_private_chat_
 
 ---
 
-### 6.7 UC10 — Vote & Report Document
+### 6.7 โหวตและรายงานเอกสาร (Vote & Report Document)
 
 รายละเอียดเชิงเทคนิคอยู่ที่ `docs/documents_uc10.md`
 
@@ -1098,9 +1105,9 @@ python manage.py test courses.test_uc_private_chat courses.test_uc_private_chat_
 - Report เอกสารโดยเลือกเหตุผล (ผิดวิชา/ผิดหมวดหมู่, เนื้อหาไม่ถูกต้อง, สแปม, ละเมิดลิขสิทธิ์, เนื้อหาไม่เหมาะสม, อื่นๆ) ถ้าเลือก "อื่นๆ" ต้องกรอกรายละเอียด
 - ถอน Report ของตนเองได้ก่อน TA/อาจารย์ตัดสิน
 - เมื่อผู้ Report (นับไม่ซ้ำคน) ถึงเกณฑ์ `DOCUMENT_REPORT_HIDE_THRESHOLD` (ค่าเริ่มต้น 5 ใน `config/settings.py`) ระบบซ่อนเอกสารและแจ้งเตือนเจ้าของกับ TA/อาจารย์ ระหว่างซ่อน เอกสารเห็นได้เฉพาะเจ้าของ TA และอาจารย์
-- คิวตรวจ Report สำหรับ TA/อาจารย์อยู่ในหัวข้อ 6.8 (UC14)
+- คิวตรวจ Report สำหรับ TA/อาจารย์อยู่ในหัวข้อ 6.8 พิจารณาเอกสารที่ถูกรายงาน
 
-#### 6.7.2 Acceptance Criteria — UC10
+#### 6.7.2 Acceptance Criteria
 
 | ID | เงื่อนไข | โค้ดที่รับผิดชอบ | Test |
 |---|---|---|---|
@@ -1118,7 +1125,7 @@ python manage.py test courses.test_uc_private_chat courses.test_uc_private_chat_
 
 ---
 
-### 6.8 UC14 — Review Reported Documents
+### 6.8 พิจารณาเอกสารที่ถูกรายงาน (Review Reported Documents)
 
 รายละเอียดเชิงเทคนิคอยู่ที่ `docs/documents_uc14.md`
 
@@ -1132,7 +1139,7 @@ python manage.py test courses.test_uc_private_chat courses.test_uc_private_chat_
   - **ลบเอกสาร:** ต้องมีเหตุผลและยืนยันอีกครั้ง เอกสารหายจากคลังและดาวน์โหลดไม่ได้
 - ทุกการตัดสินปิด Report ทั้งหมดของเอกสาร บันทึกผู้ตัดสิน ผล เหตุผล และวันเวลา (`DocumentReportDecision`) แล้วแจ้งเตือนเจ้าของ (ไม่มีชื่อผู้ Report) และผู้ Report ทุกคน
 
-#### 6.8.2 Acceptance Criteria — UC14
+#### 6.8.2 Acceptance Criteria
 
 | ID | เงื่อนไข | โค้ดที่รับผิดชอบ | Test |
 |---|---|---|---|
@@ -1149,11 +1156,11 @@ python manage.py test courses.test_uc_private_chat courses.test_uc_private_chat_
 | UC14-11 | เจ้าของไม่เห็นชื่อผู้ Report | `constants/moderation.py`, `report_review_view` (403 สำหรับเจ้าของ) | `test_reviewer_sees_reporter_names_but_owner_cannot` |
 | UC14-12 | ผู้ตรวจไม่เห็นและตัดสินเอกสารที่ตัวเองอัปโหลดไม่ได้ | `reported_documents(exclude_uploader=...)`, `CANNOT_MODERATE_OWN` | `test_queue_order_counts_reasons_and_excludes_own_uploads` |
 | UC14-13 | ผู้ตรวจสองคนพร้อมกัน: บันทึกครั้งเดียว และคนที่สองได้ "ดำเนินการแล้ว" | conditional UPDATE ใน `_close_open_reports` | `test_second_concurrent_decision_is_rejected_and_not_recorded` |
-| UC14-14 | เจ้าของลบเอกสารเองระหว่างรอ (US12): ปิด Report และแจ้งผู้ Report (การลบเป็น hard delete จึงไม่เก็บประวัติการตัดสิน) | `close_reports_for_owner_deletion`, `services/management.py: delete_document` | `test_owner_deletion_hook_closes_reports_and_notifies_reporters`, `test_owner_delete_via_us12_notifies_reporters_and_links_to_library`, `test_owner_delete_without_open_reports_sends_no_report_notifications` |
+| UC14-14 | เจ้าของลบเอกสารเองระหว่างรอ (ผ่านหน้าแก้ไขและลบเอกสาร): ปิด Report และแจ้งผู้ Report (การลบเป็น hard delete จึงไม่เก็บประวัติการตัดสิน) | `close_reports_for_owner_deletion`, `services/management.py: delete_document` | `test_owner_deletion_hook_closes_reports_and_notifies_reporters`, `test_owner_delete_via_us12_notifies_reporters_and_links_to_library`, `test_owner_delete_without_open_reports_sends_no_report_notifications` |
 
 ---
 
-### 6.9 US-12 — แก้ไขและลบเอกสาร
+### 6.9 แก้ไขและลบเอกสาร (Edit & Delete Documents)
 
 **User Story:** ในฐานะเจ้าของเอกสาร ฉันต้องการแก้ไขหรือลบเอกสารของตนเอง เพื่อจัดการข้อมูลเอกสารให้ถูกต้องและเป็นปัจจุบัน
 
@@ -1165,7 +1172,7 @@ python manage.py test courses.test_uc_private_chat courses.test_uc_private_chat_
 - เฉพาะเจ้าของเอกสารลบได้ การลบส่งด้วย `POST` หลังยืนยัน แล้วลบทั้งไฟล์และข้อมูลโหวต Report และประวัติการตรวจที่ผูกกับเอกสาร
 - หน้าเอกสารแสดงปุ่มแก้ไขและลบให้เจ้าของเท่านั้น ส่วนเซิร์ฟเวอร์ตรวจสิทธิ์ซ้ำทุกคำขอ
 
-#### 6.9.2 หน้าของ US-12
+#### 6.9.2 หน้าของระบบแก้ไขและลบเอกสาร
 
 | การทำงาน | URL | Method |
 |---|---|---|
