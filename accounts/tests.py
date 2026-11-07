@@ -1,4 +1,10 @@
+import os
+from io import StringIO
+from unittest import mock
+
 from django.core import mail
+from django.core.management import call_command
+from django.core.management.base import CommandError
 from django.test import TestCase
 from django.urls import reverse
 
@@ -135,3 +141,56 @@ class PasswordResetTests(TestCase):
         )
         self.assertRedirects(r, reverse("accounts:password_reset_done"))
         self.assertEqual(len(mail.outbox), 0)
+
+
+SUPERUSER_ENV = {
+    "DJANGO_SUPERUSER_EMAIL": "Admin@Example.com",
+    "DJANGO_SUPERUSER_PASSWORD": "a-Long-unguessable-pass-2026",
+    "DJANGO_SUPERUSER_FIRST_NAME": "Admin",
+    "DJANGO_SUPERUSER_LAST_NAME": "CN331",
+}
+
+
+class EnsureSuperuserCommandTests(TestCase):
+    def run_command(self, env):
+        with mock.patch.dict(os.environ, env, clear=False):
+            for name in SUPERUSER_ENV:
+                if name not in env:
+                    os.environ.pop(name, None)
+            out = StringIO()
+            call_command("ensure_superuser", stdout=out)
+            return out.getvalue()
+
+    def test_skips_when_email_is_not_set(self):
+        output = self.run_command({})
+        self.assertIn("skipping", output)
+        self.assertFalse(User.objects.exists())
+
+    def test_creates_admin_superuser(self):
+        self.run_command(SUPERUSER_ENV)
+        user = User.objects.get()
+        self.assertEqual(user.email, "admin@example.com")
+        self.assertTrue(user.is_superuser)
+        self.assertEqual(user.role, User.Role.ADMIN)
+        self.assertTrue(user.email_verified)
+        self.assertTrue(user.check_password(SUPERUSER_ENV["DJANGO_SUPERUSER_PASSWORD"]))
+
+    def test_existing_user_is_left_alone(self):
+        User.objects.create_user(email="admin@example.com", password="old-password-1")
+        output = self.run_command(SUPERUSER_ENV)
+        self.assertIn("already exists", output)
+        self.assertEqual(User.objects.count(), 1)
+        self.assertTrue(User.objects.get().check_password("old-password-1"))
+
+    def test_missing_name_fails_the_build(self):
+        env = dict(SUPERUSER_ENV)
+        del env["DJANGO_SUPERUSER_FIRST_NAME"]
+        with self.assertRaisesMessage(CommandError, "DJANGO_SUPERUSER_FIRST_NAME"):
+            self.run_command(env)
+        self.assertFalse(User.objects.exists())
+
+    def test_weak_password_fails_the_build(self):
+        env = dict(SUPERUSER_ENV, DJANGO_SUPERUSER_PASSWORD="12345678")
+        with self.assertRaisesMessage(CommandError, "too weak"):
+            self.run_command(env)
+        self.assertFalse(User.objects.exists())

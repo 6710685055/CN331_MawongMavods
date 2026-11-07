@@ -24,3 +24,6 @@ db_old.sqlite3
 # Secrets and local configuration
 .env
 CLAUDE.md
+
+# collectstatic output (Render build)
+staticfiles/
