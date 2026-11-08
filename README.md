@@ -67,8 +67,8 @@ MawongMavods เป็นพื้นที่กลางของนักศ�
 
 | Environment | URL |
 |---|---|
-| Production (Render) | https://&lt;your-app&gt;.onrender.com <!-- TODO --> |
-| Django Admin | https://&lt;your-app&gt;.onrender.com/admin/ <!-- TODO --> |
+| Production (Render) | https://cn331-mawongmavods.onrender.com 
+| Django Admin | https://cn331-mawongmavods.onrender.com/admin 
 
 ### 2.1 Deploy บน Render (Free plan)
 
@@ -90,7 +90,7 @@ MawongMavods เป็นพื้นที่กลางของนักศ�
 | `AWS_STORAGE_BUCKET_NAME` | (แนะนำ) ชื่อ S3 Bucket สำหรับเก็บไฟล์อัปโหลดถาวร ถ้าเว้นว่างจะเก็บลง `media/` ชั่วคราวในเครื่อง |
 | `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` | IAM Access Key ที่มีสิทธิ์อ่าน/เขียน/ลบไฟล์ใน S3 Bucket ข้างต้น |
 
-5. รอ deploy เสร็จ แล้วนำ URL `https://<ชื่อ service>.onrender.com` มาใส่ในตารางด้านบน
+5. รอ deploy เสร็จ แล้วนำ URL `https://cn331-mawongmavods.onrender.com` มาใส่ในตารางด้านบน
 
 ตัวแปรที่ Blueprint ตั้งให้อัตโนมัติ:
 
@@ -1142,7 +1142,7 @@ python manage.py test courses.test_uc_private_chat courses.test_uc_private_chat_
 - เปิดดูเอกสาร (ดาวน์โหลดได้แม้ถูกซ่อน) และรายละเอียด Report รวมถึงชื่อผู้ Report
 - ตัดสินได้ 3 แบบ
   - **ปฏิเสธ Report:** เอกสารแสดงตามปกติ ป้าย Verified คงอยู่
-  - **ส่งกลับให้แก้ไข:** ต้องมีเหตุผล สถานะเป็น "ต้องแก้ไข" และป้าย Verified ถูกถอด
+  - **ส่งกลับให้แก้ไข:** ต้องมีเหตุผล สถานะเป็น "ต้องแก้ไข" ป้าย Verified ถูกถอด และเอกสารถูกซ่อนจากนักศึกษาคนอื่น (เปิดดูและดาวน์โหลดไม่ได้) จนกว่าเจ้าของจะอัปโหลดไฟล์ใหม่ เจ้าของและ TA/อาจารย์ยังเห็นได้
   - **ลบเอกสาร:** ต้องมีเหตุผลและยืนยันอีกครั้ง เอกสารหายจากคลังและดาวน์โหลดไม่ได้
 - ทุกการตัดสินปิด Report ทั้งหมดของเอกสาร บันทึกผู้ตัดสิน ผล เหตุผล และวันเวลา (`DocumentReportDecision`) แล้วแจ้งเตือนเจ้าของ (ไม่มีชื่อผู้ Report) และผู้ Report ทุกคน
 
@@ -1156,7 +1156,7 @@ python manage.py test courses.test_uc_private_chat courses.test_uc_private_chat_
 | UC14-04 | เลือกได้ 3 ทาง และต้องมีเหตุผลเมื่อส่งกลับหรือลบ | `ResolveReportsForm`, `RESOLUTIONS_REQUIRING_REASON` | `test_revision_requires_reason_drops_badge_and_returns_to_pending_after_fix`, `test_remove_requires_reason_and_confirmation_and_hides_everywhere` |
 | UC14-05 | การลบต้องยืนยันอีกครั้ง | `RESOLUTIONS_REQUIRING_CONFIRMATION`, `static/documents/js/moderation.js` | `test_remove_via_http_requires_confirm_checkbox` |
 | UC14-06 | ปฏิเสธ: แสดงปกติ ป้าย Verified คงอยู่ ตัวนับ Report เป็น 0 | `_apply_dismiss` | `test_dismiss_unhides_keeps_badge_and_resets_count` |
-| UC14-07 | ส่งกลับ: สถานะ "ต้องแก้ไข" และถอดป้าย Verified | `_apply_revision`, `services/versioning.py` | `test_revision_requires_reason_drops_badge_and_returns_to_pending_after_fix`, `test_revision_of_homework_resets_after_owner_replaces_file` |
+| UC14-07 | ส่งกลับ: สถานะ "ต้องแก้ไข" ถอดป้าย Verified และซ่อนจากผู้ใช้อื่นจนกว่าเจ้าของจะแก้ไฟล์ | `_apply_revision`, `services/versioning.py: replace_document_file`, `permissions.can_view_document` | `test_revision_requires_reason_drops_badge_and_returns_to_pending_after_fix`, `test_revision_of_homework_resets_after_owner_replaces_file`, `test_revision_hides_from_other_students_until_owner_replaces_file`, `test_replacing_file_keeps_threshold_hidden_document_hidden` |
 | UC14-08 | ลบ: ไม่แสดงในคลังและดาวน์โหลดไม่ได้ | `_apply_remove`, `ActiveDocumentManager` | `test_remove_requires_reason_and_confirmation_and_hides_everywhere` |
 | UC14-09 | ปิด Report ทั้งหมด และบันทึกผู้ตัดสิน ผล เหตุผล วันเวลา | `_close_open_reports`, `DocumentReportDecision` | `test_decision_closes_all_reports_and_records_who_what_why_when` |
 | UC14-10 | แจ้งเตือนเจ้าของพร้อมเหตุผล และแจ้งผู้ Report ทุกคน ทุกผลการตัดสิน | `notifiers.notify_report_decision` | `test_owner_and_all_reporters_notified_for_every_outcome` |

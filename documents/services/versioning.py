@@ -6,6 +6,7 @@ from django.db import transaction
 
 from ..models import Document
 from ..permissions import can_access_course_documents
+from ..selectors import open_reports
 from .errors import DocumentPermissionError, _validate_file_or_raise
 
 
@@ -14,6 +15,8 @@ def replace_document_file(*, user, document: Document, new_file) -> Document:
     Update a document's file (connects UC4 with UC12).
     Increments file version, revokes any existing Verified badge,
     and returns verifiable documents to the PENDING queue.
+    A document hidden after being sent back from a report review (UC14) is shown again;
+    one hidden by open reports (UC10) stays hidden until a reviewer decides.
     """
     if not can_access_course_documents(user, document.course):
         raise DocumentPermissionError("คุณไม่ได้ลงทะเบียนในรายวิชานี้")
@@ -36,6 +39,10 @@ def replace_document_file(*, user, document: Document, new_file) -> Document:
         elif document.verify_status == Document.VerifyStatus.NEEDS_REVISION:
             # Homework sent back from a report review (UC14) has no verify queue to return to.
             document.verify_status = Document.VerifyStatus.NONE
+
+        if document.is_hidden and not open_reports(document).exists():
+            document.is_hidden = False
+            document.hidden_at = None
 
         document.save()
 

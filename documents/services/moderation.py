@@ -72,12 +72,16 @@ def _apply_dismiss(document: Document, reviewer, reason: str) -> None:
 
 
 def _apply_revision(document: Document, reviewer, reason: str) -> None:
-    """Back to the owner: status 'needs revision', Verified badge dropped, visible again."""
+    """
+    Back to the owner: status 'needs revision' and Verified badge dropped. The document stays
+    hidden from other students (only the owner and course staff see it) until the owner
+    replaces the file (services/versioning.py).
+    """
     document.verify_status = Document.VerifyStatus.NEEDS_REVISION
     document.clear_verification()
     document.latest_review_comment = reason
-    for field, value in _HIDE_RESET_FIELDS.items():
-        setattr(document, field, value)
+    document.is_hidden = True
+    document.hidden_at = document.hidden_at or timezone.now()
     document.save(
         update_fields=[
             "verify_status",
@@ -87,7 +91,8 @@ def _apply_revision(document: Document, reviewer, reason: str) -> None:
             "verified_at",
             "verified_version",
             "latest_review_comment",
-            *_HIDE_RESET_FIELDS,
+            "is_hidden",
+            "hidden_at",
             "updated_at",
         ]
     )
