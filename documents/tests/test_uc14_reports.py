@@ -228,7 +228,9 @@ class UC14ReviewReportedDocumentsTests(BaseDocumentTestCase):
 
         library_url = reverse("documents:library", args=[self.course.id])
         self.client.force_login(self.student3)
-        self.assertEqual(self.client.get(self._url("detail", self.doc_visible)).status_code, 404)
+        self.assertEqual(
+            self.client.get(self._url("detail", self.doc_visible)).status_code, 404
+        )
         self.assertEqual(
             self.client.get(self._url("download", self.doc_visible)).status_code, 404
         )
@@ -237,7 +239,8 @@ class UC14ReviewReportedDocumentsTests(BaseDocumentTestCase):
         for user in (self.student2, self.ta2):  # owner and course staff
             self.client.force_login(user)
             self.assertEqual(
-                self.client.get(self._url("download", self.doc_visible)).status_code, 200
+                self.client.get(self._url("download", self.doc_visible)).status_code,
+                200,
             )
         self.client.force_login(self.student2)
         self.assertContains(
