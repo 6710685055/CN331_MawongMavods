@@ -186,6 +186,7 @@ def document_detail(request, course_id, doc_id):
     is_owner = document.uploader_id == request.user.id
 
     review_logs = document.review_logs.all() if show_review_details else []
+    report_count = open_report_count(document)
 
     return render(
         request,
@@ -208,7 +209,9 @@ def document_detail(request, course_id, doc_id):
             "report_form": ReportDocumentForm(),
             "reasons_requiring_detail": DocumentReport.REASONS_REQUIRING_DETAIL,
             "can_moderate_reports": can_moderate_reports(request.user, document),
-            "open_report_count": open_report_count(document),
+            "open_report_count": report_count,
+            # Hidden with no open reports = sent back from a report review (UC14).
+            "hidden_until_fixed": document.is_hidden and report_count == 0,
         },
     )
 

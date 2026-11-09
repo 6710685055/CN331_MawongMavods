@@ -210,13 +210,63 @@ class UC14ReviewReportedDocumentsTests(BaseDocumentTestCase):
         self._resolve(Resolution.REVISION, reason="แก้สูตรบทที่ 2")
         self.assertEqual(self.doc.verify_status, Document.VerifyStatus.NEEDS_REVISION)
         self.assertFalse(self.doc.has_active_verified_badge)
-        self.assertFalse(self.doc.is_hidden)
+        self.assertTrue(self.doc.is_hidden)
         self.assertEqual(self.doc.latest_review_comment, "แก้สูตรบทที่ 2")
 
         replace_document_file(
             user=self.student, document=self.doc, new_file=make_file("fixed.pdf")
         )
         self.assertEqual(self.doc.verify_status, Document.VerifyStatus.PENDING)
+        self.doc.refresh_from_db()
+        self.assertFalse(self.doc.is_hidden)
+        self.assertIsNone(self.doc.hidden_at)
+
+    def test_revision_hides_from_other_students_until_owner_replaces_file(self):
+        # doc_visible: uploaded by student2, reported once by student3, not hidden yet.
+        self._resolve(Resolution.REVISION, doc=self.doc_visible, reason="ไฟล์ผิดบท")
+        self.assertTrue(self.doc_visible.is_hidden)
+
+        library_url = reverse("documents:library", args=[self.course.id])
+        self.client.force_login(self.student3)
+        self.assertEqual(
+            self.client.get(self._url("detail", self.doc_visible)).status_code, 404
+        )
+        self.assertEqual(
+            self.client.get(self._url("download", self.doc_visible)).status_code, 404
+        )
+        self.assertNotContains(self.client.get(library_url), self.doc_visible.title)
+
+        for user in (self.student2, self.ta2):  # owner and course staff
+            self.client.force_login(user)
+            self.assertEqual(
+                self.client.get(self._url("download", self.doc_visible)).status_code,
+                200,
+            )
+        self.client.force_login(self.student2)
+        self.assertContains(
+            self.client.get(self._url("detail", self.doc_visible)),
+            "จนกว่าเจ้าของจะอัปโหลดไฟล์ใหม่",
+        )
+
+        replace_document_file(
+            user=self.student2, document=self.doc_visible, new_file=make_file("hw2.pdf")
+        )
+        self.client.force_login(self.student3)
+        self.assertEqual(
+            self.client.get(self._url("download", self.doc_visible)).status_code, 200
+        )
+        self.assertContains(self.client.get(library_url), self.doc_visible.title)
+
+    def test_replacing_file_keeps_threshold_hidden_document_hidden(self):
+        # self.doc is hidden by open reports and still waits for a reviewer.
+        replace_document_file(
+            user=self.student, document=self.doc, new_file=make_file("new.pdf")
+        )
+        self.doc.refresh_from_db()
+        self.assertTrue(self.doc.is_hidden)
+
+        self.client.force_login(self.student4)
+        self.assertEqual(self.client.get(self._url("download")).status_code, 404)
 
     def test_revision_of_homework_resets_after_owner_replaces_file(self):
         self._resolve(Resolution.REVISION, doc=self.doc_visible, reason="ไฟล์ผิดบท")

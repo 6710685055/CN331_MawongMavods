@@ -2,7 +2,11 @@
 {% if document.is_hidden %}
   <div class="panel hidden-banner">
     <span class="tag badge-warn">ซ่อนชั่วคราว</span>
-    <span>เอกสารนี้ถูก Report ถึงเกณฑ์ จึงถูกซ่อนจากผู้ใช้อื่นระหว่างรอ TA/อาจารย์ตรวจสอบ</span>
+    {% if hidden_until_fixed %}
+      <span>เอกสารนี้ถูกส่งกลับให้แก้ไขจากการถูก Report จึงซ่อนจากผู้ใช้อื่นจนกว่าเจ้าของจะอัปโหลดไฟล์ใหม่</span>
+    {% else %}
+      <span>เอกสารนี้ถูก Report ถึงเกณฑ์ จึงถูกซ่อนจากผู้ใช้อื่นระหว่างรอ TA/อาจารย์ตรวจสอบ</span>
+    {% endif %}
     {% if document.hidden_at %}<span class="help">(ตั้งแต่ {{ document.hidden_at|date:"d/m/Y H:i" }})</span>{% endif %}
   </div>
 {% endif %}
